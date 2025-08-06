@@ -3,15 +3,16 @@ let map, vehicleMarkers = {}, routeLayers = L.featureGroup();
 let availableModes = new Set();
 let stopsLayer;
 let vehiclesData = {};
+let userMarker = null;
+let nearbyStopCircles = [];
 
-// ICONS per transport mode
 const iconMap = {
-  "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",           // Minibus icon
-  "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",                // Taxi icon
-  "keke": "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",              // 3-wheeler icon
-  "paratransit bus": "https://cdn-icons-png.flaticon.com/512/61/61221.png",       // Bus icon
-  "waka fine bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",       // Styled bus icon
-  "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"          // Motorcycle icon
+  "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",           // Minibus
+  "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",                // Taxi
+  "keke": "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",              // 3-wheeler
+  "paratransit bus": "https://cdn-icons-png.flaticon.com/512/61/61221.png",       // Bus
+  "waka fine bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",       // Large bus
+  "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"          // Motorcycle
 };
 
 window.addEventListener("load", async () => {
@@ -21,15 +22,17 @@ window.addEventListener("load", async () => {
   }).addTo(map);
 
   setTimeout(() => map.invalidateSize(), 100);
+  addLocateMeButton();                // 👈 Add Locate Me button to map
 
-  await loadRoutes();
-  initFilters();
-  loadStops();
-  fetchVehicles();
-  setInterval(fetchVehicles, 10000);
+  await loadRoutes();                // Load route data
+  initFilters();                     // Setup mode filter panel
+  loadStops();                       // Load stops from GeoJSON
+  fetchVehicles();                   // Load live vehicle locations
+  setInterval(fetchVehicles, 10000); // Refresh vehicles every 10 seconds
+  showUserLocationAndNearbyStops(); // 👈 Auto-locate on load
 });
 
-// Load route lines from GeoJSON
+// Load and display route lines
 async function loadRoutes() {
   const base = window.location.hostname.includes("github.io") ? "/freetown-map-ui" : "";
   const res = await fetch(`${base}/data/routes.geojson`);
@@ -51,7 +54,7 @@ async function loadRoutes() {
   }).addTo(map);
 }
 
-// Load stop points
+// Load and display stops
 async function loadStops() {
   const base = window.location.hostname.includes("github.io") ? "/freetown-map-ui" : "";
   const res = await fetch(`${base}/data/stops.geojson`);
@@ -71,7 +74,7 @@ async function loadStops() {
   }).addTo(map);
 }
 
-// Filter UI for public transport modes
+// Set up filter panel with icons
 function initFilters() {
   const container = L.control({ position: 'topright' });
 
@@ -104,7 +107,7 @@ function initFilters() {
   }, 0);
 }
 
-// Apply selected mode filters
+// Apply mode filters to map
 function applyFilters() {
   const selected = Array.from(document.querySelectorAll('.filter-panel input:checked')).map(i => i.value);
 
@@ -117,7 +120,7 @@ function applyFilters() {
   });
 }
 
-// Return appropriate Leaflet icon for mode
+// Return appropriate icon per mode
 function getIcon(mode) {
   const key = mode.trim().toLowerCase();
   const iconUrl = iconMap[key] || "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
@@ -133,13 +136,13 @@ function getIcon(mode) {
   });
 }
 
-// Fetch and update vehicle positions + markers
+// Fetch and update live vehicle positions
 async function fetchVehicles() {
   const res = await fetch(`${BACKEND_URL}/api/vehicles`);
   const data = await res.json();
 
   document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
-  vehiclesData = data; // Save latest vehicle data
+  vehiclesData = data;
 
   for (const [id, info] of Object.entries(data)) {
     const { lat, lon, eta_min, mode } = info;
@@ -156,10 +159,10 @@ async function fetchVehicles() {
     }
   }
 
-  updateStopPopups(); // Refresh stop popups with ETA info
+  updateStopPopups();
 }
 
-// Check which vehicles are near each stop and update popup
+// Update popups for each stop with nearby vehicles
 function updateStopPopups() {
   if (!stopsLayer) return;
 
@@ -170,7 +173,7 @@ function updateStopPopups() {
     for (const [id, v] of Object.entries(vehiclesData)) {
       const vehicleLatLng = L.latLng(v.lat, v.lon);
       const distanceMeters = stopLatLng.distanceTo(vehicleLatLng);
-      if (distanceMeters < 300) { // within 300 meters
+      if (distanceMeters < 300) {
         nearbyVehicles.push({ id, mode: v.mode, eta_min: v.eta_min });
       }
     }
@@ -187,4 +190,80 @@ function updateStopPopups() {
       );
     }
   });
+}
+
+// Detect and show user location + nearby stops
+function showUserLocationAndNearbyStops() {
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported by your browser.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(position => {
+    const { latitude, longitude } = position.coords;
+    const userLatLng = L.latLng(latitude, longitude);
+
+    if (userMarker) {
+      userMarker.setLatLng(userLatLng);
+    } else {
+      userMarker = L.circleMarker(userLatLng, {
+        radius: 8,
+        fillColor: "#3388ff",
+        color: "#fff",
+        weight: 2,
+        fillOpacity: 0.9
+      }).addTo(map).bindPopup("📍 You are here").openPopup();
+    }
+
+    map.setView(userLatLng, 15);
+
+    nearbyStopCircles.forEach(c => map.removeLayer(c));
+    nearbyStopCircles = [];
+
+    if (stopsLayer) {
+      stopsLayer.eachLayer(stopLayer => {
+        const stopLatLng = stopLayer.getLatLng();
+        const distance = userLatLng.distanceTo(stopLatLng);
+
+        if (distance <= 500) {
+          const circle = L.circleMarker(stopLatLng, {
+            radius: 10,
+            color: "#00cc44",
+            weight: 2,
+            fillOpacity: 0,
+            dashArray: '4,2'
+          }).addTo(map);
+          nearbyStopCircles.push(circle);
+        }
+      });
+    }
+  }, error => {
+    alert("Unable to retrieve your location.");
+    console.error(error);
+  });
+}
+
+// 📍 Add "Locate Me" button to map
+function addLocateMeButton() {
+  const locateControl = L.control({ position: "topleft" });
+
+  locateControl.onAdd = function () {
+    const div = L.DomUtil.create("div", "leaflet-bar leaflet-control leaflet-control-custom");
+    div.innerHTML = "📍";
+    div.title = "Locate Me";
+
+    Object.assign(div.style, {
+      backgroundColor: "white",
+      padding: "6px 10px",
+      cursor: "pointer",
+      fontSize: "18px",
+      textAlign: "center",
+      border: "1px solid #ccc"
+    });
+
+    div.onclick = showUserLocationAndNearbyStops;
+    return div;
+  };
+
+  locateControl.addTo(map);
 }
