@@ -2,6 +2,15 @@ const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 let map, vehicleMarkers = {}, routeLayers = L.featureGroup();
 let availableModes = new Set();
 
+const iconMap = {
+  "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",           // Minibus icon
+  "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",                // Taxi icon
+  "keke": "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",              // 3-wheeler icon
+  "paratransit bus": "https://cdn-icons-png.flaticon.com/512/61/61221.png",       // Bus icon
+  "waka fine bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",       // Different styled bus icon
+  "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"           // Motorcycle icon
+};
+
 window.addEventListener("load", async () => {
   map = L.map("map").setView([8.48, -13.23], 12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -10,8 +19,8 @@ window.addEventListener("load", async () => {
 
   setTimeout(() => map.invalidateSize(), 100);
 
-  await loadRoutes();     // ✅ Wait for modes to load before filters
-  initFilters();          // ✅ Now build filters
+  await loadRoutes();     // Wait for modes to load before filters
+  initFilters();          // Build filters
   loadStops();
   fetchVehicles();
   setInterval(fetchVehicles, 10000);
@@ -63,17 +72,9 @@ function initFilters() {
     const div = L.DomUtil.create('div', 'filter-panel');
     div.innerHTML = `<h4>Filter Modes</h4>`;
 
-    const iconMap = {
-      "Podapoda": "https://cdn-icons-png.flaticon.com/512/190/190675.png",
-      "Keke": "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",
-      "Taxi": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
-      "Paratransit Bus": "https://cdn-icons-png.flaticon.com/512/61/61221.png",
-      "WAKA FINE Bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",
-      "Motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
-    };
-
     Array.from(availableModes).sort().forEach(mode => {
-      const iconUrl = iconMap[mode] || "";
+      const key = mode.trim().toLowerCase();
+      const iconUrl = iconMap[key] || "";
       div.innerHTML += `
         <label>
           <input type="checkbox" value="${mode}" checked>
@@ -109,30 +110,8 @@ function applyFilters() {
 }
 
 function getIcon(mode) {
-  let iconUrl;
-
-  switch (mode) {
-    case "Podapoda":
-      iconUrl = "https://cdn-icons-png.flaticon.com/512/190/190675.png";
-      break;
-    case "Keke":
-      iconUrl = "https://cdn-icons-png.flaticon.com/512/2967/2967037.png";
-      break;
-    case "Taxi":
-      iconUrl = "https://cdn-icons-png.flaticon.com/512/743/743007.png";
-      break;
-    case "Paratransit Bus":
-      iconUrl = "https://cdn-icons-png.flaticon.com/512/61/61221.png";
-      break;
-    case "WAKA FINE Bus":
-      iconUrl = "https://cdn-icons-png.flaticon.com/512/861/861060.png";
-      break;
-    case "Motorbike":
-      iconUrl = "https://cdn-icons-png.flaticon.com/512/4721/4721203.png";
-      break;
-    default:
-      iconUrl = "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
-  }
+  const key = mode.trim().toLowerCase();
+  const iconUrl = iconMap[key] || "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
 
   return L.icon({
     iconUrl,
@@ -154,6 +133,7 @@ async function fetchVehicles() {
   for (const [id, info] of Object.entries(data)) {
     const { lat, lon, eta_min, mode } = info;
     const icon = getIcon(mode);
+
     if (vehicleMarkers[id]) {
       vehicleMarkers[id].setLatLng([lat, lon])
         .setPopupContent(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
