@@ -1,6 +1,15 @@
 const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 let map, vehicleMarkers = {}, routeLayers = L.featureGroup();
 
+const availableModes = [
+  "Podapoda",
+  "Keke",
+  "Taxi",
+  "Paratransit Bus",
+  "WAKA FINE Bus",
+  "Motorbike"
+];
+
 window.addEventListener("load", () => {
   map = L.map("map").setView([8.48, -13.23], 12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap contributors" }).addTo(map);
@@ -38,30 +47,57 @@ async function loadStops() {
   }).addTo(map);
 }
 
+function getIconUrlForFilter(mode) {
+  switch (mode) {
+    case "Podapoda":
+      return "https://cdn-icons-png.flaticon.com/512/61/61413.png";
+    case "Keke":
+      return "https://cdn-icons-png.flaticon.com/512/1079/1079794.png";
+    case "Taxi":
+      return "https://cdn-icons-png.flaticon.com/512/854/854894.png";
+    case "Paratransit Bus":
+      return "https://cdn-icons-png.flaticon.com/512/61/61221.png";
+    case "WAKA FINE Bus":
+      return "https://cdn-icons-png.flaticon.com/512/61/61221.png";
+    case "Motorbike":
+      return "https://cdn-icons-png.flaticon.com/512/3448/3448609.png";
+    default:
+      return "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
+  }
+}
+
 function initFilters() {
   const container = L.control({ position: 'topright' });
 
   container.onAdd = () => {
     const div = L.DomUtil.create('div', 'filter-panel');
-    div.innerHTML = `
-      <h4>Filter Modes</h4>
-      <label><input type="checkbox" value="Bus" checked> Bus</label><br>
-      <label><input type="checkbox" value="Minibus" checked> Minibus</label>
-    `;
+
+    let html = `<h4>Filter Modes</h4>`;
+    Array.from(availableModes).sort().forEach(mode => {
+      const iconUrl = getIconUrlForFilter(mode);
+      html += `
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" value="${mode}" checked>
+          <img src="${iconUrl}" alt="${mode} icon" width="20" height="20" style="vertical-align:middle;">
+          ${mode}
+        </label><br>
+      `;
+    });
+
+    div.innerHTML = html;
     div.onmousedown = div.ondblclick = L.DomEvent.stopPropagation;
-    return div; // ✅ Let Leaflet insert the container
+    return div;
   };
 
   container.addTo(map);
 
-  // 🛠 Setup filters after DOM is ready
+  // Attach change listeners after DOM is ready
   setTimeout(() => {
     document.querySelectorAll('.filter-panel input').forEach(inp => {
       inp.addEventListener('change', () => applyFilters());
     });
   }, 0);
 }
-
 
 function applyFilters() {
   const selected = Array.from(document.querySelectorAll('.filter-panel input:checked')).map(i => i.value);
@@ -75,12 +111,27 @@ function applyFilters() {
 
 function getIcon(mode) {
   let iconUrl;
-  if (mode === "Bus") {
-    iconUrl = "https://cdn-icons-png.flaticon.com/512/61/61221.png";
-  } else if (mode === "Minibus") {
-    iconUrl = "https://cdn-icons-png.flaticon.com/512/61/61413.png";
-  } else {
-    iconUrl = "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
+  switch (mode) {
+    case "Podapoda":
+      iconUrl = "https://cdn-icons-png.flaticon.com/512/61/61413.png";
+      break;
+    case "Keke":
+      iconUrl = "https://cdn-icons-png.flaticon.com/512/1079/1079794.png";
+      break;
+    case "Taxi":
+      iconUrl = "https://cdn-icons-png.flaticon.com/512/854/854894.png";
+      break;
+    case "Paratransit Bus":
+      iconUrl = "https://cdn-icons-png.flaticon.com/512/61/61221.png";
+      break;
+    case "WAKA FINE Bus":
+      iconUrl = "https://cdn-icons-png.flaticon.com/512/61/61221.png";
+      break;
+    case "Motorbike":
+      iconUrl = "https://cdn-icons-png.flaticon.com/512/3448/3448609.png";
+      break;
+    default:
+      iconUrl = "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
   }
   return L.icon({
     iconUrl,
@@ -89,10 +140,9 @@ function getIcon(mode) {
     popupAnchor: [0, -28],
     shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
     shadowSize: [41, 41],
-    shadowAnchor: [14, 41]  // <-- no trailing comma here
+    shadowAnchor: [14, 41]
   });
 }
-
 
 async function fetchVehicles() {
   const res = await fetch(`${BACKEND_URL}/api/vehicles`);
@@ -111,3 +161,4 @@ async function fetchVehicles() {
     }
   }
 }
+
