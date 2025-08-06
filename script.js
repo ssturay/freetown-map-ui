@@ -2,7 +2,7 @@ const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 let map, vehicleMarkers = {}, routeLayers = L.featureGroup();
 let availableModes = new Set();
 
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
   map = L.map("map").setView([8.48, -13.23], 12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap contributors"
@@ -10,12 +10,11 @@ window.addEventListener("load", () => {
 
   setTimeout(() => map.invalidateSize(), 100);
 
-  loadRoutes();
+  await loadRoutes();     // ✅ Wait for modes to load before filters
+  initFilters();          // ✅ Now build filters
   loadStops();
   fetchVehicles();
   setInterval(fetchVehicles, 10000);
-
-  initFilters();
 });
 
 async function loadRoutes() {
@@ -24,7 +23,9 @@ async function loadRoutes() {
   const data = await res.json();
 
   data.features.forEach(f => {
-    availableModes.add(f.properties.mode);
+    if (f.properties && f.properties.mode) {
+      availableModes.add(f.properties.mode);
+    }
   });
 
   L.geoJSON(data, {
@@ -50,7 +51,8 @@ async function loadStops() {
       weight: 1,
       fillOpacity: 0.9
     }),
-    onEachFeature: (f, layer) => layer.bindPopup(`<strong>${f.properties.name}</strong><br><small>Route: ${f.properties.route_id}</small>`)
+    onEachFeature: (f, layer) =>
+      layer.bindPopup(`<strong>${f.properties.name}</strong><br><small>Route: ${f.properties.route_id}</small>`)
   }).addTo(map);
 }
 
@@ -163,3 +165,5 @@ async function fetchVehicles() {
     }
   }
 }
+
+   
