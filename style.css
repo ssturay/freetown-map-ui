@@ -2,18 +2,16 @@
 html, body {
   margin: 0;
   padding: 0;
-  font-family: 'Arial', sans-serif;
   height: 100%;
+  font-family: 'Arial', sans-serif;
 }
 
-/* Wrapper for the full page layout */
 .page-container {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* Full height of the viewport */
+  height: 100vh; /* Full viewport height */
 }
 
-/* Header styles */
 header {
   padding: 12px;
   background: #004d99;
@@ -28,7 +26,6 @@ header h1 {
   margin: 0;
 }
 
-/* Locate Me button */
 #locateMeBtn {
   background: #ffcc00;
   border: none;
@@ -37,13 +34,13 @@ header h1 {
   cursor: pointer;
 }
 
-/* Map container that fills remaining space */
+/* The magic: map fills all leftover space */
 #map {
-  flex: 1; /* Let it grow to fill remaining vertical space */
+  flex: 1;
   width: 100%;
+  background-color: lightgray; /* temporary for visual debugging */
 }
 
-/* Footer styles */
 footer {
   background: #eee;
   padding: 8px;
@@ -51,7 +48,6 @@ footer {
   font-size: 14px;
 }
 
-/* Responsive adjustments */
 @media screen and (max-width: 768px) {
   header h1 {
     font-size: 16px;
