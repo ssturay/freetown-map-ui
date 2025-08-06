@@ -1,4 +1,4 @@
-const BACKEND_URL = "...";
+const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 let map, vehicleMarkers = {}, routeLayers = L.featureGroup();
 
 window.addEventListener("load", () => {
