@@ -95,7 +95,7 @@ function getIcon(mode) {
 
 
 async function fetchVehicles() {
-  const res = await fetch(`${https://freetown-pt-tracker-backend.onrender.com}/api/vehicles`);
+  const res = await fetch(`${BACKEND_URL}/api/vehicles`);
   const data = await res.json();
   document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
   for (const [id, info] of Object.entries(data)) {
