@@ -61,3 +61,6 @@ setInterval(fetchVehicles, 10000); // Refresh every 10 seconds
 setTimeout(() => {
   map.invalidateSize();
 }, 100);
+
+
+
