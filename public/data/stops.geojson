@@ -1,7 +1,6 @@
 {
   "type": "FeatureCollection",
   "features": [
-    // === Lumley → CBD Stops ===
     {
       "type": "Feature",
       "properties": {
@@ -86,8 +85,6 @@
         "coordinates": [-13.2335659, 8.4919258]
       }
     },
-
-    // === Calaba Town → CBD Stops ===
     {
       "type": "Feature",
       "properties": {
