@@ -15,42 +15,44 @@ window.addEventListener("load", () => {
   // Fix for leaflet sizing issues on load
   setTimeout(() => map.invalidateSize(), 100);
 
-  // Determine correct path for GitHub Pages
-  const basePath = window.location.hostname.includes("github.io")
-    ? "/freetown-map-ui"
-    : "";
-
-  // Load and render stops from GeoJSON
-  fetch(`${basePath}/data/stops.geojson`)
-    .then((res) => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    })
-    .then((stopsGeoJSON) => {
-      L.geoJSON(stopsGeoJSON, {
-        pointToLayer: (feature, latlng) =>
-          L.circleMarker(latlng, {
-            radius: 6,
-            fillColor: "#000",
-            color: "#fff",
-            weight: 1,
-            opacity: 1,
-            fillOpacity: 0.9,
-          }),
-        onEachFeature: (feature, layer) => {
-          const { name, route_id } = feature.properties;
-          layer.bindPopup(`<strong>${name}</strong><br><small>Route: ${route_id}</small>`);
-        },
-      }).addTo(map);
-    })
-    .catch((err) => {
-      console.error("Failed to load stops.geojson:", err);
-    });
+  // Load and render stops from GeoJSON (dynamic path handling for GitHub Pages)
+  loadStopMarkers();
 
   // Start fetching vehicles
   fetchVehicles();
   setInterval(fetchVehicles, 10000);
 });
+
+// Load stop markers from GeoJSON
+async function loadStopMarkers() {
+  const basePath = window.location.hostname.includes("github.io")
+    ? "/freetown-map-ui"
+    : "";
+
+  try {
+    const res = await fetch(`${basePath}/data/stops.geojson`);
+    if (!res.ok) throw new Error(`Failed to load stops.geojson (status ${res.status})`);
+    const stopsGeoJSON = await res.json();
+
+    L.geoJSON(stopsGeoJSON, {
+      pointToLayer: (feature, latlng) =>
+        L.circleMarker(latlng, {
+          radius: 6,
+          fillColor: "#000",
+          color: "#fff",
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 0.9,
+        }),
+      onEachFeature: (feature, layer) => {
+        const { name, route_id } = feature.properties;
+        layer.bindPopup(`<strong>${name}</strong><br><small>Route: ${route_id}</small>`);
+      },
+    }).addTo(map);
+  } catch (err) {
+    console.error("Failed to load stops.geojson:", err);
+  }
+}
 
 // Locate Me button click handler
 document.getElementById("locateMeBtn").addEventListener("click", () => {
@@ -85,9 +87,9 @@ async function fetchVehicles() {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
     const data = await res.json();
 
-    const timestampElem = document.getElementById("lastUpdated");
-    if (timestampElem) {
-      timestampElem.innerText = new Date().toLocaleTimeString();
+    const updatedElem = document.getElementById("lastUpdated");
+    if (updatedElem) {
+      updatedElem.innerText = new Date().toLocaleTimeString();
     }
 
     for (const [id, info] of Object.entries(data)) {
