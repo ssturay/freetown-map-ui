@@ -1,14 +1,17 @@
 const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 let map, vehicleMarkers = {}, routeLayers = L.featureGroup();
 let availableModes = new Set();
+let stopsLayer;
+let vehiclesData = {};
 
+// ICONS per transport mode
 const iconMap = {
   "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",           // Minibus icon
   "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",                // Taxi icon
   "keke": "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",              // 3-wheeler icon
   "paratransit bus": "https://cdn-icons-png.flaticon.com/512/61/61221.png",       // Bus icon
-  "waka fine bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",       // Different styled bus icon
-  "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"           // Motorcycle icon
+  "waka fine bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",       // Styled bus icon
+  "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"          // Motorcycle icon
 };
 
 window.addEventListener("load", async () => {
@@ -19,13 +22,14 @@ window.addEventListener("load", async () => {
 
   setTimeout(() => map.invalidateSize(), 100);
 
-  await loadRoutes();     // Wait for modes to load before filters
-  initFilters();          // Build filters
+  await loadRoutes();
+  initFilters();
   loadStops();
   fetchVehicles();
   setInterval(fetchVehicles, 10000);
 });
 
+// Load route lines from GeoJSON
 async function loadRoutes() {
   const base = window.location.hostname.includes("github.io") ? "/freetown-map-ui" : "";
   const res = await fetch(`${base}/data/routes.geojson`);
@@ -47,12 +51,13 @@ async function loadRoutes() {
   }).addTo(map);
 }
 
+// Load stop points
 async function loadStops() {
   const base = window.location.hostname.includes("github.io") ? "/freetown-map-ui" : "";
   const res = await fetch(`${base}/data/stops.geojson`);
   const data = await res.json();
 
-  L.geoJSON(data, {
+  stopsLayer = L.geoJSON(data, {
     pointToLayer: (_, ll) => L.circleMarker(ll, {
       radius: 6,
       fillColor: "#000",
@@ -60,11 +65,13 @@ async function loadStops() {
       weight: 1,
       fillOpacity: 0.9
     }),
-    onEachFeature: (f, layer) =>
-      layer.bindPopup(`<strong>${f.properties.name}</strong><br><small>Route: ${f.properties.route_id}</small>`)
+    onEachFeature: (feature, layer) => {
+      layer.bindPopup(`Loading arrivals...`);
+    }
   }).addTo(map);
 }
 
+// Filter UI for public transport modes
 function initFilters() {
   const container = L.control({ position: 'topright' });
 
@@ -97,6 +104,7 @@ function initFilters() {
   }, 0);
 }
 
+// Apply selected mode filters
 function applyFilters() {
   const selected = Array.from(document.querySelectorAll('.filter-panel input:checked')).map(i => i.value);
 
@@ -109,6 +117,7 @@ function applyFilters() {
   });
 }
 
+// Return appropriate Leaflet icon for mode
 function getIcon(mode) {
   const key = mode.trim().toLowerCase();
   const iconUrl = iconMap[key] || "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
@@ -124,11 +133,13 @@ function getIcon(mode) {
   });
 }
 
+// Fetch and update vehicle positions + markers
 async function fetchVehicles() {
   const res = await fetch(`${BACKEND_URL}/api/vehicles`);
   const data = await res.json();
 
   document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
+  vehiclesData = data; // Save latest vehicle data
 
   for (const [id, info] of Object.entries(data)) {
     const { lat, lon, eta_min, mode } = info;
@@ -144,6 +155,36 @@ async function fetchVehicles() {
       vehicleMarkers[id] = m;
     }
   }
+
+  updateStopPopups(); // Refresh stop popups with ETA info
 }
 
-   
+// Check which vehicles are near each stop and update popup
+function updateStopPopups() {
+  if (!stopsLayer) return;
+
+  stopsLayer.eachLayer(stopLayer => {
+    const stopLatLng = stopLayer.getLatLng();
+    const nearbyVehicles = [];
+
+    for (const [id, v] of Object.entries(vehiclesData)) {
+      const vehicleLatLng = L.latLng(v.lat, v.lon);
+      const distanceMeters = stopLatLng.distanceTo(vehicleLatLng);
+      if (distanceMeters < 300) { // within 300 meters
+        nearbyVehicles.push({ id, mode: v.mode, eta_min: v.eta_min });
+      }
+    }
+
+    if (nearbyVehicles.length === 0) {
+      stopLayer.setPopupContent(`<strong>${stopLayer.feature.properties.name}</strong><br>No vehicles nearby.`);
+    } else {
+      const listHtml = nearbyVehicles.map(v =>
+        `<li><img src="${getIcon(v.mode).options.iconUrl}" style="width:16px; vertical-align:middle; margin-right:4px;">` +
+        `<b>${v.mode}</b> #${v.id} - ETA: ${v.eta_min} min</li>`).join("");
+      stopLayer.setPopupContent(
+        `<strong>${stopLayer.feature.properties.name}</strong><br>` +
+        `<ul style="padding-left: 16px; margin: 4px 0;">${listHtml}</ul>`
+      );
+    }
+  });
+}
