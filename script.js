@@ -1,6 +1,11 @@
 const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 
-const map = L.map("map").setView([8.48, -13.23], 13);
+window.addEventListener("load", () => {
+  const map = L.map("map").setView([8.48, -13.23], 13);
+  // Add tile layer...
+  map.invalidateSize();
+});
+
 
 // Add map tiles
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
