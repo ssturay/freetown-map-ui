@@ -1,116 +1,91 @@
-const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
-
-let map;
-let vehicleMarkers = {};
+const BACKEND_URL = "...";
+let map, vehicleMarkers = {}, routeLayers = L.featureGroup();
 
 window.addEventListener("load", () => {
-  // Initialize the map
-  map = L.map("map").setView([8.48, -13.23], 13);
-
-  // Add OpenStreetMap tile layer
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap contributors",
-  }).addTo(map);
-
-  // Fix for leaflet sizing issues on load
+  map = L.map("map").setView([8.48, -13.23], 12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap contributors" }).addTo(map);
   setTimeout(() => map.invalidateSize(), 100);
 
-  // Load and render stops from GeoJSON (dynamic path handling for GitHub Pages)
-  loadStopMarkers();
-
-  // Start fetching vehicles
+  loadRoutes();
+  loadStops();
   fetchVehicles();
   setInterval(fetchVehicles, 10000);
+
+  initFilters();
 });
 
-// Load stop markers from GeoJSON
-async function loadStopMarkers() {
-  const basePath = window.location.hostname.includes("github.io")
-    ? "/freetown-map-ui"
-    : "";
-
-  try {
-    const res = await fetch(`${basePath}/data/stops.geojson`);
-    if (!res.ok) throw new Error(`Failed to load stops.geojson (status ${res.status})`);
-    const stopsGeoJSON = await res.json();
-
-    L.geoJSON(stopsGeoJSON, {
-      pointToLayer: (feature, latlng) =>
-        L.circleMarker(latlng, {
-          radius: 6,
-          fillColor: "#000",
-          color: "#fff",
-          weight: 1,
-          opacity: 1,
-          fillOpacity: 0.9,
-        }),
-      onEachFeature: (feature, layer) => {
-        const { name, route_id } = feature.properties;
-        layer.bindPopup(`<strong>${name}</strong><br><small>Route: ${route_id}</small>`);
-      },
-    }).addTo(map);
-  } catch (err) {
-    console.error("Failed to load stops.geojson:", err);
-  }
+async function loadRoutes() {
+  const base = window.location.hostname.includes("github.io") ? "/freetown-map-ui" : "";
+  const res = await fetch(`${base}/data/routes.geojson`);
+  const data = await res.json();
+  L.geoJSON(data, {
+    style: f => ({ color: f.properties.color, weight: 4 }),
+    onEachFeature: (f, layer) => {
+      layer.bindPopup(`<strong>${f.properties.name}</strong><br><small>${f.properties.mode}</small>`);
+      layer.properties = f.properties;
+      routeLayers.addLayer(layer);
+    }
+  }).addTo(map);
 }
 
-// Locate Me button click handler
-document.getElementById("locateMeBtn").addEventListener("click", () => {
-  if (navigator.geolocation && map) {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        L.marker([latitude, longitude], {
-          icon: L.icon({
-            iconUrl: "https://cdn-icons-png.flaticon.com/512/64/64113.png",
-            iconSize: [24, 24],
-          }),
-        })
-          .addTo(map)
-          .bindPopup("You are here")
-          .openPopup();
-        map.setView([latitude, longitude], 14);
-      },
-      (err) => {
-        alert("Geolocation error: " + err.message);
-      }
-    );
-  } else {
-    alert("Geolocation is not supported by your browser.");
-  }
-});
+async function loadStops() {
+  const base = window.location.hostname.includes("github.io") ? "/freetown-map-ui" : "";
+  const res = await fetch(`${base}/data/stops.geojson`);
+  const data = await res.json();
+  L.geoJSON(data, {
+    pointToLayer: (_, ll) => L.circleMarker(ll, { radius: 6, fillColor:"#000", color:"#fff", weight:1, fillOpacity:0.9 }),
+    onEachFeature: (f, layer) => layer.bindPopup(`<strong>${f.properties.name}</strong><br><small>Route: ${f.properties.route_id}</small>`)
+  }).addTo(map);
+}
+
+function initFilters() {
+  const container = L.control({ position: 'topright' });
+  container.onAdd = () => {
+    const div = L.DomUtil.create('div', 'filter-panel');
+    div.innerHTML = `
+      <h4>Filter Modes</h4>
+      <label><input type="checkbox" value="Bus" checked> Bus</label><br>
+      <label><input type="checkbox" value="Minibus" checked> Minibus</label>
+    `;
+    div.onmousedown = div.ondblclick = L.DomEvent.stopPropagation;
+    container.getContainer().appendChild(div);
+    document.querySelectorAll('.filter-panel input').forEach(inp => {
+      inp.addEventListener('change', () => applyFilters());
+    });
+    return div;
+  };
+  container.addTo(map);
+}
+
+function applyFilters() {
+  const selected = Array.from(document.querySelectorAll('.filter-panel input:checked')).map(i => i.value);
+  routeLayers.eachLayer(layer => {
+    (selected.includes(layer.properties.mode)) ? map.addLayer(layer) : map.removeLayer(layer);
+  });
+  Object.values(vehicleMarkers).forEach(m => {
+    (selected.includes(m.mode)) ? map.addLayer(m) : map.removeLayer(m);
+  });
+}
+
+function getIcon(mode) {
+  // return different icons by mode
+  return L.icon({ iconUrl: /* your URL */, iconSize: [28,28] });
+}
 
 async function fetchVehicles() {
-  if (!map) return;
-
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/vehicles`);
-    const data = await res.json();
-
-    const updatedElem = document.getElementById("lastUpdated");
-    if (updatedElem) {
-      updatedElem.innerText = new Date().toLocaleTimeString();
+  const res = await fetch(`${BACKEND_URL}/api/vehicles`);
+  const data = await res.json();
+  document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
+  for (const [id, info] of Object.entries(data)) {
+    const { lat, lon, eta_min, mode } = info;
+    const icon = getIcon(mode);
+    if (vehicleMarkers[id]) {
+      vehicleMarkers[id].setLatLng([lat, lon]).setPopupContent(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
+    } else {
+      const m = L.marker([lat, lon], { icon }).addTo(map)
+        .bindPopup(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
+      m.mode = mode;
+      vehicleMarkers[id] = m;
     }
-
-    for (const [id, info] of Object.entries(data)) {
-      const { lat, lon, eta_min } = info;
-
-      if (vehicleMarkers[id]) {
-        vehicleMarkers[id].setLatLng([lat, lon]);
-        vehicleMarkers[id].setPopupContent(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
-      } else {
-        const marker = L.marker([lat, lon], {
-          icon: L.icon({
-            iconUrl: "https://cdn-icons-png.flaticon.com/512/61/61200.png",
-            iconSize: [28, 28],
-          }),
-        })
-          .addTo(map)
-          .bindPopup(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
-        vehicleMarkers[id] = marker;
-      }
-    }
-  } catch (error) {
-    console.error("Error fetching vehicle data:", error);
   }
 }
