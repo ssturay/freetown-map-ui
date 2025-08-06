@@ -16,7 +16,12 @@ window.addEventListener("load", () => {
   setTimeout(() => map.invalidateSize(), 100);
 
   // Load and render stops from GeoJSON
-  fetch("/data/stops.geojson")
+  const geojsonPath = window.location.hostname.includes("github.io")
+  ? "/freetown-map-ui/data/stops.geojson"
+  : "/data/stops.geojson";
+
+fetch(geojsonPath)
+
     .then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
