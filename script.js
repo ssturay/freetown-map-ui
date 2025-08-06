@@ -15,13 +15,13 @@ window.addEventListener("load", () => {
   // Fix for leaflet sizing issues on load
   setTimeout(() => map.invalidateSize(), 100);
 
+  // Determine correct path for GitHub Pages
+  const basePath = window.location.hostname.includes("github.io")
+    ? "/freetown-map-ui"
+    : "";
+
   // Load and render stops from GeoJSON
-  const geojsonPath = window.location.hostname.includes("github.io")
-  ? "/freetown-map-ui/data/stops.geojson"
-  : "/data/stops.geojson";
-
-fetch(geojsonPath)
-
+  fetch(`${basePath}/data/stops.geojson`)
     .then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
@@ -85,7 +85,10 @@ async function fetchVehicles() {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
     const data = await res.json();
 
-    document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
+    const timestampElem = document.getElementById("lastUpdated");
+    if (timestampElem) {
+      timestampElem.innerText = new Date().toLocaleTimeString();
+    }
 
     for (const [id, info] of Object.entries(data)) {
       const { lat, lon, eta_min } = info;
