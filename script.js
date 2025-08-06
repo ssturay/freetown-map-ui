@@ -1,47 +1,53 @@
 const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 
-let map;  // Declare map in the global scope
+let map;
+let vehicleMarkers = {};
 
 window.addEventListener("load", () => {
-  // Initialize map
+  // Initialize the map
   map = L.map("map").setView([8.48, -13.23], 13);
 
-  // Add tile layer inside load event
+  // Add OpenStreetMap tile layer
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap contributors",
   }).addTo(map);
 
-  // Fix for broken tiles on initial load
-  setTimeout(() => {
-    map.invalidateSize();
-  }, 100);
+  // Fix for leaflet sizing issues on load
+  setTimeout(() => map.invalidateSize(), 100);
 
-  // Start fetching vehicles once map is ready
+  // Start fetching vehicles
   fetchVehicles();
   setInterval(fetchVehicles, 10000);
 });
 
-// Add your location button listener (outside load but uses map)
+// Locate Me button click handler
 document.getElementById("locateMeBtn").addEventListener("click", () => {
   if (navigator.geolocation && map) {
-    navigator.geolocation.getCurrentPosition(pos => {
-      const { latitude, longitude } = pos.coords;
-      L.marker([latitude, longitude], {
-        icon: L.icon({
-          iconUrl: "https://cdn-icons-png.flaticon.com/512/64/64113.png",
-          iconSize: [24, 24],
-        }),
-      }).addTo(map).bindPopup("You are here").openPopup();
-      map.setView([latitude, longitude], 14);
-    });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        L.marker([latitude, longitude], {
+          icon: L.icon({
+            iconUrl: "https://cdn-icons-png.flaticon.com/512/64/64113.png",
+            iconSize: [24, 24],
+          }),
+        })
+          .addTo(map)
+          .bindPopup("You are here")
+          .openPopup();
+        map.setView([latitude, longitude], 14);
+      },
+      (err) => {
+        alert("Geolocation error: " + err.message);
+      }
+    );
+  } else {
+    alert("Geolocation is not supported by your browser.");
   }
 });
 
-let vehicleMarkers = {};
-
-// Fetch vehicles and update map
 async function fetchVehicles() {
-  if (!map) return; // Wait until map is ready
+  if (!map) return;
 
   try {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
@@ -61,7 +67,9 @@ async function fetchVehicles() {
             iconUrl: "https://cdn-icons-png.flaticon.com/512/61/61200.png",
             iconSize: [28, 28],
           }),
-        }).addTo(map).bindPopup(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
+        })
+          .addTo(map)
+          .bindPopup(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
         vehicleMarkers[id] = marker;
       }
     }
