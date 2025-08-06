@@ -1,4 +1,4 @@
-const stopsGeoJSON = {
+{
   "type": "FeatureCollection",
   "features": [
     // === Lumley → CBD Stops ===
@@ -217,7 +217,7 @@ const stopsGeoJSON = {
       },
       "geometry": {
         "type": "Point",
-        "coordinates": [-13.210648, 8.489010]
+        "coordinates": [-13.210648, 8.48901]
       }
     },
     {
@@ -233,4 +233,4 @@ const stopsGeoJSON = {
       }
     }
   ]
-};
+}
