@@ -48,14 +48,19 @@ function initFilters() {
       <label><input type="checkbox" value="Minibus" checked> Minibus</label>
     `;
     div.onmousedown = div.ondblclick = L.DomEvent.stopPropagation;
-    container.getContainer().appendChild(div);
-    document.querySelectorAll('.filter-panel input').forEach(inp => {
-      inp.addEventListener('change', () => applyFilters());
-    });
-    return div;
+    
+    // 🛠 Setup filters
+    setTimeout(() => {
+      document.querySelectorAll('.filter-panel input').forEach(inp => {
+        inp.addEventListener('change', () => applyFilters());
+      });
+    }, 0); // Delay so elements exist in DOM
+    
+    return div;  // ✅ This is the correct way
   };
   container.addTo(map);
 }
+
 
 function applyFilters() {
   const selected = Array.from(document.querySelectorAll('.filter-panel input:checked')).map(i => i.value);
