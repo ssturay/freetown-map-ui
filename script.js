@@ -40,6 +40,7 @@ async function loadStops() {
 
 function initFilters() {
   const container = L.control({ position: 'topright' });
+
   container.onAdd = () => {
     const div = L.DomUtil.create('div', 'filter-panel');
     div.innerHTML = `
@@ -48,17 +49,17 @@ function initFilters() {
       <label><input type="checkbox" value="Minibus" checked> Minibus</label>
     `;
     div.onmousedown = div.ondblclick = L.DomEvent.stopPropagation;
-    
-    // 🛠 Setup filters
-    setTimeout(() => {
-      document.querySelectorAll('.filter-panel input').forEach(inp => {
-        inp.addEventListener('change', () => applyFilters());
-      });
-    }, 0); // Delay so elements exist in DOM
-    
-    return div;  // ✅ This is the correct way
+    return div; // ✅ Let Leaflet insert the container
   };
+
   container.addTo(map);
+
+  // 🛠 Setup filters after DOM is ready
+  setTimeout(() => {
+    document.querySelectorAll('.filter-panel input').forEach(inp => {
+      inp.addEventListener('change', () => applyFilters());
+    });
+  }, 0);
 }
 
 
