@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freetown PT Tracker</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -13,20 +13,21 @@
   />
 </head>
 <body>
-  <header>
-    <h1>🚌 Freetown Transport Tracker</h1>
-    <button id="locateMeBtn">📍 My Location</button>
-  </header>
+  <!-- Added wrapper div -->
+  <div class="page-container">
+    <header>
+      <h1>🚌 Freetown Transport Tracker</h1>
+      <button id="locateMeBtn">📍 My Location</button>
+    </header>
 
-  <div id="map"></div>
+    <div id="map"></div>
 
-  <footer>
-    <p>Last updated: <span id="lastUpdated">--</span></p>
-  </footer>
+    <footer>
+      <p>Last updated: <span id="lastUpdated">--</span></p>
+    </footer>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
-
-Add index.html
