@@ -74,19 +74,19 @@ function getIcon(mode) {
   } else if (mode === "Minibus") {
     iconUrl = "https://cdn-icons-png.flaticon.com/512/61/61413.png";
   } else {
-    // Leaflet default marker icon URL (CDN)
     iconUrl = "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
   }
   return L.icon({
     iconUrl,
     iconSize: [28, 28],
-    iconAnchor: [14, 28],      // point of the icon which will correspond to marker's location
-    popupAnchor: [0, -28],     // point from which the popup should open relative to the iconAnchor
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -28],
     shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
     shadowSize: [41, 41],
-    shadowAnchor: [14, 41],
+    shadowAnchor: [14, 41]  // <-- no trailing comma here
   });
 }
+
 
 async function fetchVehicles() {
   const res = await fetch(`${BACKEND_URL}/api/vehicles`);
