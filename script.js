@@ -15,36 +15,37 @@ window.addEventListener("load", () => {
   // Fix for leaflet sizing issues on load
   setTimeout(() => map.invalidateSize(), 100);
 
+  // Load and render stops from GeoJSON
+  fetch("/data/stops.geojson")
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    })
+    .then((stopsGeoJSON) => {
+      L.geoJSON(stopsGeoJSON, {
+        pointToLayer: (feature, latlng) =>
+          L.circleMarker(latlng, {
+            radius: 6,
+            fillColor: "#000",
+            color: "#fff",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.9,
+          }),
+        onEachFeature: (feature, layer) => {
+          const { name, route_id } = feature.properties;
+          layer.bindPopup(`<strong>${name}</strong><br><small>Route: ${route_id}</small>`);
+        },
+      }).addTo(map);
+    })
+    .catch((err) => {
+      console.error("Failed to load stops.geojson:", err);
+    });
+
   // Start fetching vehicles
   fetchVehicles();
   setInterval(fetchVehicles, 10000);
 });
-
-// Load and render stops from the GeoJSON file
-fetch("/data/stops.geojson")
-  .then((res) => res.json())
-  .then((stopsGeoJSON) => {
-    stopsGeoJSON.features.forEach((feature) => {
-      const [lng, lat] = feature.geometry.coordinates;
-      const stopName = feature.properties.name;
-      const routeId = feature.properties.route_id;
-
-      L.circleMarker([lat, lng], {
-        radius: 6,
-        fillColor: "#000",
-        color: "#fff",
-        weight: 1,
-        opacity: 1,
-        fillOpacity: 0.9
-      })
-        .addTo(map)
-        .bindPopup(`<b>${stopName}</b><br><small>Route: ${routeId}</small>`);
-    });
-  })
-  .catch((err) => {
-    console.error("Failed to load stops.geojson:", err);
-  });
-
 
 // Locate Me button click handler
 document.getElementById("locateMeBtn").addEventListener("click", () => {
