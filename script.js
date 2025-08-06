@@ -68,8 +68,24 @@ function applyFilters() {
 }
 
 function getIcon(mode) {
-  // return different icons by mode
-  return L.icon({ iconUrl: /* your URL */, iconSize: [28,28] });
+  let iconUrl;
+  if (mode === "Bus") {
+    iconUrl = "https://cdn-icons-png.flaticon.com/512/61/61221.png";
+  } else if (mode === "Minibus") {
+    iconUrl = "https://cdn-icons-png.flaticon.com/512/61/61413.png";
+  } else {
+    // Leaflet default marker icon URL (CDN)
+    iconUrl = "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
+  }
+  return L.icon({
+    iconUrl,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],      // point of the icon which will correspond to marker's location
+    popupAnchor: [0, -28],     // point from which the popup should open relative to the iconAnchor
+    shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
+    shadowSize: [41, 41],
+    shadowAnchor: [14, 41],
+  });
 }
 
 async function fetchVehicles() {
