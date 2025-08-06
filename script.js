@@ -20,6 +20,31 @@ window.addEventListener("load", () => {
   setInterval(fetchVehicles, 10000);
 });
 
+// ✅ Load and add stops to the map
+  fetch('/data/stops.geojson')  // Adjust this path if needed
+    .then(res => res.json())
+    .then(stopsGeoJSON => {
+      stopsGeoJSON.features.forEach((feature) => {
+        const [lng, lat] = feature.geometry.coordinates;
+        const stopName = feature.properties.name;
+
+        L.circleMarker([lat, lng], {
+          radius: 5,
+          fillColor: "#000",
+          color: "#fff",
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 0.9,
+        })
+          .addTo(map)
+          .bindPopup(`<b>${stopName}</b>`);
+      });
+    })
+    .catch(err => {
+      console.error('Failed to load stops.geojson:', err);
+    });
+});
+
 // Locate Me button click handler
 document.getElementById("locateMeBtn").addEventListener("click", () => {
   if (navigator.geolocation && map) {
