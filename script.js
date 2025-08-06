@@ -56,3 +56,8 @@ async function fetchVehicles() {
 
 fetchVehicles();
 setInterval(fetchVehicles, 10000); // Refresh every 10 seconds
+
+// Fix for broken tiles on initial load
+setTimeout(() => {
+  map.invalidateSize();
+}, 100);
