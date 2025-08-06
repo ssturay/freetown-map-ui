@@ -1,0 +1,236 @@
+const stopsGeoJSON = {
+  "type": "FeatureCollection",
+  "features": [
+    // === Lumley → CBD Stops ===
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley1",
+        "name": "Lumley Bus Station",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.262173, 8.466259]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley2",
+        "name": "Aberdeen Road Junction",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.270403, 8.491736]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley3",
+        "name": "Murray Town Junction",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.260804, 8.485448]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley4",
+        "name": "Congo Cross",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.259352, 8.483005]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley5",
+        "name": "The Light",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.249334, 8.475963]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley6",
+        "name": "St. John",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.240771, 8.481979]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley7",
+        "name": "Central Bus Station",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.2335659, 8.4919258]
+      }
+    },
+
+    // === Calaba Town → CBD Stops ===
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba1",
+        "name": "Calaba Town Bus Station",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.155324, 8.431746]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba2",
+        "name": "K-Step",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.159175, 8.437176]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba3",
+        "name": "Sayanoh",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.160624, 8.440121]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba4",
+        "name": "PMB New Road",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.1615768, 8.4440309]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba5",
+        "name": "Portee New Road",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.1750137, 8.4648087]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba6",
+        "name": "Brima Lane Old Road",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.180268, 8.464774]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba7",
+        "name": "Texaco Barracks",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.1836975, 8.4664581]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba8",
+        "name": "Shell New Road",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.190641, 8.4742051]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba9",
+        "name": "Ferry Junction",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.2062336, 8.4797613]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba10",
+        "name": "Upgun",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.2118419, 8.4836233]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba11",
+        "name": "Cline Town",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.210648, 8.489010]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "calaba12",
+        "name": "Eastend Police",
+        "route_id": "calaba_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.2259938, 8.4878207]
+      }
+    }
+  ]
+};
