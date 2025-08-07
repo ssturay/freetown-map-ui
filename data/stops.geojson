@@ -161,6 +161,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley14",
+        "name": "Aberdeen",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.287048, 8.493644]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley15",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
