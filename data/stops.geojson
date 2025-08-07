@@ -185,6 +185,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley16",
+        "name": "Tengbeh Town Park",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.226366, 8.487257]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley17",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
