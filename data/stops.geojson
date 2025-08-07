@@ -209,6 +209,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley18",
+        "name": "Sky Junction",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.218882, 8.462276]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley19",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
