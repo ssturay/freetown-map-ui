@@ -113,6 +113,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley10",
+        "name": "Wilberforce",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.262249, 8.468952]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley11",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
