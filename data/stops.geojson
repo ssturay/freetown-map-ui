@@ -149,6 +149,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley13",
+        "name": "Signal Hill Junction",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.265385, 8.480829]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley14",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
