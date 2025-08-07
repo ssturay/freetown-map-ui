@@ -221,6 +221,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley19",
+        "name": "Sanders St_Kroo Town Rd",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.239124, 8.483578]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley20",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
