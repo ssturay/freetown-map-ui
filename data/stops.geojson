@@ -5,7 +5,7 @@
       "type": "Feature",
       "properties": {
         "id": "lumley1",
-        "name": "Lumley Bus Station",
+        "name": "Lumley Park",
         "route_id": "lumley_cbd"
       },
       "geometry": {
