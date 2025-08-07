@@ -88,6 +88,18 @@
     {
       "type": "Feature",
       "properties": {
+        "id": "lumley8",
+        "name": "Lumley Bus Station",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.262173, 8.466259]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
         "id": "calaba1",
         "name": "Calaba Town Bus Station",
         "route_id": "calaba_cbd"
