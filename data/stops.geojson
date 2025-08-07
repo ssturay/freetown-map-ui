@@ -137,6 +137,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley12",
+        "name": "Siaka Stevens St",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.233976, 8.487897]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley13",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
