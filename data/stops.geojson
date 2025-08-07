@@ -89,6 +89,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley8",
+        "name": "Model Junction",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.230490, 8.476891]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley9",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
