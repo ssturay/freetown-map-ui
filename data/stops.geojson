@@ -197,6 +197,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley17",
+        "name": "Dwazark Junction",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.236599, 8.472856]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley18",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
