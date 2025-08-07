@@ -173,6 +173,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley15",
+        "name": "Hill Cot Junction",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.255191, 8.462818]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley16",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
