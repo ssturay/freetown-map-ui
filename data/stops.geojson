@@ -77,24 +77,24 @@
       "type": "Feature",
       "properties": {
         "id": "lumley7",
-        "name": "Central Bus Station",
-        "route_id": "lumley_cbd"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [-13.2335659, 8.4919258]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "id": "lumley8",
         "name": "Lumley Bus Station",
         "route_id": "lumley_cbd"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [-13.262173, 8.466259]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley8",
+        "name": "Central Bus Station",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.2335659, 8.4919258]
       }
     },
     {
