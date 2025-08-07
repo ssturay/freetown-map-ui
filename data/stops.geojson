@@ -101,6 +101,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley9",
+        "name": "IMATT Junction",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.229976, 8.446353]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley10",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
