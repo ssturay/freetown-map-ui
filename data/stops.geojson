@@ -125,6 +125,18 @@
       "type": "Feature",
       "properties": {
         "id": "lumley11",
+        "name": "Lodge",
+        "route_id": "lumley_cbd"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-13.248689, 8.474303]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lumley12",
         "name": "Central Bus Station",
         "route_id": "lumley_cbd"
       },
