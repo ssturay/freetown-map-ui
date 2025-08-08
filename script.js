@@ -162,7 +162,7 @@ async function fetchVehicles() {
 
   updateStopPopups();
 
-  // ✅ Update WAKA FINE bus alerts
+  // ✅ Update WAKA FINE Bus alerts
   updateSidebarAlerts();
 }
 
@@ -259,7 +259,7 @@ function updateSidebarAlerts() {
     .filter(([id, v]) => v.mode.toLowerCase() === "waka fine bus");
 
   if (wakaFineVehicles.length === 0) {
-    alertSidebar.innerHTML = "<p>No WAKA FINE bus alerts at the moment.</p>";
+    alertSidebar.innerHTML = "<p>No WAKA FINE Bus alerts at the moment.</p>";
     return;
   }
 
