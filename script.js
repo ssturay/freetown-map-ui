@@ -141,7 +141,8 @@ function applyFilters() {
 }
 
 function getIcon(mode) {
-  const key = mode.trim().toLowerCase();
+  const key = (mode || "unknown").trim().toLowerCase(); // <- Avoids undefined.trim() crash
+
   const iconUrl = iconMap[key] || "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
 
   return L.icon({
