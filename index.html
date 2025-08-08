@@ -24,18 +24,19 @@
 
     <div id="map"></div>
 
-    <!-- Sidebar for alerts -->
-    <div id="alertSidebar" class="alert-sidebar"></div>
-
     <footer>
       <p>Last updated: <span id="lastUpdated">--</span></p>
     </footer>
   </div>
 
+  <!-- ✅ Sidebar + Filter container goes here -->
+  <div class="sidebar-filter-container">
+    <div id="alertSidebar" class="alert-sidebar"></div>
+    <!-- Filter panel will be inserted here -->
+  </div>
+
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
-  <!-- Your JS -->
   <script src="script.js" defer></script>
 </body>
-</html>
+
