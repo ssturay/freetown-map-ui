@@ -6,6 +6,9 @@ let vehiclesData = {};
 let userMarker = null;
 let nearbyStopCircles = [];
 
+// We'll keep track of alerts shown to avoid duplicates
+let shownAlerts = new Set();
+
 const iconMap = {
   "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
   "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",
@@ -24,6 +27,8 @@ window.addEventListener("load", async () => {
   setTimeout(() => map.invalidateSize(), 100);
   addLocateMeButton();
 
+  createAlertSidebar();
+
   await loadRoutes();
   initFilters();
   loadStops();
@@ -31,6 +36,29 @@ window.addEventListener("load", async () => {
   setInterval(fetchVehicles, 10000);
   showUserLocationAndNearbyStops();
 });
+
+function createAlertSidebar() {
+  // Create sidebar container for alerts
+  let sidebar = document.createElement('div');
+  sidebar.id = 'alertSidebar';
+  sidebar.className = 'alert-sidebar';
+  document.body.appendChild(sidebar);
+}
+
+function addAlert(message) {
+  const sidebar = document.getElementById('alertSidebar');
+  if (!sidebar) return;
+
+  // Prevent duplicate alerts
+  if (shownAlerts.has(message)) return;
+  shownAlerts.add(message);
+
+  const alertDiv = document.createElement('div');
+  alertDiv.className = 'alert-msg';
+  alertDiv.innerHTML = message;
+
+  sidebar.appendChild(alertDiv);
+}
 
 async function loadRoutes() {
   const base = window.location.hostname.includes("github.io") ? "/freetown-map-ui" : "";
@@ -138,6 +166,27 @@ async function fetchVehicles() {
   document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
   vehiclesData = data;
 
+  // Clear previous alerts on new fetch
+  const sidebar = document.getElementById('alertSidebar');
+  if (sidebar) sidebar.innerHTML = '';
+  shownAlerts.clear();
+
+  // Map vehicle id to stops where they will arrive soon
+  // We use this to generate the "WAKA FINE Bus #x will be at stop y in z minutes" alerts
+  // We’ll find the nearest stop to each waka fine bus
+
+  // Build stop array for distance checking (name + latlng)
+  let stopsArr = [];
+  if (stopsLayer) {
+    stopsLayer.eachLayer(stopLayer => {
+      stopsArr.push({
+        name: stopLayer.feature.properties.name,
+        latlng: stopLayer.getLatLng()
+      });
+    });
+  }
+
+  // Collect WAKA FINE buses and prepare alerts
   for (const [id, info] of Object.entries(data)) {
     const { lat, lon, eta_min, mode } = info;
     const icon = getIcon(mode);
@@ -150,6 +199,30 @@ async function fetchVehicles() {
         .bindPopup(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
       m.mode = mode;
       vehicleMarkers[id] = m;
+    }
+
+    // Only for WAKA FINE Bus
+    if (mode.toLowerCase() === "waka fine bus") {
+      // Find nearest stop (within 300m)
+      let nearestStop = null;
+      let nearestDistance = 999999;
+
+      stopsArr.forEach(stop => {
+        const dist = L.latLng(lat, lon).distanceTo(stop.latlng);
+        if (dist < nearestDistance) {
+          nearestDistance = dist;
+          nearestStop = stop;
+        }
+      });
+
+      if (nearestStop && nearestDistance <= 300) {
+        // Alert 1: WAKA FINE Bus #x will be at stop y in z minutes
+        addAlert(`WAKA FINE Bus <b>#${id}</b> will be at stop <b>${nearestStop.name}</b> in ${eta_min} minute${eta_min === 1 ? '' : 's'}.`);
+      }
+
+      // Alert 2: "It looks like you usually catch WAKA FINE Bus #x at 8:00 AM — here’s today’s ETA."
+      // For demo purposes, let's assume a fixed usual catch time of 8:00 AM for all buses.
+      addAlert(`It looks like you usually catch WAKA FINE Bus <b>#${id}</b> at 8:00 AM — here’s today’s ETA: ${eta_min} minutes.`);
     }
   }
 
@@ -268,5 +341,3 @@ function addLocateMeButton() {
 
   locateControl.addTo(map);
 }
-
-  
