@@ -97,7 +97,7 @@ function initFilters() {
 
   container.addTo(map);
 
-  // Move filter panel into sidebar-filter-container and add event listeners
+  // Move filter panel into sidebar container
   setTimeout(() => {
     const filterPanel = document.querySelector('.filter-panel');
     const sidebarContainer = document.querySelector('.sidebar-filter-container');
@@ -161,28 +161,9 @@ async function fetchVehicles() {
   }
 
   updateStopPopups();
-  updateSidebarAlerts(); // ✅ Update sidebar alerts here
-}
 
-function updateSidebarAlerts() {
-  const alertSidebar = document.getElementById("alertSidebar");
-  if (!alertSidebar || !vehiclesData) return;
-
-  const wakaFineVehicles = Object.entries(vehiclesData)
-    .filter(([id, v]) => v.mode.toLowerCase() === "waka fine bus");
-
-  if (wakaFineVehicles.length === 0) {
-    alertSidebar.innerHTML = "<p>No WAKA FINE bus alerts at the moment.</p>";
-    return;
-  }
-
-  let html = `<h3>🚍 WAKA FINE Bus Alerts</h3><ul style="padding-left: 16px; margin: 0;">`;
-  wakaFineVehicles.forEach(([id, v]) => {
-    html += `<li><b>Bus #${id}</b> — ETA: ${v.eta_min} min</li>`;
-  });
-  html += "</ul>";
-
-  alertSidebar.innerHTML = html;
+  // ✅ Update WAKA FINE bus alerts
+  updateSidebarAlerts();
 }
 
 function updateStopPopups() {
@@ -255,14 +236,6 @@ function showUserLocationAndNearbyStops() {
             dashArray: '4,2'
           }).addTo(map);
           nearbyStopCircles.push(circle);
-
-          const walkingTimeMin = Math.max(1, Math.round(distance / 80));
-          const originalName = stopLayer.feature.properties.name;
-
-          stopLayer.bindPopup(
-            `<strong>${originalName}</strong><br>` +
-            `🚶 Approx. ${walkingTimeMin} min walk (${Math.round(distance)} m)`
-          );
         }
       });
     }
@@ -273,28 +246,29 @@ function showUserLocationAndNearbyStops() {
 }
 
 function addLocateMeButton() {
-  const locateControl = L.control({ position: "topleft" });
-
-  locateControl.onAdd = function () {
-    const div = L.DomUtil.create("div", "leaflet-bar leaflet-control leaflet-control-custom");
-    div.innerHTML = "📍";
-    div.title = "Locate Me";
-
-    Object.assign(div.style, {
-      backgroundColor: "white",
-      padding: "6px 10px",
-      cursor: "pointer",
-      fontSize: "18px",
-      textAlign: "center",
-      border: "1px solid #ccc"
-    });
-
-    div.onclick = showUserLocationAndNearbyStops;
-    return div;
-  };
-
-  locateControl.addTo(map);
+  document.getElementById("locateMeBtn").addEventListener("click", () => {
+    showUserLocationAndNearbyStops();
+  });
 }
 
+function updateSidebarAlerts() {
+  const alertSidebar = document.getElementById("alertSidebar");
+  if (!alertSidebar || !vehiclesData) return;
 
-  
+  const wakaFineVehicles = Object.entries(vehiclesData)
+    .filter(([id, v]) => v.mode.toLowerCase() === "waka fine bus");
+
+  if (wakaFineVehicles.length === 0) {
+    alertSidebar.innerHTML = "<p>No WAKA FINE bus alerts at the moment.</p>";
+    return;
+  }
+
+  let html = `<h3>🚍 WAKA FINE Bus Alerts</h3><ul style="padding-left: 16px; margin: 0;">`;
+  wakaFineVehicles.forEach(([id, v]) => {
+    html += `<li><b>Bus #${id}</b> — ETA: ${v.eta_min} min</li>`;
+  });
+  html += "</ul>";
+
+  alertSidebar.innerHTML = html;
+}
+
