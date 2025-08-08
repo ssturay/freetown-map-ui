@@ -1,11 +1,15 @@
-// At the top of your script.js
 function promptLogin() {
-  const username = prompt("admin:");
-  const password = prompt("mypassword:");
+  const username = prompt("Enter username:");
+  const password = prompt("Enter password:");
 
-  if (username !== "admin" || password !== "mypassword") {
+  const VALID_USERNAME = "admin";
+  const VALID_PASSWORD = "mypassword";
+
+  if (username !== VALID_USERNAME || password !== VALID_PASSWORD) {
     alert("Access denied");
-    throw new Error("Unauthorized");
+    // Stop script execution
+    document.body.innerHTML = "<h2 style='text-align:center; padding: 2rem;'>Access Denied</h2>";
+    throw new Error("Unauthorized access");
   }
 }
 
