@@ -263,7 +263,7 @@ function showUserLocationAndNearbyStops() {
 }
 
 function updateSidebarAlerts() {
-  const sidebar = document.getElementById("alerts");
+  const sidebar = document.getElementById("alertSidebar");  // <-- Fixed ID here
   if (!sidebar) return;
 
   const nearbyVehicles = Object.entries(vehiclesData).filter(([_, v]) => v.eta_min < 5);
