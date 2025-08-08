@@ -1,3 +1,17 @@
+// At the top of your script.js
+function promptLogin() {
+  const username = prompt("Enter username:");
+  const password = prompt("Enter password:");
+
+  if (username !== "admin" || password !== "mypassword") {
+    alert("Access denied");
+    throw new Error("Unauthorized");
+  }
+}
+
+promptLogin();
+
+
 const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 let map, vehicleMarkers = {}, routeLayers = L.featureGroup();
 let availableModes = new Set();
