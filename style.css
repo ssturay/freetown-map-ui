@@ -86,3 +86,38 @@ footer {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Sidebar styles */
+.alert-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 100vh;
+  overflow-y: auto;
+  background-color: white;
+  border-left: 1px solid #ccc;
+  padding: 16px;
+  z-index: 1000; /* Make sure it overlays the map controls */
+  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+}
+
+/* Push the map left so sidebar doesn't cover it */
+#map {
+  margin-right: 300px; /* same width as sidebar */
+  transition: margin-right 0.3s ease;
+}
+
+/* Shift Leaflet's top-right controls (filter panel) left so they're not under sidebar */
+.leaflet-top.leaflet-right {
+  right: 300px; /* match sidebar width */
+  transition: right 0.3s ease;
+}
+
+/* Optional: make the filter panel background white for better contrast */
+.filter-panel {
+  background: white;
+  padding: 8px;
+  border-radius: 4px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
