@@ -129,3 +129,33 @@ footer {
   right: auto !important;
   position: static !important;
 }
+
+/* Container to hold both the alert sidebar and filter panel */
+.sidebar-filter-container {
+  position: absolute;
+  top: 60px; /* Adjust as needed */
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1000;
+}
+
+/* Style the alert sidebar */
+.alert-sidebar {
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  min-width: 240px;
+  font-size: 14px;
+}
+
+/* Optional: style the filter panel to ensure consistent sizing */
+.filter-panel {
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  min-width: 240px;
+}
