@@ -1,7 +1,7 @@
 // At the top of your script.js
 function promptLogin() {
-  const username = prompt("Enter username:");
-  const password = prompt("Enter password:");
+  const username = prompt("admin:");
+  const password = prompt("mypassword:");
 
   if (username !== "admin" || password !== "mypassword") {
     alert("Access denied");
