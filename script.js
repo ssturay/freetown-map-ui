@@ -44,7 +44,7 @@ window.addEventListener("load", async () => {
 
   await loadRoutes();
   initFilters();
-  loadStops();
+  await loadStops();
   fetchVehicles();
   setInterval(fetchVehicles, 10000);
   showUserLocationAndNearbyStops();
@@ -115,7 +115,6 @@ function initFilters() {
 
   container.addTo(map);
 
-  // Move filter panel into sidebar container
   setTimeout(() => {
     const filterPanel = document.querySelector('.filter-panel');
     const sidebarContainer = document.querySelector('.sidebar-filter-container');
@@ -157,31 +156,35 @@ function getIcon(mode) {
 }
 
 async function fetchVehicles() {
-  const res = await fetch(`${BACKEND_URL}/api/vehicles`);
-  const data = await res.json();
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/vehicles`);
+    const data = await res.json();
 
-  document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
-  vehiclesData = data;
+    console.log("Fetched vehicles data:", data);  // Debug log
 
-  for (const [id, info] of Object.entries(data)) {
-    const { lat, lon, eta_min, mode } = info;
-    const icon = getIcon(mode);
+    document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
+    vehiclesData = data;
 
-    if (vehicleMarkers[id]) {
-      vehicleMarkers[id].setLatLng([lat, lon])
-        .setPopupContent(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
-    } else {
-      const m = L.marker([lat, lon], { icon }).addTo(map)
-        .bindPopup(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
-      m.mode = mode;
-      vehicleMarkers[id] = m;
+    for (const [id, info] of Object.entries(data)) {
+      const { lat, lon, eta_min, mode } = info;
+      const icon = getIcon(mode);
+
+      if (vehicleMarkers[id]) {
+        vehicleMarkers[id].setLatLng([lat, lon])
+          .setPopupContent(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
+      } else {
+        const m = L.marker([lat, lon], { icon }).addTo(map)
+          .bindPopup(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
+        m.mode = mode;
+        vehicleMarkers[id] = m;
+      }
     }
+
+    updateStopPopups();
+    updateSidebarAlerts();
+  } catch (error) {
+    console.error("Error fetching vehicle data:", error);
   }
-
-  updateStopPopups();
-
-  // ✅ Update WAKA FINE Bus alerts
-  updateSidebarAlerts();
 }
 
 function updateStopPopups() {
@@ -243,50 +246,74 @@ function showUserLocationAndNearbyStops() {
     if (stopsLayer) {
       stopsLayer.eachLayer(stopLayer => {
         const stopLatLng = stopLayer.getLatLng();
-        const distance = userLatLng.distanceTo(stopLatLng);
-
-        if (distance <= 500) {
-          const circle = L.circleMarker(stopLatLng, {
-            radius: 10,
-            color: "#00cc44",
+        if (userLatLng.distanceTo(stopLatLng) < 300) {
+          const circle = L.circle(stopLatLng, {
+            radius: 300,
+            color: "#3388ff",
             weight: 2,
-            fillOpacity: 0,
-            dashArray: '4,2'
+            fillOpacity: 0.1
           }).addTo(map);
           nearbyStopCircles.push(circle);
         }
       });
     }
-  }, error => {
+  }, () => {
     alert("Unable to retrieve your location.");
-    console.error(error);
-  });
-}
-
-function addLocateMeButton() {
-  document.getElementById("locateMeBtn").addEventListener("click", () => {
-    showUserLocationAndNearbyStops();
   });
 }
 
 function updateSidebarAlerts() {
-  const alertSidebar = document.getElementById("alertSidebar");
-  if (!alertSidebar || !vehiclesData) return;
+  const sidebar = document.getElementById("alerts");
+  if (!sidebar) return;
 
-  const wakaFineVehicles = Object.entries(vehiclesData)
-    .filter(([id, v]) => v.mode.toLowerCase() === "waka fine bus");
+  const nearbyVehicles = Object.entries(vehiclesData).filter(([_, v]) => v.eta_min < 5);
+  sidebar.innerHTML = `<h3>Alerts (vehicles arriving soon)</h3>`;
 
-  if (wakaFineVehicles.length === 0) {
-    alertSidebar.innerHTML = "<p>No WAKA FINE Bus alerts at the moment.</p>";
+  if (nearbyVehicles.length === 0) {
+    sidebar.innerHTML += `<p>No vehicles arriving in the next 5 minutes.</p>`;
     return;
   }
 
-  let html = `<h3>🚍 WAKA FINE Bus Alerts</h3><ul style="padding-left: 16px; margin: 0;">`;
-  wakaFineVehicles.forEach(([id, v]) => {
-    html += `<li><b>Bus #${id}</b> — ETA: ${v.eta_min} min</li>`;
+  nearbyVehicles.forEach(([id, v]) => {
+    sidebar.innerHTML += `
+      <div style="margin-bottom: 6px;">
+        <img src="${getIcon(v.mode).options.iconUrl}" style="width: 20px; vertical-align: middle; margin-right: 8px;">
+        <strong>${v.mode}</strong> #${id} arriving in ${v.eta_min} min
+      </div>
+    `;
   });
-  html += "</ul>";
-
-  alertSidebar.innerHTML = html;
 }
 
+function addLocateMeButton() {
+  const locateControl = L.control({ position: "topright" });
+
+  locateControl.onAdd = () => {
+    const div = L.DomUtil.create("div", "leaflet-bar leaflet-control leaflet-control-custom");
+    div.innerHTML = `<button title="Locate Me" style="background:#fff; border:none; padding: 6px; cursor:pointer;">📍</button>`;
+    div.onclick = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+          map.setView(latlng, 15);
+
+          if (userMarker) {
+            userMarker.setLatLng(latlng).openPopup();
+          } else {
+            userMarker = L.circleMarker(latlng, {
+              radius: 8,
+              fillColor: "#3388ff",
+              color: "#fff",
+              weight: 2,
+              fillOpacity: 0.9
+            }).addTo(map).bindPopup("📍 You are here").openPopup();
+          }
+        }, () => alert("Unable to retrieve your location."));
+      } else {
+        alert("Geolocation not supported by your browser.");
+      }
+    };
+    return div;
+  };
+
+  locateControl.addTo(map);
+}
