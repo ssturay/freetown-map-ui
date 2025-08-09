@@ -1,120 +1,237 @@
-/* === Sidebar Container === */
-.sidebar {
-  position: fixed;
-  top: 70px; /* below header */
-  right: 10px;
-  width: 300px;
-  max-height: calc(100vh - 80px);
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-  padding: 1rem 1.25rem;
-  overflow-y: auto;
-  font-size: 0.9rem;
-  z-index: 1500;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+/* === Reset and Base Styling === */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #f9f9f9;
+  height: 100%;
 }
 
-/* Sidebar Heading */
-.sidebar > h2 {
-  margin: 0 0 0.5rem 0;
+.layout-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* === Sidebar Styling === */
+.sidebar {
+  width: 320px;
+  background-color: #ffffff;
+  border-right: 1px solid #ddd;
+  padding: 1rem;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.sidebar h2 {
+  margin-top: 0;
   font-size: 1.25rem;
   color: #007bff;
-  border-bottom: 2px solid #007bff;
-  padding-bottom: 0.25rem;
 }
 
-/* Sections inside sidebar */
-.sidebar section {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 0.75rem 1rem;
-  background-color: #fafafa;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
-}
-
-/* Section headings */
-.sidebar section h3 {
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-  color: #0056b3;
-  font-weight: 600;
-  font-size: 1.1rem;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 0.3rem;
-}
-
-/* Scrollable lists for ETA and Alerts */
-.sidebar-list {
-  max-height: 180px;
-  overflow-y: auto;
-}
-
-/* Each ETA or alert item */
-.sidebar-list > div,
-.sidebar-list > p {
-  padding: 0.3rem 0.5rem;
-  border-bottom: 1px solid #ddd;
+.sidebar h3 {
+  margin-top: 1.5rem;
+  font-size: 1rem;
   color: #333;
 }
 
-.sidebar-list > div:last-child,
-.sidebar-list > p:last-child {
-  border-bottom: none;
+.sidebar-list {
+  margin-top: 0.5rem;
+  padding-left: 1rem;
+  font-size: 0.9rem;
 }
 
-/* Hover highlight for ETA and alert items (optional) */
-.sidebar-list > div:hover {
-  background-color: #e6f0ff;
+.sidebar-list div,
+.sidebar-list li {
+  margin-bottom: 0.75rem;
+}
+
+/* === Page Container (Map + Header/Footer) === */
+.page-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* === Header === */
+header {
+  background-color: #007bff;
+  color: white;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+header button {
+  margin: 0.5rem 0.25rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  color: #007bff;
+  border: 1px solid #007bff;
+  border-radius: 4px;
   cursor: pointer;
 }
 
-/* === Adjust modal-trigger button to not overlap sidebar === */
+/* === Map === */
+#map {
+  flex-grow: 1;
+  height: 100%;
+  z-index: 0;
+}
+
+/* === Footer === */
+footer {
+  padding: 0.5rem;
+  background: #f1f1f1;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+/* === Modal Styling === */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 1.5rem;
+  border: 1px solid #888;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.modal-close {
+  float: right;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  color: red;
+}
+
+.modal-content label {
+  display: block;
+  margin-top: 1rem;
+}
+
+.modal-content input,
+.modal-content select {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.modal-content button {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal-content button:hover {
+  background-color: #0056b3;
+}
+
+/* === Start Tracking Floating Button === */
 .modal-trigger {
+  position: fixed;
   bottom: 20px;
-  right: 340px; /* shifted left so it doesn’t cover sidebar */
-  /* other styles remain */
+  right: 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 1rem 1.2rem;
+  border-radius: 50px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  cursor: pointer;
+  z-index: 1000;
+  font-size: 1rem;
+  font-weight: bold;
 }
 
-/* === Responsive Adjustments === */
-@media (max-width: 1024px) {
-  .sidebar {
-    width: 260px;
-    top: 65px;
-    padding: 1rem;
-    max-height: calc(100vh - 75px);
-  }
-  .modal-trigger {
-    right: 280px;
-  }
+.modal-trigger:hover {
+  background-color: #0056b3;
 }
 
+/* === Filter Panel Inside Sidebar === */
+.sidebar-filter-container {
+  margin-top: 1rem;
+  padding-left: 0.5rem;
+}
+
+.filter-option {
+  margin-bottom: 0.5rem;
+}
+
+.filter-option label {
+  display: flex;
+  align-items: center;
+}
+
+.filter-option input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+/* === Leaflet Custom Styling (Optional) === */
+.leaflet-control-custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+/* === Responsive === */
 @media (max-width: 768px) {
-  /* Make sidebar full width and top fixed on smaller screens */
-  .sidebar {
-    position: static;
-    width: 100%;
-    max-height: none;
-    box-shadow: none;
-    border-radius: 0;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
-  }
-  
-  /* Move modal trigger to bottom right */
-  .modal-trigger {
-    right: 20px;
-  }
-
-  /* Stack header buttons vertically */
-  header {
+  .layout-container {
     flex-direction: column;
-    align-items: flex-start;
   }
 
-  header button {
-    margin: 0.25rem 0;
+  .sidebar {
+    width: 100%;
+    height: auto;
+    order: 1;
+    border-right: none;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .page-container {
+    order: 2;
+  }
+
+  #map {
+    height: 60vh;
+  }
+
+  .modal-content {
+    margin-top: 25%;
   }
 }
