@@ -15,43 +15,50 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="page-container">
-    <header>
-      <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
-      <button id="locateMeBtn">📍 My Location</button>
-      <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
-    </header>
+  <!-- Flex layout container for sidebar + main content -->
+  <div class="layout-container">
 
-    <div id="map" style="height: 90vh;"></div>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2>Nearby Vehicles & Alerts</h2>
+      
+      <section id="etaSection">
+        <h3>Estimated Time of Arrival (ETA)</h3>
+        <div id="etaList" class="sidebar-list">
+          <!-- ETA items will be injected here -->
+        </div>
+      </section>
 
-    <footer>
-      <p>Last updated: <span id="lastUpdated">--</span></p>
-    </footer>
+      <section id="alertSection">
+        <h3>Alerts (within 500m)</h3>
+        <div id="alertSidebar" class="sidebar-list">
+          <!-- Alerts will be injected here -->
+        </div>
+      </section>
+
+      <section class="sidebar-filter-container">
+        <h3>Filters</h3>
+        <!-- Filter panel will be injected here by JS -->
+      </section>
+    </aside>
+
+    <!-- Main Page Content -->
+    <div class="page-container">
+      <header>
+        <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
+        <button id="locateMeBtn">📍 My Location</button>
+        <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
+      </header>
+
+      <!-- Map container -->
+      <div id="map"></div>
+
+      <footer>
+        <p>Last updated: <span id="lastUpdated">--</span></p>
+      </footer>
+    </div>
+
   </div>
-
-  <!-- Sidebar container -->
-  <aside class="sidebar">
-    <h2>Nearby Vehicles & Alerts</h2>
-    
-    <section id="etaSection">
-      <h3>Estimated Time of Arrival (ETA)</h3>
-      <div id="etaList" class="sidebar-list">
-        <!-- ETA items will be injected here -->
-      </div>
-    </section>
-
-    <section id="alertSection">
-      <h3>Alerts</h3>
-      <div id="alertSidebar" class="sidebar-list">
-        <!-- Alerts will be injected here -->
-      </div>
-    </section>
-
-    <section class="sidebar-filter-container">
-      <h3>Filters</h3>
-      <!-- Filter panel will be injected here by JS -->
-    </section>
-  </aside>
 
   <!-- 🚗 Modal Trigger Button -->
   <button id="openTrackingModal" class="modal-trigger">🚗 Start Tracking</button>
