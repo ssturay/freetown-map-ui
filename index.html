@@ -29,11 +29,29 @@
     </footer>
   </div>
 
-  <!-- Sidebar filter container -->
-  <div class="sidebar-filter-container">
-    <div id="alertSidebar" class="alert-sidebar"></div>
-    <!-- Filter panel will be injected here by JS -->
-  </div>
+  <!-- Sidebar container -->
+  <aside class="sidebar">
+    <h2>Nearby Vehicles & Alerts</h2>
+    
+    <section id="etaSection">
+      <h3>Estimated Time of Arrival (ETA)</h3>
+      <div id="etaList" class="sidebar-list">
+        <!-- ETA items will be injected here -->
+      </div>
+    </section>
+
+    <section id="alertSection">
+      <h3>Alerts</h3>
+      <div id="alertSidebar" class="sidebar-list">
+        <!-- Alerts will be injected here -->
+      </div>
+    </section>
+
+    <section class="sidebar-filter-container">
+      <h3>Filters</h3>
+      <!-- Filter panel will be injected here by JS -->
+    </section>
+  </aside>
 
   <!-- 🚗 Modal Trigger Button -->
   <button id="openTrackingModal" class="modal-trigger">🚗 Start Tracking</button>
