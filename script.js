@@ -383,78 +383,54 @@ document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("trackingModal");
   const openBtn = document.getElementById("openTrackingModal");
   const closeBtn = document.getElementById("closeTrackingModal");
-  const form = document.getElementById("trackingForm");
 
   // Open modal
-  openBtn.addEventListener("click", () => {
+  openBtn.onclick = () => {
     modal.style.display = "block";
-  });
+  };
 
-  // Close modal
-  closeBtn.addEventListener("click", () => {
+  // Close modal on (x)
+  closeBtn.onclick = () => {
     modal.style.display = "none";
-  });
+  };
 
-  // Close modal when clicking outside
-  window.addEventListener("click", (e) => {
+  // Close modal on outside click
+  window.onclick = (e) => {
     if (e.target === modal) {
       modal.style.display = "none";
     }
-  });
+  };
 
-  // Handle form submission
-  form.addEventListener("submit", (e) => {
+  // Submit tracking form
+  document.getElementById("trackingForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-
     const vehicleId = document.getElementById("vehicleId").value.trim();
-    const mode = document.getElementById("mode").value.trim();
+    const mode = document.getElementById("mode").value;
 
-    if (!vehicleId || !mode) {
-      alert("Please enter both vehicle ID and mode.");
-      return;
-    }
+    if (!vehicleId || !mode) return alert("Please complete all fields.");
 
-    // Start GPS tracking
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
-      return;
-    }
+    // Get current geolocation
+    if (!navigator.geolocation) return alert("Geolocation not supported.");
 
-    // Stop any existing tracking
-    if (trackingWatchId !== null) {
-      navigator.geolocation.clearWatch(trackingWatchId);
-    }
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
 
-    trackingWatchId = navigator.geolocation.watchPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-
-        try {
-          const url = new URL(`${BACKEND_URL}/api/location/update`);
-          url.searchParams.append("id", vehicleId);
-          url.searchParams.append("lat", lat);
-          url.searchParams.append("lon", lon);
-          url.searchParams.append("mode", mode);
-
-          await fetch(url.toString());
-          console.log(`📡 Sent location for ${vehicleId}`);
-        } catch (err) {
-          console.error("❌ Error sending location:", err);
+      try {
+        const url = `${BACKEND_URL}/api/location/update?id=${encodeURIComponent(vehicleId)}&lat=${lat}&lon=${lon}&mode=${encodeURIComponent(mode)}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          alert("Tracking started successfully!");
+          modal.style.display = "none";
+        } else {
+          alert("Failed to start tracking.");
         }
-      },
-      (err) => {
-        alert("Failed to retrieve GPS location.");
+      } catch (err) {
         console.error(err);
-      },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 10000
+        alert("Error starting tracking.");
       }
-    );
-
-    alert(`✅ Tracking started for vehicle "${vehicleId}" (${mode})`);
-    modal.style.display = "none";
+    }, () => {
+      alert("Could not get your location.");
+    });
   });
 });
