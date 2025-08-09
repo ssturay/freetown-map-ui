@@ -376,3 +376,38 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("trackingModal");
+  const btn = document.getElementById("startTrackingBtn");
+  const span = document.querySelector(".modal .close");
+
+  btn.onclick = () => { modal.style.display = "block"; };
+  span.onclick = () => { modal.style.display = "none"; };
+  window.onclick = (e) => {
+    if (e.target == modal) modal.style.display = "none";
+  };
+
+  document.getElementById("trackingForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const vehicleId = document.getElementById("vehicleIdInput").value.trim();
+    const mode = document.getElementById("modeSelect").value;
+
+    if (!vehicleId || !mode) return alert("Please complete all fields.");
+
+    // Send to backend to start tracking
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/start-tracking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vehicleId, mode })
+      });
+      const result = await res.json();
+      alert("Tracking started successfully!");
+      modal.style.display = "none";
+    } catch (err) {
+      console.error(err);
+      alert("Failed to start tracking.");
+    }
+  });
+});
