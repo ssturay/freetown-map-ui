@@ -5,73 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freetown PT Tracker</title>
 
-  <!-- Leaflet CSS -->
- <link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-  integrity="sha512-Rksm6iu7jI+K3K/RSB+AYI1YMSRfsg/7sJw5dX2zTFXZfAHppkDKvK8HVx68K4j43fjF6vGzLM0C6jU8g2+Xpg=="
-  crossorigin=""
-/>
+  <!-- ✅ Correct Leaflet CSS with valid integrity -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    integrity="sha512-mQ8oA2uaIjhqxGPI3nSrCIOP4Em4H0HETf3y1qI4aFGR8s0ibAWrXlNmD3vx8QmHcE1PB09EOrPJoO65TSMeaw=="
+    crossorigin=""
+  />
 
-
-  <!-- Your stylesheet -->
+  <!-- Your CSS -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="page-container">
-    <!-- Header -->
     <header>
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
-      <div class="header-buttons">
-        <button id="locateMeBtn">📍 My Location</button>
-        <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
-      </div>
+      <button id="locateMeBtn">📍 My Location</button>
+      <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
     </header>
 
-    <!-- Main map -->
-    <div id="map"></div>
+    <div id="map" style="height: 90vh;"></div>
 
-    <!-- Footer -->
     <footer>
       <p>Last updated: <span id="lastUpdated">--</span></p>
     </footer>
   </div>
 
-  <!-- Sidebar: Collapsible Panels -->
+  <!-- ✅ Unified sidebar container -->
   <div class="sidebar-filter-container">
-
-    <!-- ETA Panel -->
-    <div class="sidebar-panel">
-      <button class="collapsible">Closest Vehicles (ETA)</button>
-      <div class="collapsible-content eta-sidebar" id="etaSidebar">
-        <p>Loading ETA...</p>
-      </div>
-    </div>
-
-    <!-- Alerts Panel -->
-    <div class="sidebar-panel">
-      <button class="collapsible">Alerts</button>
-      <div class="collapsible-content alert-sidebar" id="alertSidebar">
-        <p>Loading alerts...</p>
-      </div>
-    </div>
-
-    <!-- Filter Panel -->
-    <div class="sidebar-panel">
-      <button class="collapsible">Filter Modes</button>
-      <div class="collapsible-content filter-panel">
-        <!-- Populated dynamically by JS -->
-      </div>
-    </div>
+    <div id="alertSidebar" class="alert-sidebar"></div>
+    <!-- Filter panel will be injected here by JS -->
   </div>
 
-  <!-- Leaflet JS -->
+  <!-- ✅ Correct Leaflet JS with valid integrity -->
   <script
-  src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
-  integrity="sha512-o9N1j8MkHq1rzTRCE3K1U/94EnWQjTznpv9l+Jv3L0kZCmwo0DQMRgafjlc+Zce7ymsOIP9WQJ4lYkD9crJ6Ew=="
-  crossorigin=""
-></script>
-
+    src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+    integrity="sha512-o9N1j8MkHq1rzTRCE3K1U/94EnWQjTznpv9l+Jv3L0kZCmwo0DQMRgafjlc+Zce7ymsOIP9WQJ4lYkD9crJ6Ew=="
+    crossorigin=""
+  ></script>
 
   <!-- Your JS -->
   <script src="script.js" defer></script>
