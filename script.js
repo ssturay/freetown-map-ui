@@ -383,14 +383,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeBtn = document.getElementById("closeTrackingModal");
 
   // Open modal
-  openBtn.onclick = () => {
-    modal.style.display = "block";
-  };
+  if (openBtn) {
+    openBtn.onclick = () => {
+      modal.style.display = "block";
+    };
+  }
 
   // Close modal on (x)
-  closeBtn.onclick = () => {
-    modal.style.display = "none";
-  };
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      modal.style.display = "none";
+    };
+  }
 
   // Close modal on outside click
   window.onclick = (e) => {
@@ -399,36 +403,45 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Submit tracking form
-  document.getElementById("trackingForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const vehicleId = document.getElementById("vehicleId").value.trim();
-    const mode = document.getElementById("mode").value;
+  // Tracking form submit logic
+  const trackingForm = document.getElementById("trackingForm");
 
-    if (!vehicleId || !mode) return alert("Please complete all fields.");
+  if (trackingForm) {
+    trackingForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const vehicleId = document.getElementById("vehicleId").value.trim();
+      const mode = document.getElementById("mode").value;
 
-    // Get current geolocation
-    if (!navigator.geolocation) return alert("Geolocation not supported.");
-
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-
-      try {
-        const url = `${BACKEND_URL}/api/location/update?id=${encodeURIComponent(vehicleId)}&lat=${lat}&lon=${lon}&mode=${encodeURIComponent(mode)}`;
-        const res = await fetch(url);
-        if (res.ok) {
-          alert("Tracking started successfully!");
-          modal.style.display = "none";
-        } else {
-          alert("Failed to start tracking.");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Error starting tracking.");
+      if (!vehicleId || !mode) {
+        alert("Please complete all fields.");
+        return;
       }
-    }, () => {
-      alert("Could not get your location.");
+
+      if (!navigator.geolocation) {
+        alert("Geolocation not supported.");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        try {
+          const url = `${BACKEND_URL}/api/location/update?id=${encodeURIComponent(vehicleId)}&lat=${lat}&lon=${lon}&mode=${encodeURIComponent(mode)}`;
+          const res = await fetch(url);
+          if (res.ok) {
+            alert("Tracking started successfully!");
+            modal.style.display = "none";
+          } else {
+            alert("Failed to start tracking.");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Error starting tracking.");
+        }
+      }, () => {
+        alert("Could not get your location.");
+      });
     });
-  });
+  }
 });
