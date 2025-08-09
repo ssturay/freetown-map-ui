@@ -16,13 +16,13 @@ function promptLogin() {
 
 async function startApp() {
   const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
-
   let map, userMarker = null;
   let vehicleMarkers = {};
   let vehiclesData = {};
   let routeLayers = L.featureGroup();
-  let stopsLayer;
+  let stopsLayer = null;
   let availableModes = new Set();
+  let nearbyStopCircles = [];
 
   const iconMap = {
     "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
@@ -33,8 +33,9 @@ async function startApp() {
     "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
   };
 
+  // Compute distance (meters) and ETA (minutes) assuming walking speed 1.4 m/s
   function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
-    const R = 6371e3; // meters
+    const R = 6371e3; // Earth radius in meters
     const φ1 = userLat * Math.PI / 180;
     const φ2 = vehicleLat * Math.PI / 180;
     const Δφ = (vehicleLat - userLat) * Math.PI / 180;
@@ -42,73 +43,34 @@ async function startApp() {
 
     const a = Math.sin(Δφ/2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = R * c; // meters
-    const walkingSpeed = 1.4; // meters per second (approx 5 km/h)
+    const distance = R * c; // in meters
+    const walkingSpeed = 1.4; // m/s
 
     return {
-      distance: Math.round(distance), // meters
-      eta: Math.round(distance / walkingSpeed / 60) // minutes
+      distance: Math.round(distance),
+      eta: Math.round(distance / walkingSpeed / 60) // in minutes
     };
   }
 
-  async function loadRoutes() {
-    try {
-      const response = await fetch("data/routes.geojson");
-      if (!response.ok) throw new Error("Failed to load routes.geojson");
-      const geojson = await response.json();
-
-      routeLayers.clearLayers();
-      routeLayers = L.geoJSON(geojson, {
-        style: (feature) => ({
-          color: feature.properties.color || "blue",
-          weight: 3,
-          opacity: 0.7,
-        }),
-        onEachFeature: (feature, layer) => {
-          if (feature.properties && feature.properties.name) {
-            layer.bindPopup(`<b>Route:</b> ${feature.properties.name}`);
-          }
-        }
-      }).addTo(map);
-    } catch (err) {
-      console.error("Error loading routes:", err);
-    }
-  }
-
-  async function loadStops() {
-    try {
-      const response = await fetch("data/stops.geojson");
-      if (!response.ok) throw new Error("Failed to load stops.geojson");
-      const geojson = await response.json();
-
-      if (stopsLayer) {
-        stopsLayer.clearLayers();
+  function updateVehicleETAs(userLat, userLon) {
+    Object.entries(vehicleMarkers).forEach(([vehicleId, marker]) => {
+      if (vehiclesData[vehicleId]) {
+        const { lat, lon, mode } = vehiclesData[vehicleId];
+        const { distance, eta } = computeETA(userLat, userLon, lat, lon);
+        const popupContent = `
+          <b>Vehicle ID:</b> ${vehicleId}<br/>
+          <b>Mode:</b> ${mode}<br/>
+          <b>Distance:</b> ${distance} meters<br/>
+          <b>ETA (walking):</b> ${eta} min
+        `;
+        marker.bindPopup(popupContent);
       }
-
-      stopsLayer = L.geoJSON(geojson, {
-        pointToLayer: (feature, latlng) => {
-          return L.circleMarker(latlng, {
-            radius: 6,
-            fillColor: "#0078A8",
-            color: "#fff",
-            weight: 1,
-            opacity: 1,
-            fillOpacity: 0.8
-          });
-        },
-        onEachFeature: (feature, layer) => {
-          if (feature.properties && feature.properties.name) {
-            layer.bindPopup(`<b>Stop:</b> ${feature.properties.name}`);
-          }
-        }
-      }).addTo(map);
-    } catch (err) {
-      console.error("Error loading stops:", err);
-    }
+    });
   }
 
   function addLocateMeButton() {
     const locateBtn = document.getElementById("locateMeBtn");
+
     if (!locateBtn) return;
 
     locateBtn.addEventListener("click", () => {
@@ -136,6 +98,7 @@ async function startApp() {
 
           map.setView([lat, lon], 15);
 
+          // Update ETAs whenever user location changes
           updateVehicleETAs(lat, lon);
         },
         (error) => {
@@ -146,24 +109,58 @@ async function startApp() {
     });
   }
 
-  // Update ETA for each vehicle marker popup if user location is known
-  function updateVehicleETAs(userLat, userLon) {
-    Object.entries(vehicleMarkers).forEach(([vehicleId, marker]) => {
-      const vehicle = vehiclesData[vehicleId];
-      if (!vehicle) return;
+  async function loadRoutes() {
+    try {
+      const response = await fetch("./data/routes.geojson");
+      if (!response.ok) throw new Error("Failed to load routes.geojson");
+      const geojson = await response.json();
 
-      const { distance, eta } = computeETA(userLat, userLon, vehicle.lat, vehicle.lon);
-      const modeIcon = iconMap[vehicle.mode.toLowerCase()] || null;
+      routeLayers.clearLayers();
+      routeLayers = L.geoJSON(geojson, {
+        style: (feature) => ({
+          color: feature.properties.color || "blue",
+          weight: 3,
+          opacity: 0.7,
+        }),
+        onEachFeature: (feature, layer) => {
+          if (feature.properties && feature.properties.name) {
+            layer.bindPopup(`<b>Route:</b> ${feature.properties.name}`);
+          }
+        }
+      }).addTo(map);
+    } catch (err) {
+      console.error("Error loading routes:", err);
+    }
+  }
 
-      const popupContent = `
-        <b>Vehicle ID:</b> ${vehicleId} <br />
-        <b>Mode:</b> ${vehicle.mode} ${modeIcon ? `<img src="${modeIcon}" alt="${vehicle.mode}" width="20" />` : ''} <br />
-        <b>Distance:</b> ${distance} m <br />
-        <b>ETA (walking):</b> ${eta} min
-      `;
+  async function loadStops() {
+    try {
+      const response = await fetch("./data/stops.geojson");
+      if (!response.ok) throw new Error("Failed to load stops.geojson");
+      const geojson = await response.json();
 
-      marker.bindPopup(popupContent);
-    });
+      if (stopsLayer) stopsLayer.clearLayers();
+
+      stopsLayer = L.geoJSON(geojson, {
+        pointToLayer: (feature, latlng) => {
+          return L.circleMarker(latlng, {
+            radius: 6,
+            fillColor: "#0078A8",
+            color: "#fff",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+          });
+        },
+        onEachFeature: (feature, layer) => {
+          if (feature.properties && feature.properties.name) {
+            layer.bindPopup(`<b>Stop:</b> ${feature.properties.name}`);
+          }
+        }
+      }).addTo(map);
+    } catch (err) {
+      console.error("Error loading stops:", err);
+    }
   }
 
   async function fetchVehicles() {
@@ -172,7 +169,8 @@ async function startApp() {
       if (!response.ok) throw new Error("Failed to fetch vehicles");
 
       const data = await response.json();
-      vehiclesData = {};
+
+      vehiclesData = {}; // reset vehicles data
 
       data.forEach(vehicle => {
         vehiclesData[vehicle.id] = {
@@ -189,7 +187,6 @@ async function startApp() {
         }) : null;
 
         if (vehicleMarkers[vehicle.id]) {
-          // Update position and icon if changed
           vehicleMarkers[vehicle.id].setLatLng([vehicle.lat, vehicle.lon]);
           if (icon) vehicleMarkers[vehicle.id].setIcon(icon);
         } else {
@@ -198,7 +195,7 @@ async function startApp() {
         }
       });
 
-      // Update popups with ETA if user location known
+      // Update ETAs if we have user location
       if (userMarker) {
         const userLatLng = userMarker.getLatLng();
         updateVehicleETAs(userLatLng.lat, userLatLng.lng);
@@ -213,19 +210,60 @@ async function startApp() {
     }
   }
 
-  // Placeholder for filter initialization (expand as needed)
-  function initFilters() {
-    // This function should implement filter UI and logic,
-    // For now it just logs a message.
-    console.log("Filters initialized (expand this function as needed).");
-  }
+  // Initialize Map and Load Data
+  window.addEventListener("load", async () => {
+    map = L.map("map").setView([8.48, -13.23], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors"
+    }).addTo(map);
 
-  // Modal handling for tracking
-  function setupTrackingModal() {
+    setTimeout(() => map.invalidateSize(), 100);
+
+    addLocateMeButton();
+    await loadRoutes();
+    await loadStops();
+    fetchVehicles();
+    setInterval(fetchVehicles, 10000);
+
+    // If you have functions like initFilters() or showUserLocationAndNearbyStops(), add them here
+    if (typeof initFilters === "function") initFilters();
+    if (typeof showUserLocationAndNearbyStops === "function") showUserLocationAndNearbyStops();
+  });
+
+  // --- Collapsible Panel Support ---
+  document.addEventListener("DOMContentLoaded", () => {
+    const collapsibles = document.querySelectorAll(".collapsible");
+
+    collapsibles.forEach(btn => {
+      const content = btn.nextElementSibling;
+
+      if (window.innerWidth <= 768) {
+        content.style.maxHeight = null;
+        content.style.display = "none";
+      } else {
+        content.style.maxHeight = content.scrollHeight + "px";
+        content.style.display = "block";
+      }
+
+      btn.addEventListener("click", () => {
+        const isVisible = content.style.display === "block";
+
+        if (isVisible) {
+          content.style.display = "none";
+          content.style.maxHeight = null;
+        } else {
+          content.style.display = "block";
+          content.style.maxHeight = content.scrollHeight + "px";
+        }
+      });
+    });
+  });
+
+  // --- Modal Handling ---
+  document.addEventListener("DOMContentLoaded", () => {
     const modal = document.getElementById("trackingModal");
     const openBtn = document.getElementById("openTrackingModal");
     const closeBtn = document.getElementById("closeTrackingModal");
-    const trackingForm = document.getElementById("trackingForm");
 
     if (openBtn) {
       openBtn.onclick = () => {
@@ -245,6 +283,7 @@ async function startApp() {
       }
     };
 
+    const trackingForm = document.getElementById("trackingForm");
     if (trackingForm) {
       trackingForm.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -283,54 +322,6 @@ async function startApp() {
         });
       });
     }
-  }
-
-  // Initialize map and app
-  window.addEventListener("load", async () => {
-    map = L.map("map").setView([8.48, -13.23], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap contributors"
-    }).addTo(map);
-
-    setTimeout(() => map.invalidateSize(), 100);
-
-    addLocateMeButton();
-    await loadRoutes();
-    initFilters();
-    await loadStops();
-
-    fetchVehicles();
-    setInterval(fetchVehicles, 10000);
-
-    setupTrackingModal();
-  });
-
-  // Collapsible panels logic
-  document.addEventListener("DOMContentLoaded", () => {
-    const collapsibles = document.querySelectorAll(".collapsible");
-    collapsibles.forEach(btn => {
-      const content = btn.nextElementSibling;
-
-      if (window.innerWidth <= 768) {
-        content.style.maxHeight = null;
-        content.style.display = "none";
-      } else {
-        content.style.maxHeight = content.scrollHeight + "px";
-        content.style.display = "block";
-      }
-
-      btn.addEventListener("click", () => {
-        const isVisible = content.style.display === "block";
-
-        if (isVisible) {
-          content.style.display = "none";
-          content.style.maxHeight = null;
-        } else {
-          content.style.display = "block";
-          content.style.maxHeight = content.scrollHeight + "px";
-        }
-      });
-    });
   });
 }
 
