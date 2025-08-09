@@ -318,3 +318,26 @@ function addLocateMeButton() {
 
   locateControl.addTo(map);
 }
+
+
+document.getElementById("clearVehiclesBtn").addEventListener("click", () => {
+  Object.values(vehicleMarkers).forEach(m => map.removeLayer(m));
+  vehicleMarkers = {};
+  vehiclesData = {};
+  document.getElementById("lastUpdated").innerText = "--";
+
+  // Also clear alerts and popups
+  if (stopsLayer) {
+    stopsLayer.eachLayer(layer => {
+      const stopName = layer.feature?.properties?.name || "Stop";
+      layer.setPopupContent(`<strong>${stopName}</strong><br>No vehicles nearby.`);
+    });
+  }
+
+  const sidebar = document.getElementById("alertSidebar");
+  if (sidebar) {
+    sidebar.innerHTML = `<h3>Alerts (vehicles arriving soon)</h3><p>No vehicles arriving in the next 5 minutes.</p>`;
+  }
+
+  alert("🚫 All vehicle markers have been cleared from the map.");
+});
