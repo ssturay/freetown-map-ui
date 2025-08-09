@@ -20,7 +20,6 @@ async function startApp() {
   let vehiclesData = [];
   let routeLayers = L.featureGroup();
   let stopsLayer;
-  let nearbyStopCircles = [];
 
   const iconMap = {
     "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
@@ -145,7 +144,7 @@ async function startApp() {
   }
 
   function initFilters() {
-    const filterContainer = document.getElementById("filterPanel");
+    const filterContainer = document.querySelector(".sidebar-filter-container");
     if (!filterContainer) return;
 
     filterContainer.innerHTML = "";
@@ -163,18 +162,12 @@ async function startApp() {
     });
 
     filterContainer.querySelectorAll("input[type=checkbox]").forEach(input => {
-      input.addEventListener("change", () => {
-        applyFilters();
-      });
+      input.addEventListener("change", applyFilters);
     });
   }
 
   function applyFilters() {
-    const filterContainer = document.getElementById("filterPanel");
-    if (!filterContainer) return;
-
-    // Get all checked modes
-    const checkedModes = Array.from(filterContainer.querySelectorAll("input[type=checkbox]:checked"))
+    const checkedModes = Array.from(document.querySelectorAll(".sidebar-filter-container input[type=checkbox]:checked"))
       .map(input => input.value);
 
     // Filter vehicle markers
@@ -188,7 +181,7 @@ async function startApp() {
       }
     }
 
-    // Filter stops layer
+    // Filter stops
     if (!stopsLayer) return;
     stopsLayer.eachLayer(layer => {
       const mode = (layer.feature.properties.mode || "").toLowerCase();
@@ -201,8 +194,7 @@ async function startApp() {
   }
 
   function getIcon(mode) {
-    if (!mode) return null;
-    const key = mode.toLowerCase();
+    const key = mode ? mode.toLowerCase() : "podapoda";
     return L.icon({
       iconUrl: iconMap[key] || iconMap["podapoda"],
       iconSize: [30, 30],
@@ -218,26 +210,23 @@ async function startApp() {
 
       const data = await res.json();
 
-      // Backend sends object keyed by vehicle IDs, convert to array
       vehiclesData = Object.entries(data).map(([id, info]) => ({
         id,
         lat: info.lat,
         lon: info.lon,
-        mode: info.mode || "unknown",
-        eta_min: info.eta_min || null
+        mode: info.mode || "unknown"
       }));
 
-      // Update or add vehicle markers
       vehiclesData.forEach(vehicle => {
-        if (!vehicle.id || !vehicle.lat || !vehicle.lon) return;
         const { id, lat, lon, mode } = vehicle;
-        const icon = getIcon(mode);
+        if (!id || !lat || !lon) return;
 
+        const icon = getIcon(mode);
         let popupContent = `Vehicle ID: ${id}<br>Mode: ${mode}`;
         if (userMarker) {
           const userPos = userMarker.getLatLng();
           const { distance, eta } = computeETA(userPos.lat, userPos.lng, lat, lon);
-          popupContent += `<br>Distance to you: ${distance} meters<br>ETA (walking): ${eta} minutes`;
+          popupContent += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
         }
 
         if (vehicleMarkers[id]) {
@@ -245,59 +234,60 @@ async function startApp() {
           vehicleMarkers[id].setIcon(icon);
           vehicleMarkers[id].setPopupContent(popupContent);
         } else {
-          vehicleMarkers[id] = L.marker([lat, lon], { icon }).addTo(map);
-          vehicleMarkers[id].bindPopup(popupContent);
+          const marker = L.marker([lat, lon], { icon }).bindPopup(popupContent).addTo(map);
+          vehicleMarkers[id] = marker;
         }
       });
 
-      applyFilters(); // Apply filter after update to sync visibility
-
-      updateSidebarAlerts();
+      applyFilters();
       updateSidebarETAs();
+      updateSidebarAlerts();
 
-      const lastUpdatedEl = document.getElementById("lastUpdated");
-      if (lastUpdatedEl) {
-        lastUpdatedEl.textContent = new Date().toLocaleTimeString();
-      }
+      const timeLabel = document.getElementById("lastUpdated");
+      if (timeLabel) timeLabel.textContent = new Date().toLocaleTimeString();
+
     } catch (err) {
       console.error("Error fetching vehicles:", err);
     }
   }
 
-  function updateUserVehicleETAs() {
-    if (!userMarker) return;
-    const userPos = userMarker.getLatLng();
+  function updateSidebarETAs() {
+    const etaList = document.getElementById("etaList");
+    if (!etaList) return;
+    etaList.innerHTML = "";
 
-    vehiclesData.forEach(vehicle => {
-      if (!vehicle.id || !vehicle.lat || !vehicle.lon) return;
-      const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
-      const marker = vehicleMarkers[vehicle.id];
-      if (marker) {
-        const popupContent = `Vehicle ID: ${vehicle.id}<br>Mode: ${vehicle.mode}<br>Distance to you: ${distance} meters<br>ETA (walking): ${eta} minutes`;
-        marker.setPopupContent(popupContent);
-      }
-    });
-  }
-
-  function updateSidebarAlerts() {
-    const alertListEl = document.getElementById("alert-list");
-    if (!alertListEl) return;
-    alertListEl.innerHTML = "";
-
-    if (!userMarker) {
-      alertListEl.innerHTML = "<p>No location set.</p>";
+    if (!userMarker || vehiclesData.length === 0) {
+      etaList.innerHTML = "<p>No data available.</p>";
       return;
     }
 
     const userPos = userMarker.getLatLng();
-    // Show only vehicles within 500m (updated from 2000m)
+    vehiclesData.forEach(v => {
+      const { distance, eta } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
+      const div = document.createElement("div");
+      div.textContent = `${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min`;
+      etaList.appendChild(div);
+    });
+  }
+
+  function updateSidebarAlerts() {
+    const alertList = document.getElementById("alertSidebar");
+    if (!alertList) return;
+    alertList.innerHTML = "";
+
+    if (!userMarker) {
+      alertList.innerHTML = "<p>No location available.</p>";
+      return;
+    }
+
+    const userPos = userMarker.getLatLng();
     const nearbyVehicles = vehiclesData.filter(v => {
-      const dist = computeETA(userPos.lat, userPos.lng, v.lat, v.lon).distance;
-      return dist <= 500;
+      const { distance } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
+      return distance <= 500; // <-- updated from 2000m to 500m
     });
 
     if (nearbyVehicles.length === 0) {
-      alertListEl.innerHTML = "<p>No vehicles nearby within 500m.</p>";
+      alertList.innerHTML = "<p>No nearby vehicles within 500m.</p>";
       return;
     }
 
@@ -305,38 +295,12 @@ async function startApp() {
       const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
       const div = document.createElement("div");
       div.textContent = `${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)`;
-      alertListEl.appendChild(div);
-    });
-  }
-
-  function updateSidebarETAs() {
-    const etaListEl = document.getElementById("eta-list");
-    if (!etaListEl) return;
-    etaListEl.innerHTML = "";
-
-    if (!userMarker) {
-      etaListEl.innerHTML = "<p>No location set.</p>";
-      return;
-    }
-
-    if (vehiclesData.length === 0) {
-      etaListEl.innerHTML = "<p>No vehicle data available.</p>";
-      return;
-    }
-
-    const userPos = userMarker.getLatLng();
-
-    vehiclesData.forEach(vehicle => {
-      const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
-      const div = document.createElement("div");
-      div.textContent = `${capitalize(vehicle.mode)} (ID: ${vehicle.id}) — ${distance} m, ETA ~${eta} min`;
-      etaListEl.appendChild(div);
+      alertList.appendChild(div);
     });
   }
 
   function capitalize(str) {
-    if (!str) return "";
-    return str.charAt(0).toUpperCase() + str.slice(1);
+    return str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
   }
 
   function setupMap() {
@@ -357,7 +321,11 @@ async function startApp() {
   loadRoutes();
   loadStops();
   initFilters();
-
   fetchVehicles();
-  setInterval(fetchVehicles, 30000);
+  setInterval(fetchVehicles, 30000); // Update every 30 seconds
 }
+
+// ✅ Ensure this runs after DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+  startApp();
+});
