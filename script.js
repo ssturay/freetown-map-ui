@@ -31,7 +31,7 @@ async function startApp() {
   };
 
   function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
-    const R = 6371e3;
+    const R = 6371e3; // Earth radius in meters
     const φ1 = userLat * Math.PI / 180;
     const φ2 = vehicleLat * Math.PI / 180;
     const Δφ = (vehicleLat - userLat) * Math.PI / 180;
@@ -58,6 +58,7 @@ async function startApp() {
         (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
+
           if (userMarker) {
             userMarker.setLatLng([lat, lon]);
           } else {
@@ -65,14 +66,14 @@ async function startApp() {
               title: "You are here",
               icon: L.icon({
                 iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-                iconSize: [25, 25]
+                iconSize: [25, 25],
+                iconAnchor: [12, 25]
               })
             }).addTo(map);
           }
           map.setView([lat, lon], 15);
-          updateUserVehicleETAs();
-          updateSidebarAlerts();
           updateSidebarETAs();
+          updateSidebarAlerts();
         },
         (error) => {
           alert("Unable to retrieve your location.");
@@ -97,7 +98,7 @@ async function startApp() {
           opacity: 0.7
         }),
         onEachFeature: (feature, layer) => {
-          if (feature.properties && feature.properties.name) {
+          if (feature.properties?.name) {
             layer.bindPopup(`<strong>Route:</strong> ${feature.properties.name}`);
           }
           routeLayers.addLayer(layer);
@@ -121,7 +122,7 @@ async function startApp() {
 
       stopsLayer = L.geoJSON(geojson, {
         pointToLayer: (feature, latlng) => {
-          const mode = feature.properties.mode ? feature.properties.mode.toLowerCase() : "default";
+          const mode = feature.properties?.mode?.toLowerCase() || "default";
           const iconUrl = iconMap[mode] || "https://cdn-icons-png.flaticon.com/512/252/252025.png";
           const stopIcon = L.icon({
             iconUrl,
@@ -132,7 +133,7 @@ async function startApp() {
           return L.marker(latlng, { icon: stopIcon });
         },
         onEachFeature: (feature, layer) => {
-          if (feature.properties && feature.properties.name) {
+          if (feature.properties?.name) {
             layer.bindPopup(`<strong>Stop:</strong> ${feature.properties.name}`);
           }
         }
@@ -149,6 +150,7 @@ async function startApp() {
 
     filterContainer.innerHTML = "";
     const modes = ["Podapoda", "Taxi", "Keke", "Paratransit Bus", "Waka Fine Bus", "Motorbike"];
+
     modes.forEach(mode => {
       const div = document.createElement("div");
       div.className = "filter-option";
@@ -184,7 +186,7 @@ async function startApp() {
     // Filter stops
     if (!stopsLayer) return;
     stopsLayer.eachLayer(layer => {
-      const mode = (layer.feature.properties.mode || "").toLowerCase();
+      const mode = (layer.feature.properties?.mode || "").toLowerCase();
       if (checkedModes.includes(mode)) {
         if (!map.hasLayer(layer)) map.addLayer(layer);
       } else {
@@ -219,10 +221,10 @@ async function startApp() {
 
       vehiclesData.forEach(vehicle => {
         const { id, lat, lon, mode } = vehicle;
-        if (!id || !lat || !lon) return;
+        if (!id || typeof lat !== "number" || typeof lon !== "number") return;
 
         const icon = getIcon(mode);
-        let popupContent = `Vehicle ID: ${id}<br>Mode: ${mode}`;
+        let popupContent = `Vehicle ID: ${id}<br>Mode: ${capitalize(mode)}`;
         if (userMarker) {
           const userPos = userMarker.getLatLng();
           const { distance, eta } = computeETA(userPos.lat, userPos.lng, lat, lon);
@@ -283,7 +285,7 @@ async function startApp() {
     const userPos = userMarker.getLatLng();
     const nearbyVehicles = vehiclesData.filter(v => {
       const { distance } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
-      return distance <= 500; // <-- updated from 2000m to 500m
+      return distance <= 500; // distance updated to 500m
     });
 
     if (nearbyVehicles.length === 0) {
@@ -318,14 +320,14 @@ async function startApp() {
 
   setupMap();
   addLocateMeButton();
-  loadRoutes();
-  loadStops();
+  await loadRoutes();
+  await loadStops();
   initFilters();
-  fetchVehicles();
+  await fetchVehicles();
   setInterval(fetchVehicles, 30000); // Update every 30 seconds
 }
 
-// ✅ Ensure this runs after DOM is ready
+// Ensure this runs after DOM is ready
 document.addEventListener("DOMContentLoaded", () => {
   startApp();
 });
