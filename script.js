@@ -18,10 +18,10 @@ async function startApp() {
   const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
   let map, userMarker = null;
   let vehicleMarkers = {};
-  let vehiclesData = {};
   let routeLayers = L.featureGroup();
-  let stopsLayer;
   let availableModes = new Set();
+  let filters = {};
+  let stopsLayer = L.layerGroup().addTo(map);
   let nearbyStopCircles = [];
 
   const iconMap = {
@@ -40,12 +40,17 @@ async function startApp() {
     const Δφ = (vehicleLat - userLat) * Math.PI / 180;
     const Δλ = (vehicleLon - userLon) * Math.PI / 180;
 
-    const a = Math.sin(Δφ/2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) ** 2;
+    const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
     const walkingSpeed = 1.4;
 
     return { distance: Math.round(distance), eta: Math.round(distance / walkingSpeed / 60) };
+  }
+
+  function getIcon(mode) {
+    const url = iconMap[mode.toLowerCase()] || iconMap["podapoda"];
+    return L.icon({ iconUrl: url, iconSize: [32, 32] });
   }
 
   function addLocateMeButton() {
@@ -55,37 +60,107 @@ async function startApp() {
 
     locateBtn.addEventListener("click", () => {
       if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
+        alert("Geolocation not supported.");
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
 
-          if (userMarker) {
-            userMarker.setLatLng([lat, lon]);
-          } else {
-            userMarker = L.marker([lat, lon], {
-              title: "You are here",
-              icon: L.icon({
-                iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-                iconSize: [25, 25]
-              })
-            }).addTo(map);
-          }
-
-          map.setView([lat, lon], 15);
-        },
-        (error) => {
-          alert("Unable to retrieve your location.");
-          console.error("Geolocation error:", error);
+        if (userMarker) {
+          userMarker.setLatLng([lat, lon]);
+        } else {
+          userMarker = L.marker([lat, lon], {
+            title: "You are here",
+            icon: L.icon({
+              iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+              iconSize: [25, 25]
+            })
+          }).addTo(map);
         }
-      );
+
+        map.setView([lat, lon], 15);
+      }, () => {
+        alert("Could not retrieve location.");
+      });
     });
   }
 
+  async function fetchVehicles() {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/vehicles`);
+      const data = await res.json();
+      document.getElementById("lastUpdated").textContent = new Date().toLocaleTimeString();
+
+      for (const id in data) {
+        const vehicle = data[id];
+        const { lat, lon, mode, eta_min } = vehicle;
+
+        availableModes.add(mode);
+
+        // Filter logic
+        if (Object.keys(filters).length && !filters[mode.toLowerCase()]) {
+          if (vehicleMarkers[id]) {
+            map.removeLayer(vehicleMarkers[id]);
+            delete vehicleMarkers[id];
+          }
+          continue;
+        }
+
+        if (vehicleMarkers[id]) {
+          vehicleMarkers[id].setLatLng([lat, lon]);
+        } else {
+          vehicleMarkers[id] = L.marker([lat, lon], {
+            icon: getIcon(mode),
+            title: `${mode.toUpperCase()} (${id})`
+          }).bindPopup(`<b>${mode.toUpperCase()}</b><br>ID: ${id}<br>ETA: ${eta_min} min`).addTo(map);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching vehicles:", err);
+    }
+  }
+
+  function initFilters() {
+    const container = document.createElement("div");
+    container.className = "filter-panel";
+
+    container.innerHTML = `<h3>Filter by mode</h3>
+      <div id="modeFilters"></div>
+      <button onclick="applyFilters()">Apply Filters</button>`;
+
+    document.querySelector(".sidebar-filter-container").appendChild(container);
+
+    function applyFilters() {
+      const checkboxes = document.querySelectorAll(".filter-panel input[type='checkbox']");
+      filters = {};
+      checkboxes.forEach(cb => {
+        if (cb.checked) {
+          filters[cb.value.toLowerCase()] = true;
+        }
+      });
+      fetchVehicles();
+    }
+
+    window.applyFilters = applyFilters;
+  }
+
+  async function loadRoutes() {
+    // Placeholder: You could load GeoJSON routes here
+  }
+
+  async function loadStops() {
+    // Optional: Load stops and show as markers or circles
+  }
+
+  function showUserLocationAndNearbyStops() {
+    // Optional: Enhance later to show stop markers around the user
+  }
+
+  // -------------------------------
+  // MAIN INITIALIZATION
+  // -------------------------------
   window.addEventListener("load", async () => {
     map = L.map("map").setView([8.48, -13.23], 12);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -96,58 +171,27 @@ async function startApp() {
 
     addLocateMeButton();
     await loadRoutes();
-    initFilters();
     await loadStops();
+    initFilters();
     fetchVehicles();
     setInterval(fetchVehicles, 10000);
     showUserLocationAndNearbyStops();
   });
 
-  // --- Collapsible Panel Support ---
-  document.addEventListener("DOMContentLoaded", () => {
-    const collapsibles = document.querySelectorAll(".collapsible");
-
-    collapsibles.forEach(btn => {
-      const content = btn.nextElementSibling;
-
-      if (window.innerWidth <= 768) {
-        content.style.maxHeight = null;
-        content.style.display = "none";
-      } else {
-        content.style.maxHeight = content.scrollHeight + "px";
-        content.style.display = "block";
-      }
-
-      btn.addEventListener("click", () => {
-        const isVisible = content.style.display === "block";
-
-        if (isVisible) {
-          content.style.display = "none";
-          content.style.maxHeight = null;
-        } else {
-          content.style.display = "block";
-          content.style.maxHeight = content.scrollHeight + "px";
-        }
-      });
-    });
-  });
-
-  // --- Modal Handling ---
+  // -------------------------------
+  // MODAL & FORM LOGIC
+  // -------------------------------
   document.addEventListener("DOMContentLoaded", () => {
     const modal = document.getElementById("trackingModal");
     const openBtn = document.getElementById("openTrackingModal");
     const closeBtn = document.getElementById("closeTrackingModal");
 
     if (openBtn) {
-      openBtn.onclick = () => {
-        modal.style.display = "block";
-      };
+      openBtn.onclick = () => modal.style.display = "block";
     }
 
     if (closeBtn) {
-      closeBtn.onclick = () => {
-        modal.style.display = "none";
-      };
+      closeBtn.onclick = () => modal.style.display = "none";
     }
 
     window.onclick = (e) => {
@@ -198,7 +242,9 @@ async function startApp() {
   });
 }
 
-// Start app only if login passes
+// -------------------------------
+// BOOTSTRAP THE APP
+// -------------------------------
 if (promptLogin()) {
   startApp();
 }
