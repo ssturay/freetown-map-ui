@@ -33,6 +33,27 @@ const iconMap = {
   "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
 };
 
+// === NEW: Compute ETA between user and vehicle ===
+function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
+  const R = 6371e3; // Earth radius in meters
+  const φ1 = userLat * Math.PI / 180;
+  const φ2 = vehicleLat * Math.PI / 180;
+  const Δφ = (vehicleLat - userLat) * Math.PI / 180;
+  const Δλ = (vehicleLon - userLon) * Math.PI / 180;
+
+  const a = Math.sin(Δφ/2)**2 +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  const distance = R * c; // meters
+
+  const walkingSpeed = 1.4; // m/s (~5 km/h)
+  const etaMinutes = Math.round(distance / walkingSpeed / 60);
+
+  return { distance: Math.round(distance), eta: etaMinutes };
+}
+
 window.addEventListener("load", async () => {
   map = L.map("map").setView([8.48, -13.23], 12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -141,7 +162,7 @@ function applyFilters() {
 }
 
 function getIcon(mode) {
-  const key = (mode || "unknown").trim().toLowerCase(); // <- Avoids undefined.trim() crash
+  const key = (mode || "unknown").trim().toLowerCase();
 
   const iconUrl = iconMap[key] || "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
 
@@ -161,26 +182,28 @@ async function fetchVehicles() {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
     const data = await res.json();
 
-    console.log("Fetched vehicles data:", data);  // Debug log
+    console.log("Fetched vehicles data:", data);
 
     document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
     vehiclesData = data;
 
+    // Update vehicle markers on map
     for (const [id, info] of Object.entries(data)) {
-      const { lat, lon, eta_min, mode } = info;
+      const { lat, lon, mode } = info;
       const icon = getIcon(mode);
 
       if (vehicleMarkers[id]) {
         vehicleMarkers[id].setLatLng([lat, lon])
-          .setPopupContent(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
+          .setPopupContent(`🚐 <b>${id}</b>`);
       } else {
         const m = L.marker([lat, lon], { icon }).addTo(map)
-          .bindPopup(`🚐 <b>${id}</b><br>ETA: ${eta_min} min`);
+          .bindPopup(`🚐 <b>${id}</b>`);
         m.mode = mode;
         vehicleMarkers[id] = m;
       }
     }
 
+    updateUserVehicleETAs();
     updateStopPopups();
     updateSidebarAlerts();
   } catch (error) {
@@ -199,7 +222,7 @@ function updateStopPopups() {
       const vehicleLatLng = L.latLng(v.lat, v.lon);
       const distanceMeters = stopLatLng.distanceTo(vehicleLatLng);
       if (distanceMeters < 300) {
-        nearbyVehicles.push({ id, mode: v.mode, eta_min: v.eta_min });
+        nearbyVehicles.push({ id, mode: v.mode });
       }
     }
 
@@ -208,7 +231,7 @@ function updateStopPopups() {
     } else {
       const listHtml = nearbyVehicles.map(v =>
         `<li><img src="${getIcon(v.mode).options.iconUrl}" style="width:16px; vertical-align:middle; margin-right:4px;">` +
-        `<b>${v.mode}</b> #${v.id} - ETA: ${v.eta_min} min</li>`).join("");
+        `<b>${v.mode}</b> #${v.id}</li>`).join("");
       stopLayer.setPopupContent(
         `<strong>${stopLayer.feature.properties.name}</strong><br>` +
         `<ul style="padding-left: 16px; margin: 4px 0;">${listHtml}</ul>`
@@ -258,45 +281,89 @@ function showUserLocationAndNearbyStops() {
         }
       });
     }
+
+    // Update ETA sidebar after user location set
+    updateUserVehicleETAs();
   }, () => {
     alert("Unable to retrieve your location.");
   });
 }
 
 function updateSidebarAlerts() {
-  const sidebar = document.getElementById("alertSidebar");  // <-- Fixed ID here
+  const sidebar = document.getElementById("alertSidebar");
   if (!sidebar) return;
 
   const nearbyVehicles = Object.entries(vehiclesData).filter(([_, v]) => v.eta_min < 5);
-  sidebar.innerHTML = `<h3>Alerts (vehicles arriving soon)</h3>`;
+  sidebar.innerHTML = "<h3>Alerts</h3>";
 
   if (nearbyVehicles.length === 0) {
-    sidebar.innerHTML += `<p>No vehicles arriving in the next 5 minutes.</p>`;
+    sidebar.innerHTML += "<p>No vehicles arriving within 5 minutes.</p>";
     return;
   }
 
   nearbyVehicles.forEach(([id, v]) => {
+    sidebar.innerHTML += `<p><strong>${v.mode}</strong> #${id} arriving soon.</p>`;
+  });
+}
+
+// === NEW: Update the ETA sidebar with vehicles sorted by ETA from user location ===
+function updateUserVehicleETAs() {
+  const sidebar = document.getElementById("etaSidebar");
+  if (!sidebar || !userMarker) {
+    sidebar.innerHTML = `<h3>Closest Vehicles (ETA)</h3><p>User location not available.</p>`;
+    return;
+  }
+
+  const userLatLng = userMarker.getLatLng();
+  const rows = [];
+
+  for (const [id, v] of Object.entries(vehiclesData)) {
+    const { eta, distance } = computeETA(userLatLng.lat, userLatLng.lng, v.lat, v.lon);
+    rows.push({
+      id,
+      mode: v.mode,
+      eta,
+      distance,
+      iconUrl: getIcon(v.mode).options.iconUrl
+    });
+  }
+
+  rows.sort((a, b) => a.eta - b.eta);
+
+  sidebar.innerHTML = `<h3>Closest Vehicles (ETA)</h3>`;
+
+  if (rows.length === 0) {
+    sidebar.innerHTML += `<p>No vehicles to show.</p>`;
+    return;
+  }
+
+  rows.slice(0, 5).forEach(r => {
     sidebar.innerHTML += `
-      <div style="margin-bottom: 6px;">
-        <img src="${getIcon(v.mode).options.iconUrl}" style="width: 20px; vertical-align: middle; margin-right: 8px;">
-        <strong>${v.mode}</strong> #${id} arriving in ${v.eta_min} min
+      <div style="margin-bottom: 8px;">
+        <img src="${r.iconUrl}" style="width: 20px; vertical-align: middle; margin-right: 8px;">
+        <strong>${r.mode}</strong> #${r.id}<br>
+        ETA: ${r.eta} min — ${r.distance} m
       </div>
     `;
   });
 }
 
 function addLocateMeButton() {
-  const locateControl = L.control({ position: "topright" });
-
+  const locateControl = L.control({ position: "topleft" });
   locateControl.onAdd = () => {
-    const div = L.DomUtil.create("div", "leaflet-bar leaflet-control leaflet-control-custom");
-    div.innerHTML = `<button title="Locate Me" style="background:#fff; border:none; padding: 6px; cursor:pointer;">📍</button>`;
-    div.onclick = () => {
+    const btn = L.DomUtil.create("button", "leaflet-bar leaflet-control leaflet-control-custom");
+    btn.title = "Locate Me";
+    btn.innerHTML = "📍";
+    btn.style.backgroundColor = "#fff";
+    btn.style.width = "34px";
+    btn.style.height = "34px";
+    btn.style.cursor = "pointer";
+
+    btn.onclick = () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
-          const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
-          map.setView(latlng, 15);
-
+          const latlng = [pos.coords.latitude, pos.coords.longitude];
+          map.setView(latlng, 16);
           if (userMarker) {
             userMarker.setLatLng(latlng).openPopup();
           } else {
@@ -308,47 +375,14 @@ function addLocateMeButton() {
               fillOpacity: 0.9
             }).addTo(map).bindPopup("📍 You are here").openPopup();
           }
-        }, () => alert("Unable to retrieve your location."));
+          updateUserVehicleETAs();
+        }, () => alert("Unable to get your location."));
       } else {
-        alert("Geolocation not supported by your browser.");
+        alert("Geolocation is not supported by your browser.");
       }
     };
-    return div;
-  };
 
+    return btn;
+  };
   locateControl.addTo(map);
 }
-
-
-document.getElementById("clearVehiclesBtn").addEventListener("click", async () => {
-  // Clear backend
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/vehicles/clear`, {
-      method: "POST"
-    });
-    const result = await res.json();
-    console.log(result.message || "Vehicles cleared on backend");
-  } catch (err) {
-    console.error("Error clearing backend vehicles:", err);
-  }
-
-  // Clear frontend markers
-  Object.values(vehicleMarkers).forEach(m => map.removeLayer(m));
-  vehicleMarkers = {};
-  vehiclesData = {};
-  document.getElementById("lastUpdated").innerText = "--";
-
-  if (stopsLayer) {
-    stopsLayer.eachLayer(layer => {
-      const stopName = layer.feature?.properties?.name || "Stop";
-      layer.setPopupContent(`<strong>${stopName}</strong><br>No vehicles nearby.`);
-    });
-  }
-
-  const sidebar = document.getElementById("alertSidebar");
-  if (sidebar) {
-    sidebar.innerHTML = `<h3>Alerts (vehicles arriving soon)</h3><p>No vehicles arriving in the next 5 minutes.</p>`;
-  }
-
-  alert("🚫 All vehicles permanently cleared from frontend and backend.");
-});
