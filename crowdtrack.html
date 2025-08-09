@@ -1,0 +1,89 @@
+<!-- crowdtrack.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crowdsource Tracker</title>
+</head>
+<body>
+  <h2>🚐 Public Transport Tracker</h2>
+  <label>
+    Vehicle ID:
+    <input type="text" id="vehicleId" placeholder="e.g. poda123" />
+  </label><br><br>
+
+  <label>
+    Mode of Transport:
+    <select id="vehicleMode">
+      <option value="Podapoda">Podapoda</option>
+      <option value="Keke">Keke</option>
+      <option value="Taxi">Taxi</option>
+      <option value="Paratransit Bus">Paratransit Bus</option>
+      <option value="WAKA FINE Bus">WAKA FINE Bus</option>
+      <option value="Motorbike">Motorbike</option>
+    </select>
+  </label><br><br>
+
+  <button id="startBtn">Start Tracking</button>
+  <button id="stopBtn" disabled>Stop</button>
+
+  <p id="status">Not tracking yet...</p>
+
+  <script>
+    const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com/api/location/update";
+    let intervalId = null;
+
+    function getLocationAndSendPing(vehicleId, mode) {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(position => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        fetch(`${BACKEND_URL}?id=${vehicleId}&lat=${lat}&lon=${lon}&mode=${encodeURIComponent(mode)}`)
+          .then(res => res.text())
+          .then(text => {
+            console.log("✅ Ping sent:", text);
+            document.getElementById("status").innerText = `Last ping: ${new Date().toLocaleTimeString()}`;
+          })
+          .catch(err => {
+            console.error("❌ Error sending ping:", err);
+            document.getElementById("status").innerText = "Error sending ping.";
+          });
+      }, () => {
+        alert("Unable to retrieve your location.");
+      });
+    }
+
+    document.getElementById("startBtn").addEventListener("click", () => {
+      const vehicleId = document.getElementById("vehicleId").value.trim();
+      const mode = document.getElementById("vehicleMode").value;
+
+      if (!vehicleId) {
+        alert("Please enter a vehicle ID.");
+        return;
+      }
+
+      intervalId = setInterval(() => {
+        getLocationAndSendPing(vehicleId, mode);
+      }, 10000); // send every 10 seconds
+
+      document.getElementById("status").innerText = "🚀 Tracking started...";
+      document.getElementById("startBtn").disabled = true;
+      document.getElementById("stopBtn").disabled = false;
+    });
+
+    document.getElementById("stopBtn").addEventListener("click", () => {
+      clearInterval(intervalId);
+      intervalId = null;
+      document.getElementById("status").innerText = "⏹️ Tracking stopped.";
+      document.getElementById("startBtn").disabled = false;
+      document.getElementById("stopBtn").disabled = true;
+    });
+  </script>
+</body>
+</html>
