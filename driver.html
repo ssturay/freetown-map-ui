@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Driver Tracker - Freetown PT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f4f4;
+      color: #333;
+    }
+    .hidden { display: none; }
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    input, select, button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 1rem;
+    }
+    button {
+      background: #004d99;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0066cc;
+    }
+    .status {
+      margin-top: 20px;
+      font-size: 0.9rem;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="loginSection">
+    <h2>Driver Login</h2>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+  </div>
+
+  <div class="container hidden" id="trackingSection">
+    <h2>Vehicle Tracking</h2>
+    <label for="vehicleId">Vehicle ID:</label>
+    <input type="text" id="vehicleId" placeholder="e.g. poda123" />
+
+    <label for="mode">Transport Mode:</label>
+    <select id="mode">
+      <option value="Podapoda">Podapoda</option>
+      <option value="Keke">Keke</option>
+      <option value="Taxi">Taxi</option>
+      <option value="Paratransit Bus">Paratransit Bus</option>
+      <option value="WAKA FINE Bus">WAKA FINE Bus</option>
+      <option value="Motorbike">Motorbike</option>
+    </select>
+
+    <button id="startBtn" onclick="startTracking()">Start Tracking</button>
+    <button id="stopBtn" class="hidden" onclick="stopTracking()">Stop Tracking</button>
+
+    <div class="status" id="statusMessage"></div>
+  </div>
+
+  <script>
+    const VALID_USERNAME = "driver";
+    const VALID_PASSWORD = "ptfreetown";
+
+    const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
+    let trackingInterval = null;
+
+    function login() {
+      const u = document.getElementById("username").value.trim();
+      const p = document.getElementById("password").value.trim();
+
+      if (u === VALID_USERNAME && p === VALID_PASSWORD) {
+        document.getElementById("loginSection").classList.add("hidden");
+        document.getElementById("trackingSection").classList.remove("hidden");
+      } else {
+        alert("Invalid credentials.");
+      }
+    }
+
+    function startTracking() {
+      const vehicleId = document.getElementById("vehicleId").value.trim();
+      const mode = document.getElementById("mode").value;
+
+      if (!vehicleId) {
+        alert("Please enter vehicle ID.");
+        return;
+      }
+
+      document.getElementById("startBtn").classList.add("hidden");
+      document.getElementById("stopBtn").classList.remove("hidden");
+      document.getElementById("statusMessage").innerText = "🔄 Tracking started...";
+
+      trackingInterval = setInterval(() => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(position => {
+            const { latitude, longitude } = position.coords;
+
+            fetch(`${BACKEND_URL}/api/location/update?id=${vehicleId}&lat=${latitude}&lon=${longitude}&mode=${encodeURIComponent(mode)}`)
+              .then(res => res.text())
+              .then(msg => {
+                console.log(`✅ Sent ping: ${msg}`);
+                document.getElementById("statusMessage").innerText = `📍 Sent: ${latitude.toFixed(4)}, ${longitude.toFixed(4)} @ ${new Date().toLocaleTimeString()}`;
+              })
+              .catch(err => {
+                console.error("❌ Error sending ping", err);
+                document.getElementById("statusMessage").innerText = "❌ Error sending ping.";
+              });
+
+          }, () => {
+            document.getElementById("statusMessage").innerText = "❌ Could not get location.";
+          });
+        } else {
+          alert("Geolocation not supported.");
+        }
+      }, 10000);
+    }
+
+    function stopTracking() {
+      clearInterval(trackingInterval);
+      document.getElementById("startBtn").classList.remove("hidden");
+      document.getElementById("stopBtn").classList.add("hidden");
+      document.getElementById("statusMessage").innerText = "⛔ Tracking stopped.";
+    }
+  </script>
+</body>
+</html>
