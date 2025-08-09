@@ -15,6 +15,56 @@
 
   <!-- Your CSS -->
   <link rel="stylesheet" href="style.css" />
+
+  <style>
+    /* Essential map height to show */
+    #map {
+      height: 600px;
+      width: 100%;
+      border: 1px solid #ccc;
+      margin-top: 1rem;
+      border-radius: 8px;
+    }
+
+    /* Modal styles: basic example (merge or replace with your CSS) */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      padding: 1.5rem;
+      max-width: 400px;
+      z-index: 1000;
+    }
+    .modal[aria-hidden="false"] {
+      display: block;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      float: right;
+    }
+    .modal-trigger {
+      margin: 1rem 0;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    /* Screen reader only helper */
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0,0,0,0); border: 0;
+    }
+  </style>
 </head>
 <body>
   <div class="page-container">
@@ -122,5 +172,43 @@
 
   <!-- Your JS -->
   <script src="script.js" defer></script>
+
+  <script>
+    // Minimal modal open/close logic to enable Start Tracking button
+    document.addEventListener('DOMContentLoaded', () => {
+      const openBtn = document.getElementById('openTrackingModal');
+      const closeBtn = document.getElementById('closeTrackingModal');
+      const modal = document.getElementById('trackingModal');
+      const form = document.getElementById('trackingForm');
+
+      openBtn.addEventListener('click', () => {
+        modal.setAttribute('aria-hidden', 'false');
+      });
+
+      closeBtn.addEventListener('click', () => {
+        modal.setAttribute('aria-hidden', 'true');
+      });
+
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.setAttribute('aria-hidden', 'true');
+        }
+      });
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        // Placeholder: handle tracking form submission here
+        alert(`Started tracking vehicle ID: ${form.vehicleId.value} with mode: ${form.mode.value}`);
+        modal.setAttribute('aria-hidden', 'true');
+        form.reset();
+      });
+
+      // Clear vehicles button listener (optional, add actual clearing in your script.js)
+      const clearBtn = document.getElementById('clearVehiclesBtn');
+      clearBtn.addEventListener('click', () => {
+        alert('Clear vehicles functionality not yet implemented.');
+      });
+    });
+  </script>
 </body>
 </html>
