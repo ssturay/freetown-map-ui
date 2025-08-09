@@ -54,8 +54,10 @@ header button {
   transition: background-color 0.3s ease;
 }
 
-header button:hover {
+header button:hover,
+header button:focus {
   background-color: #e6e6e6;
+  outline: none;
 }
 
 /* Map */
@@ -65,6 +67,7 @@ header button:hover {
   margin-top: 80px; /* To avoid being under fixed header */
   z-index: 1;
   position: relative;
+  /* Ensure the map container is visible */
 }
 
 /* Footer */
@@ -127,7 +130,7 @@ footer {
   margin-bottom: 0.5rem;
 }
 
-/* Modal */
+/* Modal overlay */
 .modal {
   display: none;
   position: fixed;
@@ -140,6 +143,12 @@ footer {
   background-color: rgba(0, 0, 0, 0.4);
 }
 
+/* Show modal when aria-hidden="false" */
+.modal[aria-hidden="false"] {
+  display: block;
+}
+
+/* Modal content */
 .modal-content {
   background-color: white;
   margin: 10% auto;
@@ -159,10 +168,14 @@ footer {
   cursor: pointer;
   color: #666;
   transition: color 0.3s ease;
+  background: none;
+  border: none;
 }
 
-.modal-close:hover {
+.modal-close:hover,
+.modal-close:focus {
   color: #000;
+  outline: none;
 }
 
 .modal-trigger {
@@ -181,8 +194,22 @@ footer {
   transition: background-color 0.3s ease;
 }
 
-.modal-trigger:hover {
+.modal-trigger:hover,
+.modal-trigger:focus {
   background-color: #005fa3;
+  outline: none;
+}
+
+/* Accessibility helper for screen reader only text */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 
 /* Responsive */
