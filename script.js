@@ -377,8 +377,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-let trackingWatchId = null; // Store geolocation watch ID for stopping later
-
 document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("trackingModal");
   const openBtn = document.getElementById("openTrackingModal");
