@@ -198,54 +198,61 @@ async function startApp() {
     });
   }
 
-  async function fetchVehicles() {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/vehicles`);
-      if (!res.ok) throw new Error("Failed to fetch vehicles");
-      const data = await res.json();
+async function fetchVehicles() {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/vehicles`);
+    if (!res.ok) throw new Error("Failed to fetch vehicles");
 
-      console.log("Raw vehicle data:", data);
+    const data = await res.json();
 
-      let vehiclesArray = [];
+    console.log("Raw vehicle data:", data);
+    console.log("Type of data:", typeof data);
+    console.log("Data keys:", data && typeof data === "object" ? Object.keys(data) : "N/A");
 
-if (Array.isArray(data)) {
-  vehiclesArray = data;
-} else if (data.vehicles && Array.isArray(data.vehicles)) {
-  vehiclesArray = data.vehicles;
-} else if (Object.keys(data).length === 0) {
-  console.warn("No vehicle data received from backend.");
-  return;
-} else {
-  throw new Error("Vehicle data format unrecognized");
+    let vehiclesArray = [];
+
+    if (Array.isArray(data)) {
+      vehiclesArray = data;
+    } else if (data && Array.isArray(data.vehicles)) {
+      vehiclesArray = data.vehicles;
+    } else if (!data || Object.keys(data).length === 0) {
+      console.warn("No vehicle data received from backend.");
+      return;
+    } else {
+      console.error("Unexpected vehicle data structure:", data);
+      throw new Error("Vehicle data format unrecognized");
+    }
+
+    vehiclesData = vehiclesArray;
+
+    // Update or add vehicle markers
+    vehiclesArray.forEach(vehicle => {
+      if (!vehicle.id || !vehicle.lat || !vehicle.lon) return; // skip invalid entries
+
+      const { id, lat, lon, mode } = vehicle;
+      const icon = getIcon(mode);
+
+      if (vehicleMarkers[id]) {
+        vehicleMarkers[id].setLatLng([lat, lon]);
+        vehicleMarkers[id].setIcon(icon);
+      } else {
+        vehicleMarkers[id] = L.marker([lat, lon], { icon }).addTo(map);
+        vehicleMarkers[id].bindPopup(`Vehicle ID: ${id}<br>Mode: ${mode}`);
+      }
+    });
+
+    updateUserVehicleETAs();
+    updateSidebarAlerts();
+
+    const lastUpdatedEl = document.getElementById("lastUpdated");
+    if (lastUpdatedEl) {
+      lastUpdatedEl.textContent = new Date().toLocaleTimeString();
+    }
+  } catch (err) {
+    console.error("Error fetching vehicles:", err);
+  }
 }
 
-
-      vehiclesData = vehiclesArray;
-
-      // Update or add vehicle markers
-      vehiclesArray.forEach(vehicle => {
-        if (!vehicle.id || !vehicle.lat || !vehicle.lon) return; // skip invalid entries
-
-        const { id, lat, lon, mode } = vehicle;
-        const icon = getIcon(mode);
-
-        if (vehicleMarkers[id]) {
-          vehicleMarkers[id].setLatLng([lat, lon]);
-          vehicleMarkers[id].setIcon(icon);
-        } else {
-          vehicleMarkers[id] = L.marker([lat, lon], { icon }).addTo(map);
-          vehicleMarkers[id].bindPopup(`Vehicle ID: ${id}<br>Mode: ${mode}`);
-        }
-      });
-
-      updateUserVehicleETAs();
-      updateSidebarAlerts();
-
-      document.getElementById("lastUpdated").textContent = new Date().toLocaleTimeString();
-    } catch (err) {
-      console.error("Error fetching vehicles:", err);
-    }
-  }
 
   function updateUserVehicleETAs() {
     if (!userMarker) return;
