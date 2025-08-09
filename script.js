@@ -290,14 +290,14 @@ async function startApp() {
     }
 
     const userPos = userMarker.getLatLng();
-    // Show only vehicles within 2000m (2km)
+    // Show only vehicles within 500m (updated from 2000m)
     const nearbyVehicles = vehiclesData.filter(v => {
       const dist = computeETA(userPos.lat, userPos.lng, v.lat, v.lon).distance;
-      return dist <= 2000;
+      return dist <= 500;
     });
 
     if (nearbyVehicles.length === 0) {
-      alertListEl.innerHTML = "<p>No vehicles nearby within 2km.</p>";
+      alertListEl.innerHTML = "<p>No vehicles nearby within 500m.</p>";
       return;
     }
 
