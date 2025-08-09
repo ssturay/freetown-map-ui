@@ -1,239 +1,236 @@
-/* ============================
-   Base Reset and Layout
-   ============================ */
-html, body {
+/* === Base Page Styling === */
+body, html {
   margin: 0;
   padding: 0;
-  height: 100%;
-  font-family: 'Arial', sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #f9f9f9;
 }
 
 .page-container {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* Full viewport height */
+  height: 100vh;
 }
 
 header {
-  padding: 12px;
-  background: #004d99;
+  background-color: #007bff;
   color: white;
+  padding: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 header h1 {
-  font-size: 18px;
   margin: 0;
+  font-size: 1.3rem;
 }
 
-#locateMeBtn {
-  background: #ffcc00;
-  border: none;
-  padding: 8px 12px;
+header button {
+  margin: 0.5rem 0.25rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  color: #007bff;
+  border: 1px solid #007bff;
   border-radius: 4px;
   cursor: pointer;
-}
-
-#clearVehiclesBtn {
-  background: #ff9999;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-left: 8px;
-}
-
-/* Map fills all remaining space */
-#map {
-  flex: 1;
-  width: 100%;
-  background-color: lightgray; /* temporary for visual debugging */
 }
 
 footer {
-  background: #eee;
-  padding: 8px;
+  padding: 0.5rem;
+  background: #f1f1f1;
   text-align: center;
-  font-size: 14px;
+  font-size: 0.85rem;
 }
 
-/* Responsive header font size */
-@media screen and (max-width: 768px) {
-  header h1 {
-    font-size: 16px;
-  }
-}
-
-/* ============================
-   Sidebar and Filter Styling
-   ============================ */
-.sidebar-filter-container {
-  position: absolute;
-  top: 60px; /* below header */
-  right: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 1000;
-  max-width: 260px;
-}
-
-.sidebar-filter-container > div {
-  max-width: 260px;
-  overflow-x: hidden;
-}
-
-/* Shared box style for sidebars */
-.alert-sidebar,
-.eta-sidebar,
-.filter-panel {
-  background: white;
-  padding: 10px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  font-size: 14px;
-  z-index: 1001;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.sidebar-filter-container h3,
-.sidebar-filter-container h4 {
-  margin-top: 0;
-  margin-bottom: 8px;
-}
-
-/* ============================
-   Collapsible Panels on Mobile
-   ============================ */
-@media screen and (max-width: 600px) {
-  .sidebar-filter-container {
-    right: 0;
-    left: 0;
-    flex-direction: column;
-    gap: 8px;
-    padding: 0 8px;
-    width: auto;
-    max-width: none;
-  }
-
-  .sidebar-filter-container > div {
-    width: 100%;
-    max-width: none;
-  }
-
-  .alert-sidebar,
-  .eta-sidebar,
-  .filter-panel {
-    border: 1px solid #ccc;
-  }
-
-  .collapsible {
-    cursor: pointer;
-    padding: 10px;
-    font-weight: bold;
-    background-color: #f2f2f2;
-    border-radius: 8px;
-    margin-bottom: 4px;
-  }
-
-  .collapsible-content {
-    display: none;
-  }
-
-  .collapsible.active + .collapsible-content {
-    display: block;
-  }
-}
-
-/* ============================
-   Modal Integration
-   ============================ */
-
-/* Button to open modal */
-.modal-trigger {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  background-color: #004d99;
-  color: white;
-  border: none;
-  border-radius: 50px;
-  padding: 10px 20px;
-  font-size: 14px;
-  cursor: pointer;
-  z-index: 2000;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-/* Modal background */
+/* === Modal Styling === */
 .modal {
   display: none;
   position: fixed;
-  z-index: 3000;
+  z-index: 2000;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.4);
 }
 
-/* Modal content box */
 .modal-content {
-  background-color: white;
+  background-color: #fff;
   margin: 10% auto;
-  padding: 20px;
+  padding: 1.5rem;
+  border: 1px solid #888;
   border-radius: 8px;
   width: 90%;
   max-width: 400px;
-  position: relative;
-  animation: slideIn 0.3s ease-out;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
-/* Close button */
 .modal-close {
-  position: absolute;
-  top: 10px;
-  right: 14px;
-  font-size: 24px;
+  float: right;
+  font-size: 1.5rem;
+  font-weight: bold;
   cursor: pointer;
-  color: #333;
 }
 
-/* Modal form styling */
-#trackingForm {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.modal-close:hover {
+  color: red;
 }
 
-#trackingForm input,
-#trackingForm select,
-#trackingForm button {
-  padding: 8px;
-  font-size: 14px;
+.modal-content label {
+  display: block;
+  margin-top: 1rem;
+}
+
+.modal-content input,
+.modal-content select {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
   border: 1px solid #ccc;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
-#trackingForm button {
-  background-color: #004d99;
+.modal-content button {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #007bff;
   color: white;
-  cursor: pointer;
   border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
 }
 
-/* Modal animation */
-@keyframes slideIn {
-  from {
-    transform: translateY(-30px);
-    opacity: 0;
+.modal-content button:hover {
+  background-color: #0056b3;
+}
+
+/* === Filter Panel Styling === */
+.filter-panel {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 1rem;
+  max-height: 250px;
+  overflow-y: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  margin: 1rem;
+  font-size: 0.9rem;
+}
+
+.filter-panel label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.filter-panel input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+/* === Sidebar for Alerts and ETA === */
+.sidebar-filter-container {
+  position: absolute;
+  top: 80px;
+  right: 10px;
+  z-index: 1000;
+  max-width: 280px;
+}
+
+.alert-sidebar,
+#etaSidebar {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-left: 5px solid #007bff;
+  padding: 1rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.alert-sidebar h3,
+#etaSidebar h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  color: #007bff;
+}
+
+/* === Start Tracking Button === */
+.modal-trigger {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 1rem 1.2rem;
+  border-radius: 50px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  cursor: pointer;
+  z-index: 1000;
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.modal-trigger:hover {
+  background-color: #0056b3;
+}
+
+/* === Leaflet Custom Styling === */
+.leaflet-control-custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+/* === Collapsible Support (optional) === */
+.collapsible {
+  cursor: pointer;
+  padding: 0.75rem;
+  background-color: #eee;
+  border: none;
+  outline: none;
+  width: 100%;
+  text-align: left;
+  font-weight: bold;
+  border-radius: 4px;
+  margin-top: 1rem;
+}
+
+.collapsible:after {
+  content: "▼";
+  float: right;
+}
+
+.collapsible.active:after {
+  content: "▲";
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  .filter-panel {
+    margin: 0.5rem;
   }
-  to {
-    transform: translateY(0);
-    opacity: 1;
+
+  .sidebar-filter-container {
+    right: 0;
+    width: 90%;
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+
+  .alert-sidebar,
+  #etaSidebar {
+    font-size: 0.9rem;
+  }
+
+  .modal-content {
+    margin-top: 25%;
   }
 }
