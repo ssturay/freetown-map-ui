@@ -1,4 +1,6 @@
-/* Reset basic styles */
+/* ============================
+   Base Reset and Layout
+   ============================ */
 html, body {
   margin: 0;
   padding: 0;
@@ -34,6 +36,15 @@ header h1 {
   cursor: pointer;
 }
 
+#clearVehiclesBtn {
+  background: #ff9999;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
 /* Map fills all remaining space */
 #map {
   flex: 1;
@@ -58,7 +69,6 @@ footer {
 /* ============================
    Sidebar and Filter Styling
    ============================ */
-
 .sidebar-filter-container {
   position: absolute;
   top: 60px; /* below header */
@@ -120,7 +130,6 @@ footer {
     border: 1px solid #ccc;
   }
 
-  /* Collapsible style */
   .collapsible {
     cursor: pointer;
     padding: 10px;
@@ -136,5 +145,95 @@ footer {
 
   .collapsible.active + .collapsible-content {
     display: block;
+  }
+}
+
+/* ============================
+   Modal Integration
+   ============================ */
+
+/* Button to open modal */
+.modal-trigger {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  background-color: #004d99;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 2000;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Modal background */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 3000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.5);
+}
+
+/* Modal content box */
+.modal-content {
+  background-color: white;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+  position: relative;
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Close button */
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  font-size: 24px;
+  cursor: pointer;
+  color: #333;
+}
+
+/* Modal form styling */
+#trackingForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#trackingForm input,
+#trackingForm select,
+#trackingForm button {
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+#trackingForm button {
+  background-color: #004d99;
+  color: white;
+  cursor: pointer;
+  border: none;
+}
+
+/* Modal animation */
+@keyframes slideIn {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
