@@ -20,7 +20,7 @@ async function startApp() {
   let vehicleMarkers = {};
   let vehiclesData = {};
   let routeLayers = L.featureGroup();
-  let stopsLayer = L.featureGroup();  // Make stops a layer group
+  let stopsLayer = L.featureGroup();
   let availableModes = new Set();
   let nearbyStopCircles = [];
 
@@ -40,37 +40,30 @@ async function startApp() {
     const Δφ = (vehicleLat - userLat) * Math.PI / 180;
     const Δλ = (vehicleLon - userLon) * Math.PI / 180;
 
-    const a = Math.sin(Δφ/2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) ** 2;
+    const a = Math.sin(Δφ / 2) ** 2 +
+              Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
-    const walkingSpeed = 1.4;
+    const walkingSpeed = 1.4; // meters per second
 
     return { distance: Math.round(distance), eta: Math.round(distance / walkingSpeed / 60) };
   }
 
-  // Load and display GeoJSON routes
   async function loadRoutes() {
     try {
-      const response = await fetch('routes.geojson');
+      const response = await fetch("routes.geojson");
       if (!response.ok) throw new Error("Failed to load routes.geojson");
-
       const geojson = await response.json();
 
-      // Clear previous route layers
       routeLayers.clearLayers();
 
-      // Style function for routes - random color per route
-      function styleRoute(feature) {
-        return {
-          color: getRandomColor(),
-          weight: 4,
-          opacity: 0.8
-        };
-      }
-
       L.geoJSON(geojson, {
-        style: styleRoute,
-        onEachFeature: function (feature, layer) {
+        style: feature => ({
+          color: feature.properties.color || "#3388ff",
+          weight: 4,
+          opacity: 0.7
+        }),
+        onEachFeature: (feature, layer) => {
           if (feature.properties && feature.properties.name) {
             layer.bindPopup(`<strong>Route:</strong> ${feature.properties.name}`);
           }
@@ -78,18 +71,15 @@ async function startApp() {
       }).addTo(routeLayers);
 
       routeLayers.addTo(map);
-      console.log("Routes loaded");
     } catch (err) {
       console.error("Error loading routes:", err);
     }
   }
 
-  // Load and display GeoJSON stops
   async function loadStops() {
     try {
-      const response = await fetch('stops.geojson');
+      const response = await fetch("stops.geojson");
       if (!response.ok) throw new Error("Failed to load stops.geojson");
-
       const geojson = await response.json();
 
       stopsLayer.clearLayers();
@@ -113,20 +103,9 @@ async function startApp() {
       }).addTo(stopsLayer);
 
       stopsLayer.addTo(map);
-      console.log("Stops loaded");
     } catch (err) {
       console.error("Error loading stops:", err);
     }
-  }
-
-  // Utility: random hex color generator for route lines
-  function getRandomColor() {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i=0; i<6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
   }
 
   function addLocateMeButton() {
@@ -167,9 +146,95 @@ async function startApp() {
     });
   }
 
-  // Main load
+  async function fetchVehicles() {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/vehicles`);
+      if (!response.ok) throw new Error("Failed to fetch vehicles");
+      vehiclesData = await response.json();
+
+      // Clear old markers
+      Object.values(vehicleMarkers).forEach(marker => map.removeLayer(marker));
+      vehicleMarkers = {};
+
+      vehiclesData.forEach(vehicle => {
+        const { id, lat, lon, mode } = vehicle;
+        const iconUrl = iconMap[mode.toLowerCase()] || iconMap["podapoda"];
+
+        const icon = L.icon({
+          iconUrl,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+
+        const marker = L.marker([lat, lon], { icon, title: `${mode} (${id})` });
+        marker.addTo(map);
+
+        marker.bindPopup(`<strong>ID:</strong> ${id}<br/><strong>Mode:</strong> ${mode}`);
+
+        vehicleMarkers[id] = marker;
+        availableModes.add(mode);
+      });
+
+      document.getElementById("lastUpdated").textContent = new Date().toLocaleTimeString();
+    } catch (err) {
+      console.error("Error fetching vehicles:", err);
+    }
+  }
+
+  function initFilters() {
+    // Placeholder for filter panel init logic
+    // Implement if you want mode-based filtering, etc.
+  }
+
+  function showUserLocationAndNearbyStops() {
+    if (!navigator.geolocation) {
+      console.warn("Geolocation not supported");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const userLat = pos.coords.latitude;
+      const userLon = pos.coords.longitude;
+
+      if (userMarker) {
+        userMarker.setLatLng([userLat, userLon]);
+      } else {
+        userMarker = L.marker([userLat, userLon], {
+          title: "You are here",
+          icon: L.icon({
+            iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+            iconSize: [25, 25]
+          })
+        }).addTo(map);
+      }
+
+      map.setView([userLat, userLon], 15);
+
+      // Clear previous circles
+      nearbyStopCircles.forEach(circle => map.removeLayer(circle));
+      nearbyStopCircles = [];
+
+      stopsLayer.eachLayer(stopMarker => {
+        const stopLatLng = stopMarker.getLatLng();
+        const { distance, eta } = computeETA(userLat, userLon, stopLatLng.lat, stopLatLng.lng);
+
+        if (distance <= 1000) { // within 1 km
+          const circle = L.circle(stopLatLng, {
+            radius: distance,
+            color: 'green',
+            fillOpacity: 0.1
+          }).addTo(map);
+
+          nearbyStopCircles.push(circle);
+        }
+      });
+    });
+  }
+
+  // Initialize map and layers on window load
   window.addEventListener("load", async () => {
     map = L.map("map").setView([8.48, -13.23], 12);
+
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors"
     }).addTo(map);
@@ -177,16 +242,17 @@ async function startApp() {
     setTimeout(() => map.invalidateSize(), 100);
 
     addLocateMeButton();
+
     await loadRoutes();
     await loadStops();
+
     initFilters();
-    fetchVehicles();
+
+    await fetchVehicles();
     setInterval(fetchVehicles, 10000);
+
     showUserLocationAndNearbyStops();
   });
-
-  // Keep the rest of your existing logic here (initFilters, fetchVehicles, etc.)
-  // ...
 
   // --- Collapsible Panel Support ---
   document.addEventListener("DOMContentLoaded", () => {
@@ -281,6 +347,17 @@ async function startApp() {
       });
     }
   });
+
+  // Clear vehicles button support
+  const clearBtn = document.getElementById("clearVehiclesBtn");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      Object.values(vehicleMarkers).forEach(marker => map.removeLayer(marker));
+      vehicleMarkers = {};
+      availableModes.clear();
+      document.getElementById("lastUpdated").textContent = "--";
+    });
+  }
 }
 
 // Start app only if login passes
