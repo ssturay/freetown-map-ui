@@ -34,7 +34,7 @@ header h1 {
   cursor: pointer;
 }
 
-/* The magic: map fills all leftover space */
+/* Map fills all remaining space */
 #map {
   flex: 1;
   width: 100%;
@@ -48,6 +48,7 @@ footer {
   font-size: 14px;
 }
 
+/* Responsive header font size */
 @media screen and (max-width: 768px) {
   header h1 {
     font-size: 16px;
@@ -69,20 +70,71 @@ footer {
   max-width: 260px;
 }
 
-.alert-sidebar {
-  background: white;
-  padding: 10px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  font-size: 14px;
-  z-index: 1001;
+.sidebar-filter-container > div {
+  max-width: 260px;
+  overflow-x: hidden;
 }
 
+/* Shared box style for sidebars */
+.alert-sidebar,
+.eta-sidebar,
 .filter-panel {
   background: white;
   padding: 10px;
   border-radius: 8px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   font-size: 14px;
-  z-index: 1000;
+  z-index: 1001;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.sidebar-filter-container h3,
+.sidebar-filter-container h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+/* ============================
+   Collapsible Panels on Mobile
+   ============================ */
+@media screen and (max-width: 600px) {
+  .sidebar-filter-container {
+    right: 0;
+    left: 0;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 8px;
+    width: auto;
+    max-width: none;
+  }
+
+  .sidebar-filter-container > div {
+    width: 100%;
+    max-width: none;
+  }
+
+  .alert-sidebar,
+  .eta-sidebar,
+  .filter-panel {
+    border: 1px solid #ccc;
+  }
+
+  /* Collapsible style */
+  .collapsible {
+    cursor: pointer;
+    padding: 10px;
+    font-weight: bold;
+    background-color: #f2f2f2;
+    border-radius: 8px;
+    margin-bottom: 4px;
+  }
+
+  .collapsible-content {
+    display: none;
+  }
+
+  .collapsible.active + .collapsible-content {
+    display: block;
+  }
 }
