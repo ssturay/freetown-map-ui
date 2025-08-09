@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freetown PT Tracker</title>
 
-  <!-- Leaflet CSS without integrity and crossorigin -->
+  <!-- Leaflet CSS (without integrity or crossorigin for safety) -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
@@ -29,16 +29,42 @@
     </footer>
   </div>
 
-  <!-- Unified sidebar container -->
+  <!-- Sidebar filter container -->
   <div class="sidebar-filter-container">
     <div id="alertSidebar" class="alert-sidebar"></div>
     <!-- Filter panel will be injected here by JS -->
   </div>
 
-  <!-- Leaflet JS without integrity and crossorigin -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
-  ></script>
+  <!-- 🚗 Modal Trigger Button -->
+  <button id="openTrackingModal" class="modal-trigger">🚗 Start Tracking</button>
+
+  <!-- 🚗 Tracking Modal -->
+  <div id="trackingModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" id="closeTrackingModal">&times;</span>
+      <h2>Start Tracking</h2>
+      <form id="trackingForm">
+        <label for="vehicleId">Vehicle ID:</label>
+        <input type="text" id="vehicleId" name="vehicleId" required />
+
+        <label for="mode">Mode of Transport:</label>
+        <select id="mode" name="mode" required>
+          <option value="">--Select--</option>
+          <option value="Podapoda">Podapoda</option>
+          <option value="Taxi">Taxi</option>
+          <option value="Keke">Keke</option>
+          <option value="Paratransit Bus">Paratransit Bus</option>
+          <option value="Waka Fine Bus">Waka Fine Bus</option>
+          <option value="Motorbike">Motorbike</option>
+        </select>
+
+        <button type="submit">📍 Start Tracking</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 
   <!-- Your JS -->
   <script src="script.js" defer></script>
