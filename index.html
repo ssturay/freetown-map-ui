@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freetown PT Tracker</title>
 
-  <!-- ✅ Correct Leaflet CSS with valid integrity -->
+  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
@@ -13,31 +13,58 @@
     crossorigin=""
   />
 
-  <!-- Your CSS -->
+  <!-- Your stylesheet -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="page-container">
+    <!-- Header -->
     <header>
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
-      <button id="locateMeBtn">📍 My Location</button>
-      <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
+      <div class="header-buttons">
+        <button id="locateMeBtn">📍 My Location</button>
+        <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
+      </div>
     </header>
 
-    <div id="map" style="height: 90vh;"></div>
+    <!-- Main map -->
+    <div id="map"></div>
 
+    <!-- Footer -->
     <footer>
       <p>Last updated: <span id="lastUpdated">--</span></p>
     </footer>
   </div>
 
-  <!-- ✅ Unified sidebar container -->
+  <!-- Sidebar: Collapsible Panels -->
   <div class="sidebar-filter-container">
-    <div id="alertSidebar" class="alert-sidebar"></div>
-    <!-- Filter panel will be injected here by JS -->
+
+    <!-- ETA Panel -->
+    <div class="sidebar-panel">
+      <button class="collapsible">Closest Vehicles (ETA)</button>
+      <div class="collapsible-content eta-sidebar" id="etaSidebar">
+        <p>Loading ETA...</p>
+      </div>
+    </div>
+
+    <!-- Alerts Panel -->
+    <div class="sidebar-panel">
+      <button class="collapsible">Alerts</button>
+      <div class="collapsible-content alert-sidebar" id="alertSidebar">
+        <p>Loading alerts...</p>
+      </div>
+    </div>
+
+    <!-- Filter Panel -->
+    <div class="sidebar-panel">
+      <button class="collapsible">Filter Modes</button>
+      <div class="collapsible-content filter-panel">
+        <!-- Populated dynamically by JS -->
+      </div>
+    </div>
   </div>
 
-  <!-- Leaflet JS with correct integrity -->
+  <!-- Leaflet JS -->
   <script
     src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
     integrity="sha256-o9N1j8MkHq1rzTRCE3K1U/94EnWQjTznpv9l+Jv3L0k="
