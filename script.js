@@ -17,7 +17,7 @@ async function startApp() {
   const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
   let map, userMarker = null;
   let vehicleMarkers = {};
-  let vehiclesData = {};
+  let vehiclesData = [];
   let routeLayers = L.featureGroup();
   let stopsLayer;
   let nearbyStopCircles = [];
@@ -73,6 +73,7 @@ async function startApp() {
           map.setView([lat, lon], 15);
           updateUserVehicleETAs();
           updateSidebarAlerts();
+          updateSidebarETAs();
         },
         (error) => {
           alert("Unable to retrieve your location.");
@@ -144,7 +145,7 @@ async function startApp() {
   }
 
   function initFilters() {
-    const filterContainer = document.querySelector(".sidebar-filter-container");
+    const filterContainer = document.getElementById("filterPanel");
     if (!filterContainer) return;
 
     filterContainer.innerHTML = "";
@@ -169,7 +170,34 @@ async function startApp() {
   }
 
   function applyFilters() {
-    // TODO: implement filter logic for vehicleMarkers and stopsLayer based on selected modes
+    const filterContainer = document.getElementById("filterPanel");
+    if (!filterContainer) return;
+
+    // Get all checked modes
+    const checkedModes = Array.from(filterContainer.querySelectorAll("input[type=checkbox]:checked"))
+      .map(input => input.value);
+
+    // Filter vehicle markers
+    for (const [id, marker] of Object.entries(vehicleMarkers)) {
+      const vehicle = vehiclesData.find(v => v.id === id);
+      if (!vehicle) continue;
+      if (checkedModes.includes(vehicle.mode.toLowerCase())) {
+        if (!map.hasLayer(marker)) map.addLayer(marker);
+      } else {
+        if (map.hasLayer(marker)) map.removeLayer(marker);
+      }
+    }
+
+    // Filter stops layer
+    if (!stopsLayer) return;
+    stopsLayer.eachLayer(layer => {
+      const mode = (layer.feature.properties.mode || "").toLowerCase();
+      if (checkedModes.includes(mode)) {
+        if (!map.hasLayer(layer)) map.addLayer(layer);
+      } else {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      }
+    });
   }
 
   function getIcon(mode) {
@@ -222,7 +250,10 @@ async function startApp() {
         }
       });
 
+      applyFilters(); // Apply filter after update to sync visibility
+
       updateSidebarAlerts();
+      updateSidebarETAs();
 
       const lastUpdatedEl = document.getElementById("lastUpdated");
       if (lastUpdatedEl) {
@@ -254,7 +285,7 @@ async function startApp() {
     alertListEl.innerHTML = "";
 
     if (!userMarker) {
-      alertListEl.innerHTML = "<li>No location set.</li>";
+      alertListEl.innerHTML = "<p>No location set.</p>";
       return;
     }
 
@@ -266,24 +297,54 @@ async function startApp() {
     });
 
     if (nearbyVehicles.length === 0) {
-      alertListEl.innerHTML = "<li>No vehicles nearby within 2km.</li>";
+      alertListEl.innerHTML = "<p>No vehicles nearby within 2km.</p>";
       return;
     }
 
     nearbyVehicles.forEach(vehicle => {
       const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
-      const li = document.createElement("li");
-      li.textContent = `${vehicle.mode} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)`;
-      alertListEl.appendChild(li);
+      const div = document.createElement("div");
+      div.textContent = `${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)`;
+      alertListEl.appendChild(div);
     });
   }
 
-  function initMap() {
-    map = L.map("map").setView([8.4924947, -13.234215], 13);
+  function updateSidebarETAs() {
+    const etaListEl = document.getElementById("eta-list");
+    if (!etaListEl) return;
+    etaListEl.innerHTML = "";
+
+    if (!userMarker) {
+      etaListEl.innerHTML = "<p>No location set.</p>";
+      return;
+    }
+
+    if (vehiclesData.length === 0) {
+      etaListEl.innerHTML = "<p>No vehicle data available.</p>";
+      return;
+    }
+
+    const userPos = userMarker.getLatLng();
+
+    vehiclesData.forEach(vehicle => {
+      const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
+      const div = document.createElement("div");
+      div.textContent = `${capitalize(vehicle.mode)} (ID: ${vehicle.id}) — ${distance} m, ETA ~${eta} min`;
+      etaListEl.appendChild(div);
+    });
+  }
+
+  function capitalize(str) {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  function setupMap() {
+    map = L.map("map").setView([8.4912, -13.2345], 14);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      attribution: "&copy; OpenStreetMap contributors"
+      attribution: "© OpenStreetMap"
     }).addTo(map);
 
     routeLayers.addTo(map);
@@ -291,15 +352,12 @@ async function startApp() {
 
   if (!promptLogin()) return;
 
-  initMap();
+  setupMap();
   addLocateMeButton();
-  await loadRoutes();
-  await loadStops();
+  loadRoutes();
+  loadStops();
   initFilters();
 
-  await fetchVehicles();
-
-  setInterval(fetchVehicles, 10000);
+  fetchVehicles();
+  setInterval(fetchVehicles, 30000);
 }
-
-startApp();
