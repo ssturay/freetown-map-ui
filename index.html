@@ -3,44 +3,135 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Freetown PT Tracker</title>
-
-  <!-- Leaflet CSS -->
+  <title>Freetown Public Transport Map</title>
   <link
     rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    integrity="sha256-sA+RdtrzDYd97NN/9X13eYhk+23R9bOnMy6ZkPvlnYM="
     crossorigin=""
   />
-
-  <!-- Your CSS -->
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      font-family: Arial, sans-serif;
+    }
+    #app-container {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #map {
+      flex: 1 1 auto;
+    }
+    #sidebar-container {
+      width: 320px;
+      background: #f8f9fa;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      overflow-y: auto;
+    }
+    #sidebar-container h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 4px;
+    }
+    #alertSidebar, #etaSidebar {
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+    #lastUpdated {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    /* Filter panel styling */
+    .filter-panel {
+      background: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .filter-panel h4 {
+      margin-top: 0;
+      font-size: 1rem;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 4px;
+    }
+    .filter-panel label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .filter-panel input[type="checkbox"] {
+      margin-right: 8px;
+      cursor: pointer;
+    }
+    /* Scrollbar for sidebar */
+    #sidebar-container::-webkit-scrollbar {
+      width: 8px;
+    }
+    #sidebar-container::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 4px;
+    }
+    /* Responsive for smaller screens */
+    @media (max-width: 768px) {
+      #sidebar-container {
+        width: 100%;
+        height: 40vh;
+        box-shadow: none;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 5px;
+      }
+      #map {
+        height: 60vh;
+      }
+      #alertSidebar, #etaSidebar {
+        margin-bottom: 0;
+        margin-right: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="page-container">
-    <header>
-      <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
-      <button id="locateMeBtn">📍 My Location</button>
-      <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
-    </header>
-
+  <div id="app-container">
     <div id="map"></div>
 
-    <footer>
-      <p>Last updated: <span id="lastUpdated">--</span></p>
-    </footer>
+    <div id="sidebar-container">
+      <div id="lastUpdated">Last updated: --:--:--</div>
+
+      <div class="filter-panel">
+        <h4>Filter Modes</h4>
+        <!-- Filter checkboxes inserted dynamically -->
+      </div>
+
+      <div id="alertSidebar">
+        <h2>Alerts</h2>
+        <p>No alerts currently.</p>
+      </div>
+
+      <div id="etaSidebar">
+        <h2>Closest Vehicles (ETA)</h2>
+        <p>Loading user location...</p>
+      </div>
+    </div>
   </div>
 
-  <!-- Sidebar + Filters container -->
-  <div class="sidebar-filter-container">
-    <div id="alert" class="alert-sidebar"></div>
-    <div id="etaSidebar" class="alert-sidebar"></div> <!-- ✅ New ETA sidebar added -->
-    <!-- Filter panel will be injected here -->
-  </div>
-
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Your JS -->
-  <script src="script.js" defer></script>
+  <script
+    src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+    integrity="sha256-QVj7w3yEeW6mOvh5BBRBjkuEIG6eGxPSnjJvPsvFxXo="
+    crossorigin=""
+  ></script>
+  <script src="script.js"></script>
 </body>
 </html>
