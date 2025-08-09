@@ -7,6 +7,7 @@ function promptLogin() {
 
   if (username !== VALID_USERNAME || password !== VALID_PASSWORD) {
     alert("Access denied");
+    // Clear the entire body content and show access denied message
     document.body.innerHTML = "<h2 style='text-align:center; padding: 2rem;'>Access Denied</h2>";
     return false;
   }
@@ -22,14 +23,15 @@ async function startApp() {
   let stopsLayer;
 
   const iconMap = {
-    "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
-    "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",
-    "keke": "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",
+    podapoda: "https://cdn-icons-png.flaticon.com/512/743/743007.png",
+    taxi: "https://cdn-icons-png.flaticon.com/512/190/190671.png",
+    keke: "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",
     "paratransit bus": "https://cdn-icons-png.flaticon.com/512/61/61221.png",
     "waka fine bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",
-    "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
+    motorbike: "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
   };
 
+  // Calculate ETA based on haversine formula and walking speed
   function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
     const R = 6371e3;
     const φ1 = userLat * Math.PI / 180;
@@ -283,7 +285,7 @@ async function startApp() {
     const userPos = userMarker.getLatLng();
     const nearbyVehicles = vehiclesData.filter(v => {
       const { distance } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
-      return distance <= 500; // <-- updated from 2000m to 500m
+      return distance <= 500; // radius 500 meters
     });
 
     if (nearbyVehicles.length === 0) {
@@ -325,7 +327,7 @@ async function startApp() {
   setInterval(fetchVehicles, 30000); // Update every 30 seconds
 }
 
-// ✅ Ensure this runs after DOM is ready
+// Run after DOM ready
 document.addEventListener("DOMContentLoaded", () => {
   startApp();
 });
