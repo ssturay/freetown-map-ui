@@ -345,3 +345,34 @@ function addLocateMeButton() {
   };
   locateControl.addTo(map);
 }
+
+
+// === Collapsible Panel Support ===
+document.addEventListener("DOMContentLoaded", () => {
+  const collapsibles = document.querySelectorAll(".collapsible");
+
+  collapsibles.forEach(btn => {
+    const content = btn.nextElementSibling;
+
+    // Initial state: collapsed on small screens, expanded otherwise
+    if (window.innerWidth <= 768) {
+      content.style.maxHeight = null;
+      content.style.display = "none";
+    } else {
+      content.style.maxHeight = content.scrollHeight + "px";
+      content.style.display = "block";
+    }
+
+    btn.addEventListener("click", () => {
+      const isVisible = content.style.display === "block";
+
+      if (isVisible) {
+        content.style.display = "none";
+        content.style.maxHeight = null;
+      } else {
+        content.style.display = "block";
+        content.style.maxHeight = content.scrollHeight + "px";
+      }
+    });
+  });
+});
