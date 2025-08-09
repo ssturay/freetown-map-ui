@@ -17,11 +17,12 @@ promptLogin();
 
 
 const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
-let map, vehicleMarkers = {}, routeLayers = L.featureGroup();
-let availableModes = new Set();
-let stopsLayer;
+let map, userMarker = null;
+let vehicleMarkers = {};
 let vehiclesData = {};
-let userMarker = null;
+let routeLayers = L.featureGroup();
+let stopsLayer;
+let availableModes = new Set();
 let nearbyStopCircles = [];
 
 const iconMap = {
@@ -33,25 +34,19 @@ const iconMap = {
   "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
 };
 
-// === NEW: Compute ETA between user and vehicle ===
 function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
-  const R = 6371e3; // Earth radius in meters
+  const R = 6371e3;
   const φ1 = userLat * Math.PI / 180;
   const φ2 = vehicleLat * Math.PI / 180;
   const Δφ = (vehicleLat - userLat) * Math.PI / 180;
   const Δλ = (vehicleLon - userLon) * Math.PI / 180;
 
-  const a = Math.sin(Δφ/2)**2 +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ/2)**2;
+  const a = Math.sin(Δφ/2)**2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2)**2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c;
+  const walkingSpeed = 1.4;
 
-  const distance = R * c; // meters
-
-  const walkingSpeed = 1.4; // m/s (~5 km/h)
-  const etaMinutes = Math.round(distance / walkingSpeed / 60);
-
-  return { distance: Math.round(distance), eta: etaMinutes };
+  return { distance: Math.round(distance), eta: Math.round(distance / walkingSpeed / 60) };
 }
 
 window.addEventListener("load", async () => {
@@ -61,8 +56,8 @@ window.addEventListener("load", async () => {
   }).addTo(map);
 
   setTimeout(() => map.invalidateSize(), 100);
-  addLocateMeButton();
 
+  addLocateMeButton();
   await loadRoutes();
   initFilters();
   await loadStops();
@@ -77,9 +72,7 @@ async function loadRoutes() {
   const data = await res.json();
 
   data.features.forEach(f => {
-    if (f.properties && f.properties.mode) {
-      availableModes.add(f.properties.mode);
-    }
+    if (f.properties?.mode) availableModes.add(f.properties.mode);
   });
 
   L.geoJSON(data, {
@@ -99,11 +92,7 @@ async function loadStops() {
 
   stopsLayer = L.geoJSON(data, {
     pointToLayer: (_, ll) => L.circleMarker(ll, {
-      radius: 6,
-      fillColor: "#000",
-      color: "#fff",
-      weight: 1,
-      fillOpacity: 0.9
+      radius: 6, fillColor: "#000", color: "#fff", weight: 1, fillOpacity: 0.9
     }),
     onEachFeature: (feature, layer) => {
       layer.bindPopup(`Loading arrivals...`);
@@ -126,8 +115,7 @@ function initFilters() {
           <input type="checkbox" value="${mode}" checked>
           <img src="${iconUrl}" alt="${mode}" style="width: 18px; vertical-align: middle; margin-right: 6px;">
           ${mode}
-        </label><br>
-      `;
+        </label><br>`;
     });
 
     div.onmousedown = div.ondblclick = L.DomEvent.stopPropagation;
@@ -153,27 +141,22 @@ function applyFilters() {
   const selected = Array.from(document.querySelectorAll('.filter-panel input:checked')).map(i => i.value);
 
   routeLayers.eachLayer(layer => {
-    (selected.includes(layer.properties.mode)) ? map.addLayer(layer) : map.removeLayer(layer);
+    selected.includes(layer.properties.mode) ? map.addLayer(layer) : map.removeLayer(layer);
   });
 
-  Object.values(vehicleMarkers).forEach(m => {
-    (selected.includes(m.mode)) ? map.addLayer(m) : map.removeLayer(m);
+  Object.values(vehicleMarkers).forEach(marker => {
+    selected.includes(marker.mode) ? map.addLayer(marker) : map.removeLayer(marker);
   });
 }
 
 function getIcon(mode) {
   const key = (mode || "unknown").trim().toLowerCase();
-
   const iconUrl = iconMap[key] || "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png";
 
   return L.icon({
-    iconUrl,
-    iconSize: [28, 28],
-    iconAnchor: [14, 28],
-    popupAnchor: [0, -28],
+    iconUrl, iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -28],
     shadowUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
-    shadowSize: [41, 41],
-    shadowAnchor: [14, 41]
+    shadowSize: [41, 41], shadowAnchor: [14, 41]
   });
 }
 
@@ -182,12 +165,9 @@ async function fetchVehicles() {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
     const data = await res.json();
 
-    console.log("Fetched vehicles data:", data);
-
-    document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
     vehiclesData = data;
+    document.getElementById("lastUpdated").innerText = new Date().toLocaleTimeString();
 
-    // Update vehicle markers on map
     for (const [id, info] of Object.entries(data)) {
       const { lat, lon, mode } = info;
       const icon = getIcon(mode);
@@ -206,9 +186,62 @@ async function fetchVehicles() {
     updateUserVehicleETAs();
     updateStopPopups();
     updateSidebarAlerts();
+
   } catch (error) {
     console.error("Error fetching vehicle data:", error);
   }
+}
+
+function updateSidebarAlerts() {
+  const sidebar = document.getElementById("alertSidebar");
+  if (!sidebar) return;
+
+  const arrivingSoon = Object.entries(vehiclesData).filter(([_, v]) => v.eta_min < 5);
+  sidebar.innerHTML = "<h3>Alerts</h3>";
+
+  if (arrivingSoon.length === 0) {
+    sidebar.innerHTML += "<p>No vehicles arriving within 5 minutes.</p>";
+    return;
+  }
+
+  arrivingSoon.forEach(([id, v]) => {
+    sidebar.innerHTML += `<p><strong>${v.mode}</strong> #${id} arriving soon.</p>`;
+  });
+}
+
+function updateUserVehicleETAs() {
+  const sidebar = document.getElementById("etaSidebar");
+  if (!sidebar) return;
+
+  if (!userMarker) {
+    sidebar.innerHTML = `<h3>Closest Vehicles (ETA)</h3><p>User location not available.</p>`;
+    return;
+  }
+
+  const userLatLng = userMarker.getLatLng();
+  const rows = [];
+
+  for (const [id, v] of Object.entries(vehiclesData)) {
+    const { eta, distance } = computeETA(userLatLng.lat, userLatLng.lng, v.lat, v.lon);
+    rows.push({ id, mode: v.mode, eta, distance, iconUrl: getIcon(v.mode).options.iconUrl });
+  }
+
+  rows.sort((a, b) => a.eta - b.eta);
+
+  sidebar.innerHTML = `<h3>Closest Vehicles (ETA)</h3>`;
+  if (rows.length === 0) {
+    sidebar.innerHTML += `<p>No vehicles to show.</p>`;
+    return;
+  }
+
+  rows.slice(0, 5).forEach(r => {
+    sidebar.innerHTML += `
+      <div style="margin-bottom: 8px;">
+        <img src="${r.iconUrl}" style="width: 20px; vertical-align: middle; margin-right: 8px;">
+        <strong>${r.mode}</strong> #${r.id}<br>
+        ETA: ${r.eta} min — ${r.distance} m
+      </div>`;
+  });
 }
 
 function updateStopPopups() {
@@ -220,8 +253,7 @@ function updateStopPopups() {
 
     for (const [id, v] of Object.entries(vehiclesData)) {
       const vehicleLatLng = L.latLng(v.lat, v.lon);
-      const distanceMeters = stopLatLng.distanceTo(vehicleLatLng);
-      if (distanceMeters < 300) {
+      if (stopLatLng.distanceTo(vehicleLatLng) < 300) {
         nearbyVehicles.push({ id, mode: v.mode });
       }
     }
@@ -233,8 +265,7 @@ function updateStopPopups() {
         `<li><img src="${getIcon(v.mode).options.iconUrl}" style="width:16px; vertical-align:middle; margin-right:4px;">` +
         `<b>${v.mode}</b> #${v.id}</li>`).join("");
       stopLayer.setPopupContent(
-        `<strong>${stopLayer.feature.properties.name}</strong><br>` +
-        `<ul style="padding-left: 16px; margin: 4px 0;">${listHtml}</ul>`
+        `<strong>${stopLayer.feature.properties.name}</strong><br><ul style="padding-left:16px; margin:4px 0;">${listHtml}</ul>`
       );
     }
   });
@@ -254,16 +285,11 @@ function showUserLocationAndNearbyStops() {
       userMarker.setLatLng(userLatLng);
     } else {
       userMarker = L.circleMarker(userLatLng, {
-        radius: 8,
-        fillColor: "#3388ff",
-        color: "#fff",
-        weight: 2,
-        fillOpacity: 0.9
+        radius: 8, fillColor: "#3388ff", color: "#fff", weight: 2, fillOpacity: 0.9
       }).addTo(map).bindPopup("📍 You are here").openPopup();
     }
 
     map.setView(userLatLng, 15);
-
     nearbyStopCircles.forEach(c => map.removeLayer(c));
     nearbyStopCircles = [];
 
@@ -272,79 +298,16 @@ function showUserLocationAndNearbyStops() {
         const stopLatLng = stopLayer.getLatLng();
         if (userLatLng.distanceTo(stopLatLng) < 300) {
           const circle = L.circle(stopLatLng, {
-            radius: 300,
-            color: "#3388ff",
-            weight: 2,
-            fillOpacity: 0.1
+            radius: 300, color: "#3388ff", weight: 2, fillOpacity: 0.1
           }).addTo(map);
           nearbyStopCircles.push(circle);
         }
       });
     }
 
-    // Update ETA sidebar after user location set
     updateUserVehicleETAs();
   }, () => {
     alert("Unable to retrieve your location.");
-  });
-}
-
-function updateSidebarAlerts() {
-  const sidebar = document.getElementById("alertSidebar");
-  if (!sidebar) return;
-
-  const nearbyVehicles = Object.entries(vehiclesData).filter(([_, v]) => v.eta_min < 5);
-  sidebar.innerHTML = "<h3>Alerts</h3>";
-
-  if (nearbyVehicles.length === 0) {
-    sidebar.innerHTML += "<p>No vehicles arriving within 5 minutes.</p>";
-    return;
-  }
-
-  nearbyVehicles.forEach(([id, v]) => {
-    sidebar.innerHTML += `<p><strong>${v.mode}</strong> #${id} arriving soon.</p>`;
-  });
-}
-
-// === NEW: Update the ETA sidebar with vehicles sorted by ETA from user location ===
-function updateUserVehicleETAs() {
-  const sidebar = document.getElementById("etaSidebar");
-  if (!sidebar || !userMarker) {
-    sidebar.innerHTML = `<h3>Closest Vehicles (ETA)</h3><p>User location not available.</p>`;
-    return;
-  }
-
-  const userLatLng = userMarker.getLatLng();
-  const rows = [];
-
-  for (const [id, v] of Object.entries(vehiclesData)) {
-    const { eta, distance } = computeETA(userLatLng.lat, userLatLng.lng, v.lat, v.lon);
-    rows.push({
-      id,
-      mode: v.mode,
-      eta,
-      distance,
-      iconUrl: getIcon(v.mode).options.iconUrl
-    });
-  }
-
-  rows.sort((a, b) => a.eta - b.eta);
-
-  sidebar.innerHTML = `<h3>Closest Vehicles (ETA)</h3>`;
-
-  if (rows.length === 0) {
-    sidebar.innerHTML += `<p>No vehicles to show.</p>`;
-    return;
-  }
-
-  rows.slice(0, 5).forEach(r => {
-    sidebar.innerHTML += `
-      <div style="margin-bottom: 8px;">
-        <img src="${r.iconUrl}" style="width: 20px; vertical-align: middle; margin-right: 8px;">
-        <strong>${r.mode}</strong> #${r.id}<br>
-        ETA: ${r.eta} min — ${r.distance} m
-      </div>
-    `;
   });
 }
 
@@ -368,11 +331,7 @@ function addLocateMeButton() {
             userMarker.setLatLng(latlng).openPopup();
           } else {
             userMarker = L.circleMarker(latlng, {
-              radius: 8,
-              fillColor: "#3388ff",
-              color: "#fff",
-              weight: 2,
-              fillOpacity: 0.9
+              radius: 8, fillColor: "#3388ff", color: "#fff", weight: 2, fillOpacity: 0.9
             }).addTo(map).bindPopup("📍 You are here").openPopup();
           }
           updateUserVehicleETAs();
