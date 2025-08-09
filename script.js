@@ -206,19 +206,19 @@ async function startApp() {
 
       console.log("Raw vehicle data:", data);
 
-      // Determine if data is an array or object containing array
-      let vehiclesArray;
-      if (Array.isArray(data)) {
-        vehiclesArray = data;
-      } else if (data.vehicles && Array.isArray(data.vehicles)) {
-        vehiclesArray = data.vehicles;
-      } else {
-        // If data is an object with keys, try to extract values as array
-        vehiclesArray = Object.values(data).filter(v => typeof v === "object");
-        if (vehiclesArray.length === 0) {
-          throw new Error("Vehicle data format unrecognized");
-        }
-      }
+      let vehiclesArray = [];
+
+if (Array.isArray(data)) {
+  vehiclesArray = data;
+} else if (data.vehicles && Array.isArray(data.vehicles)) {
+  vehiclesArray = data.vehicles;
+} else if (Object.keys(data).length === 0) {
+  console.warn("No vehicle data received from backend.");
+  return;
+} else {
+  throw new Error("Vehicle data format unrecognized");
+}
+
 
       vehiclesData = vehiclesArray;
 
