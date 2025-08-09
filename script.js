@@ -7,28 +7,11 @@ function promptLogin() {
 
   if (username !== VALID_USERNAME || password !== VALID_PASSWORD) {
     alert("Access denied");
-    // Stop script execution
     document.body.innerHTML = "<h2 style='text-align:center; padding: 2rem;'>Access Denied</h2>";
-    throw new Error("Unauthorized access");
-  }
-}
-
-promptLogin();
-
- function promptLogin() {
-  const username = prompt("Enter username:");
-  const password = prompt("Enter password:");
-
-  const VALID_USERNAME = "admin";
-  const VALID_PASSWORD = "mypassword";
-
-  if (username !== VALID_USERNAME || password !== VALID_PASSWORD) {
-    alert("Access denied");
-    document.body.innerHTML = "<h2 style='text-align:center; padding: 2rem;'>Access Denied</h2>";
-    return false;  // Stop login flow
+    return false;
   }
 
-  return true;  // Login success
+  return true;
 }
 
 async function startApp() {
@@ -57,12 +40,50 @@ async function startApp() {
     const Δφ = (vehicleLat - userLat) * Math.PI / 180;
     const Δλ = (vehicleLon - userLon) * Math.PI / 180;
 
-    const a = Math.sin(Δφ/2)**2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2)**2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(Δφ/2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
     const walkingSpeed = 1.4;
 
     return { distance: Math.round(distance), eta: Math.round(distance / walkingSpeed / 60) };
+  }
+
+  function addLocateMeButton() {
+    const locateBtn = document.getElementById("locateMeBtn");
+
+    if (!locateBtn) return;
+
+    locateBtn.addEventListener("click", () => {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+
+          if (userMarker) {
+            userMarker.setLatLng([lat, lon]);
+          } else {
+            userMarker = L.marker([lat, lon], {
+              title: "You are here",
+              icon: L.icon({
+                iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+                iconSize: [25, 25]
+              })
+            }).addTo(map);
+          }
+
+          map.setView([lat, lon], 15);
+        },
+        (error) => {
+          alert("Unable to retrieve your location.");
+          console.error("Geolocation error:", error);
+        }
+      );
+    });
   }
 
   window.addEventListener("load", async () => {
@@ -81,8 +102,6 @@ async function startApp() {
     setInterval(fetchVehicles, 10000);
     showUserLocationAndNearbyStops();
   });
-
-  // [Your other functions here unchanged: loadRoutes, loadStops, initFilters, applyFilters, getIcon, fetchVehicles, updateSidebarAlerts, updateUserVehicleETAs, updateStopPopups, showUserLocationAndNearbyStops, addLocateMeButton...]
 
   // --- Collapsible Panel Support ---
   document.addEventListener("DOMContentLoaded", () => {
