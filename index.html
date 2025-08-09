@@ -9,6 +9,8 @@
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    integrity="sha256-sA+4Y7Fyy6TxIx+XBjvOpZ9KJxh67zFntZg5t9XkL5A="
+    crossorigin=""
   />
 
   <!-- Your CSS -->
@@ -18,58 +20,85 @@
   <div class="page-container">
     <header>
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
-      <button id="locateMeBtn">📍 My Location</button>
-      <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
+      <button id="locateMeBtn" aria-label="Locate my current location">📍 My Location</button>
+      <button id="clearVehiclesBtn" aria-label="Clear all vehicle markers">🧹 Clear Vehicles</button>
     </header>
 
     <!-- Main content with sidebar and map -->
     <main class="main-content">
-      <aside class="sidebar">
+      <aside class="sidebar" aria-label="Nearby vehicles and alerts sidebar">
         <h2>Nearby Vehicles & Alerts</h2>
 
-        <section id="etaSection">
-          <h3>Estimated Time of Arrival (ETA)</h3>
-          <div id="etaList" class="sidebar-list">
+        <section id="etaSection" aria-labelledby="etaHeading">
+          <h3 id="etaHeading">Estimated Time of Arrival (ETA)</h3>
+          <div id="etaList" class="sidebar-list" role="list">
             <!-- ETA items will be injected here -->
           </div>
         </section>
 
-        <section id="alertSection">
-          <h3>Alerts</h3>
-          <div id="alertSidebar" class="sidebar-list">
+        <section id="alertSection" aria-labelledby="alertHeading">
+          <h3 id="alertHeading">Alerts</h3>
+          <div id="alertSidebar" class="sidebar-list" role="list">
             <!-- Alerts will be injected here -->
           </div>
         </section>
 
-        <section class="sidebar-filter-container">
+        <section class="sidebar-filter-container" aria-label="Filter options">
           <h3>Filters</h3>
           <!-- Filter panel will be injected here by JS -->
         </section>
       </aside>
 
-      <div id="map"></div>
+      <div id="map" role="region" aria-label="Map showing vehicle locations"></div>
     </main>
 
     <footer>
-      <p>Last updated: <span id="lastUpdated">--</span></p>
+      <p>Last updated: <time id="lastUpdated" datetime="--">--</time></p>
     </footer>
   </div>
 
   <!-- 🚗 Modal Trigger Button -->
-  <button id="openTrackingModal" class="modal-trigger">🚗 Start Tracking</button>
+  <button
+    id="openTrackingModal"
+    class="modal-trigger"
+    aria-haspopup="dialog"
+    aria-controls="trackingModal"
+  >
+    🚗 Start Tracking
+  </button>
 
   <!-- 🚗 Tracking Modal -->
-  <div id="trackingModal" class="modal">
+  <div
+    id="trackingModal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="trackingModalTitle"
+    aria-hidden="true"
+  >
     <div class="modal-content">
-      <span class="modal-close" id="closeTrackingModal">&times;</span>
-      <h2>Start Tracking</h2>
-      <form id="trackingForm">
+      <button
+        class="modal-close"
+        id="closeTrackingModal"
+        aria-label="Close tracking modal"
+      >&times;</button>
+      <h2 id="trackingModalTitle">Start Tracking</h2>
+      <form id="trackingForm" autocomplete="off">
         <label for="vehicleId">Vehicle ID:</label>
-        <input type="text" id="vehicleId" name="vehicleId" required />
+        <input
+          type="text"
+          id="vehicleId"
+          name="vehicleId"
+          required
+          autocomplete="off"
+          aria-required="true"
+          aria-describedby="vehicleIdHelp"
+        />
+        <small id="vehicleIdHelp" class="sr-only">Enter the vehicle identification number.</small>
 
         <label for="mode">Mode of Transport:</label>
-        <select id="mode" name="mode" required>
-          <option value="">--Select--</option>
+        <select id="mode" name="mode" required aria-required="true">
+          <option value="" disabled selected>--Select--</option>
           <option value="Podapoda">Podapoda</option>
           <option value="Taxi">Taxi</option>
           <option value="Keke">Keke</option>
@@ -84,7 +113,12 @@
   </div>
 
   <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script
+    src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+    integrity="sha256-oC14d7MZr5CU2+gG4jkGd6pMcW7L+QOcVL02Zj5ZL/0="
+    crossorigin=""
+    defer
+  ></script>
 
   <!-- Your JS -->
   <script src="script.js" defer></script>
