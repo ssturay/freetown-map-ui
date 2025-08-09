@@ -98,7 +98,7 @@ async function startApp() {
         }),
         onEachFeature: (feature, layer) => {
           if (feature.properties && feature.properties.name) {
-            layer.bindPopup(<strong>Route:</strong> ${feature.properties.name});
+            layer.bindPopup(`<strong>Route:</strong> ${feature.properties.name}`);
           }
           routeLayers.addLayer(layer);
         }
@@ -133,7 +133,7 @@ async function startApp() {
         },
         onEachFeature: (feature, layer) => {
           if (feature.properties && feature.properties.name) {
-            layer.bindPopup(<strong>Stop:</strong> ${feature.properties.name});
+            layer.bindPopup(`<strong>Stop:</strong> ${feature.properties.name}`);
           }
         }
       }).addTo(map);
@@ -152,12 +152,12 @@ async function startApp() {
     modes.forEach(mode => {
       const div = document.createElement("div");
       div.className = "filter-option";
-      div.innerHTML = 
+      div.innerHTML = `
         <label>
           <input type="checkbox" value="${mode.toLowerCase()}" checked />
           ${mode}
         </label>
-      ;
+      `;
       filterContainer.appendChild(div);
     });
 
@@ -205,7 +205,7 @@ async function startApp() {
 
   async function fetchVehicles() {
     try {
-      const res = await fetch(${BACKEND_URL}/api/vehicles);
+      const res = await fetch(`${BACKEND_URL}/api/vehicles`);
       if (!res.ok) throw new Error("Failed to fetch vehicles");
 
       const data = await res.json();
@@ -222,11 +222,11 @@ async function startApp() {
         if (!id || !lat || !lon) return;
 
         const icon = getIcon(mode);
-        let popupContent = Vehicle ID: ${id}<br>Mode: ${mode};
+        let popupContent = `Vehicle ID: ${id}<br>Mode: ${mode}`;
         if (userMarker) {
           const userPos = userMarker.getLatLng();
           const { distance, eta } = computeETA(userPos.lat, userPos.lng, lat, lon);
-          popupContent += <br>Distance: ${distance} m<br>ETA: ${eta} min;
+          popupContent += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
         }
 
         if (vehicleMarkers[id]) {
@@ -265,7 +265,7 @@ async function startApp() {
     vehiclesData.forEach(v => {
       const { distance, eta } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
       const div = document.createElement("div");
-      div.textContent = ${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min;
+      div.textContent = `${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min`;
       etaList.appendChild(div);
     });
   }
@@ -294,7 +294,7 @@ async function startApp() {
     nearbyVehicles.forEach(vehicle => {
       const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
       const div = document.createElement("div");
-      div.textContent = ${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk);
+      div.textContent = `${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)`;
       alertList.appendChild(div);
     });
   }
@@ -318,10 +318,10 @@ async function startApp() {
 
   setupMap();
   addLocateMeButton();
-  loadRoutes();
-  loadStops();
+  await loadRoutes();
+  await loadStops();
   initFilters();
-  fetchVehicles();
+  await fetchVehicles();
   setInterval(fetchVehicles, 30000); // Update every 30 seconds
 }
 
