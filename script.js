@@ -377,37 +377,84 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+let trackingWatchId = null; // Store geolocation watch ID for stopping later
+
 document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("trackingModal");
-  const btn = document.getElementById("startTrackingBtn");
-  const span = document.querySelector(".modal .close");
+  const openBtn = document.getElementById("openTrackingModal");
+  const closeBtn = document.getElementById("closeTrackingModal");
+  const form = document.getElementById("trackingForm");
 
-  btn.onclick = () => { modal.style.display = "block"; };
-  span.onclick = () => { modal.style.display = "none"; };
-  window.onclick = (e) => {
-    if (e.target == modal) modal.style.display = "none";
-  };
+  // Open modal
+  openBtn.addEventListener("click", () => {
+    modal.style.display = "block";
+  });
 
-  document.getElementById("trackingForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const vehicleId = document.getElementById("vehicleIdInput").value.trim();
-    const mode = document.getElementById("modeSelect").value;
+  // Close modal
+  closeBtn.addEventListener("click", () => {
+    modal.style.display = "none";
+  });
 
-    if (!vehicleId || !mode) return alert("Please complete all fields.");
-
-    // Send to backend to start tracking
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/start-tracking`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ vehicleId, mode })
-      });
-      const result = await res.json();
-      alert("Tracking started successfully!");
+  // Close modal when clicking outside
+  window.addEventListener("click", (e) => {
+    if (e.target === modal) {
       modal.style.display = "none";
-    } catch (err) {
-      console.error(err);
-      alert("Failed to start tracking.");
     }
+  });
+
+  // Handle form submission
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const vehicleId = document.getElementById("vehicleId").value.trim();
+    const mode = document.getElementById("mode").value.trim();
+
+    if (!vehicleId || !mode) {
+      alert("Please enter both vehicle ID and mode.");
+      return;
+    }
+
+    // Start GPS tracking
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    // Stop any existing tracking
+    if (trackingWatchId !== null) {
+      navigator.geolocation.clearWatch(trackingWatchId);
+    }
+
+    trackingWatchId = navigator.geolocation.watchPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        try {
+          const url = new URL(`${BACKEND_URL}/api/location/update`);
+          url.searchParams.append("id", vehicleId);
+          url.searchParams.append("lat", lat);
+          url.searchParams.append("lon", lon);
+          url.searchParams.append("mode", mode);
+
+          await fetch(url.toString());
+          console.log(`📡 Sent location for ${vehicleId}`);
+        } catch (err) {
+          console.error("❌ Error sending location:", err);
+        }
+      },
+      (err) => {
+        alert("Failed to retrieve GPS location.");
+        console.error(err);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 10000
+      }
+    );
+
+    alert(`✅ Tracking started for vehicle "${vehicleId}" (${mode})`);
+    modal.style.display = "none";
   });
 });
