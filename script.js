@@ -163,43 +163,60 @@ async function startApp() {
     }
   }
 
-  async function fetchVehicles() {
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/vehicles`);
-      if (!response.ok) throw new Error("Failed to fetch vehicles");
+ async function fetchVehicles() {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/vehicles`);
+    if (!response.ok) throw new Error("Failed to fetch vehicles");
 
-      const data = await response.json();
+    const data = await response.json();
+    console.log("Vehicle data response:", data);
 
-      vehiclesData = {}; // reset vehicles data
+    // If vehicles are inside a property like data.vehicles, adjust here
+    let vehiclesArray = [];
+    if (Array.isArray(data)) {
+      vehiclesArray = data;
+    } else if (Array.isArray(data.vehicles)) {
+      vehiclesArray = data.vehicles;
+    } else {
+      throw new Error("Vehicles data is not an array");
+    }
 
-      data.forEach(vehicle => {
-        vehiclesData[vehicle.id] = {
-          lat: vehicle.lat,
-          lon: vehicle.lon,
-          mode: vehicle.mode
-        };
+    vehiclesData = {}; // reset
+    vehiclesArray.forEach(vehicle => {
+      vehiclesData[vehicle.id] = {
+        lat: vehicle.lat,
+        lon: vehicle.lon,
+        mode: vehicle.mode
+      };
 
-        const vehicleIconUrl = iconMap[vehicle.mode.toLowerCase()] || null;
-        const icon = vehicleIconUrl ? L.icon({
-          iconUrl: vehicleIconUrl,
-          iconSize: [30, 30],
-          iconAnchor: [15, 30]
-        }) : null;
+      const vehicleIconUrl = iconMap[vehicle.mode.toLowerCase()] || null;
+      const icon = vehicleIconUrl ? L.icon({
+        iconUrl: vehicleIconUrl,
+        iconSize: [30, 30],
+        iconAnchor: [15, 30]
+      }) : null;
 
-        if (vehicleMarkers[vehicle.id]) {
-          vehicleMarkers[vehicle.id].setLatLng([vehicle.lat, vehicle.lon]);
-          if (icon) vehicleMarkers[vehicle.id].setIcon(icon);
-        } else {
-          vehicleMarkers[vehicle.id] = L.marker([vehicle.lat, vehicle.lon], { icon }).addTo(map);
-          vehicleMarkers[vehicle.id].bindPopup(`<b>Vehicle ID:</b> ${vehicle.id}<br><b>Mode:</b> ${vehicle.mode}`);
-        }
-      });
-
-      // Update ETAs if we have user location
-      if (userMarker) {
-        const userLatLng = userMarker.getLatLng();
-        updateVehicleETAs(userLatLng.lat, userLatLng.lng);
+      if (vehicleMarkers[vehicle.id]) {
+        vehicleMarkers[vehicle.id].setLatLng([vehicle.lat, vehicle.lon]);
+        if (icon) vehicleMarkers[vehicle.id].setIcon(icon);
+      } else {
+        vehicleMarkers[vehicle.id] = L.marker([vehicle.lat, vehicle.lon], { icon }).addTo(map);
+        vehicleMarkers[vehicle.id].bindPopup(`<b>Vehicle ID:</b> ${vehicle.id}<br><b>Mode:</b> ${vehicle.mode}`);
       }
+    });
+
+    if (userMarker) {
+      const userLatLng = userMarker.getLatLng();
+      updateVehicleETAs(userLatLng.lat, userLatLng.lng);
+    }
+
+    const now = new Date();
+    document.getElementById("lastUpdated").textContent = now.toLocaleTimeString();
+
+  } catch (err) {
+    console.error("Error fetching vehicles:", err);
+  }
+}
 
       // Update last updated timestamp
       const now = new Date();
