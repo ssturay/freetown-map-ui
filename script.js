@@ -320,13 +320,24 @@ function addLocateMeButton() {
 }
 
 
-document.getElementById("clearVehiclesBtn").addEventListener("click", () => {
+document.getElementById("clearVehiclesBtn").addEventListener("click", async () => {
+  // Clear backend
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/vehicles/clear`, {
+      method: "POST"
+    });
+    const result = await res.json();
+    console.log(result.message || "Vehicles cleared on backend");
+  } catch (err) {
+    console.error("Error clearing backend vehicles:", err);
+  }
+
+  // Clear frontend markers
   Object.values(vehicleMarkers).forEach(m => map.removeLayer(m));
   vehicleMarkers = {};
   vehiclesData = {};
   document.getElementById("lastUpdated").innerText = "--";
 
-  // Also clear alerts and popups
   if (stopsLayer) {
     stopsLayer.eachLayer(layer => {
       const stopName = layer.feature?.properties?.name || "Stop";
@@ -339,5 +350,5 @@ document.getElementById("clearVehiclesBtn").addEventListener("click", () => {
     sidebar.innerHTML = `<h3>Alerts (vehicles arriving soon)</h3><p>No vehicles arriving in the next 5 minutes.</p>`;
   }
 
-  alert("🚫 All vehicle markers have been cleared from the map.");
+  alert("🚫 All vehicles permanently cleared from frontend and backend.");
 });
