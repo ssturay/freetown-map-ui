@@ -81,7 +81,6 @@ async function startApp() {
           }
 
           map.setView([lat, lon], 15);
-          updateUserVehicleETAs();
           updateSidebarETAs();
           updateSidebarAlerts();
         },
@@ -131,7 +130,7 @@ async function startApp() {
 
       stopsLayer = L.geoJSON(geojson, {
         pointToLayer: (feature, latlng) => {
-          const mode = feature.properties.mode?.toLowerCase() || "default";
+          const mode = feature.properties.mode?.toLowerCase() || "podapoda";
           const iconUrl = iconMap[mode] || iconMap["podapoda"];
           return L.marker(latlng, {
             icon: L.icon({
@@ -263,177 +262,162 @@ async function startApp() {
     const filterContainer = document.querySelector(".sidebar-filter-container");
     if (!filterContainer) return;
 
-    filterContainer.innerHTML = "";
-    const modes = ["Podapoda", "Taxi", "Keke", "Paratransit Bus", "Waka Fine Bus", "Motorbike"];
-    modes.forEach(mode => {
-      const div = document.createElement("div");
-      div.className = "filter-option";
-      div.innerHTML = `
-        <label>
-          <input type="checkbox" value="${mode.toLowerCase()}" checked />
-          ${mode}
-        </label>
-      `;
-      filterContainer.appendChild(div);
-    });
+    const modes = [
+      "Podapoda",
+      "Taxi",
+      "Keke",
+      "Paratransit Bus",
+      "Waka Fine Bus",
+      "Motorbike"
+    ];
 
-    filterContainer.querySelectorAll("input[type=checkbox]").forEach(input => {
-      input.addEventListener("change", applyFilters);
+    filterContainer.innerHTML = ""; // Clear existing filters
+
+    modes.forEach(mode => {
+      const id = `filter-${mode.replace(/\s+/g, "-").toLowerCase()}`;
+      const label = document.createElement("label");
+      label.style.display = "block";
+      label.style.marginBottom = "0.3rem";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.id = id;
+      checkbox.name = "modeFilter";
+      checkbox.value = mode;
+      checkbox.checked = true;
+
+      checkbox.addEventListener("change", applyFilters);
+
+      label.appendChild(checkbox);
+      label.append(` ${mode}`);
+
+      filterContainer.appendChild(label);
     });
   }
 
   function applyFilters() {
-    const checkedModes = Array.from(document.querySelectorAll(".sidebar-filter-container input[type=checkbox]:checked"))
-      .map(input => input.value);
+    const checkedModes = Array.from(document.querySelectorAll('input[name="modeFilter"]:checked'))
+      .map(cb => cb.value.toLowerCase());
 
-    // Filter vehicles
-    for (const [id, marker] of Object.entries(vehicleMarkers)) {
+    Object.entries(vehicleMarkers).forEach(([id, marker]) => {
       const vehicle = vehiclesData.find(v => v.id === id);
-      if (!vehicle) continue;
-
+      if (!vehicle) {
+        marker.remove();
+        delete vehicleMarkers[id];
+        return;
+      }
       if (checkedModes.includes(vehicle.mode.toLowerCase())) {
         if (!map.hasLayer(marker)) map.addLayer(marker);
       } else {
         if (map.hasLayer(marker)) map.removeLayer(marker);
       }
+    });
+  }
+
+  function clearVehicles() {
+    Object.values(vehicleMarkers).forEach(marker => {
+      if (map.hasLayer(marker)) map.removeLayer(marker);
+    });
+    vehicleMarkers = {};
+    vehiclesData = [];
+    updateSidebarETAs();
+    updateSidebarAlerts();
+  }
+
+  function setupModal() {
+    const modal = document.getElementById("trackingModal");
+    const trigger = document.querySelector(".modal-trigger");
+    const closeBtn = document.querySelector(".modal-close");
+
+    if (!modal || !trigger || !closeBtn) {
+      console.warn("Modal elements missing, skipping modal setup.");
+      return;
     }
 
-    // Filter stops
-    if (stopsLayer) {
-      stopsLayer.eachLayer(layer => {
-        const mode = (layer.feature.properties.mode || "").toLowerCase();
+    function openModal() {
+      modal.style.display = "block";
+      modal.setAttribute("aria-hidden", "false");
+      modal.inert = false;
+      trigger.setAttribute("aria-expanded", "true");
 
-        if (checkedModes.includes(mode)) {
-          if (!map.hasLayer(layer)) map.addLayer(layer);
-        } else {
-          if (map.hasLayer(layer)) map.removeLayer(layer);
-        }
-      });
+      // Focus modal for accessibility
+      closeBtn.focus();
+    }
+
+    function closeModal() {
+      modal.style.display = "none";
+      modal.setAttribute("aria-hidden", "true");
+      modal.inert = true;
+      trigger.setAttribute("aria-expanded", "false");
+      trigger.focus();
+    }
+
+    trigger.addEventListener("click", openModal);
+    closeBtn.addEventListener("click", closeModal);
+
+    // Close modal on outside click
+    modal.addEventListener("click", e => {
+      if (e.target === modal) closeModal();
+    });
+
+    // Close modal on Escape key
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && modal.style.display === "block") {
+        closeModal();
+      }
+    });
+
+    // Handle form submit inside modal
+    const form = document.getElementById("trackingForm");
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+
+      const vehicleId = form.vehicleId.value.trim();
+      const mode = form.mode.value;
+
+      if (!vehicleId || !mode) {
+        alert("Please fill out all fields.");
+        return;
+      }
+
+      alert(`Tracking started for Vehicle ID: ${vehicleId} (${mode})`);
+      closeModal();
+
+      // TODO: Add your tracking logic here
+    });
+  }
+
+  function setupEventListeners() {
+    const clearBtn = document.getElementById("clearVehiclesBtn");
+    if (clearBtn) {
+      clearBtn.addEventListener("click", clearVehicles);
     }
   }
 
-  function setupMap() {
-    map = L.map("map").setView([8.4912, -13.2345], 14);
+  function initMap() {
+    map = L.map("map").setView([8.4844, -13.2344], 13);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: "© OpenStreetMap"
+      maxZoom: 18,
+      attribution: "© OpenStreetMap contributors"
     }).addTo(map);
 
     routeLayers.addTo(map);
   }
 
-  // Helper: set inert on element and all descendants (if supported)
-  function setInert(element, inert) {
-    if ('inert' in HTMLElement.prototype) {
-      element.inert = inert;
-    } else {
-      // Fallback: disable pointer events and tabIndex for all focusable descendants
-      if (inert) {
-        element.style.pointerEvents = "none";
-        element.querySelectorAll("a,button,input,select,textarea,[tabindex]").forEach(el => {
-          el.dataset.prevTabIndex = el.tabIndex;
-          el.tabIndex = -1;
-        });
-      } else {
-        element.style.pointerEvents = "";
-        element.querySelectorAll("[tabindex]").forEach(el => {
-          if (el.dataset.prevTabIndex !== undefined) {
-            el.tabIndex = parseInt(el.dataset.prevTabIndex, 10);
-            delete el.dataset.prevTabIndex;
-          } else {
-            el.removeAttribute("tabindex");
-          }
-        });
-      }
-    }
-  }
-
-  // Setup modal with proper aria-hidden and focus management
-  function setupModal() {
-    const modal = document.getElementById("trackingModal");
-    const trigger = document.querySelector(".modal-trigger");
-    const closeBtn = modal.querySelector(".close-modal");
-
-    let lastFocusedElement = null;
-
-    function openModal() {
-      lastFocusedElement = document.activeElement;
-
-      modal.classList.remove("hidden");
-      modal.setAttribute("aria-hidden", "false");
-      setInert(modal, false);
-
-      // Trap focus inside modal - focus close button
-      closeBtn.focus();
-
-      // Prevent body scroll behind modal
-      document.body.style.overflow = "hidden";
-    }
-
-    function closeModal() {
-      modal.classList.add("hidden");
-      modal.setAttribute("aria-hidden", "true");
-      setInert(modal, true);
-
-      // Restore focus to trigger button
-      if (lastFocusedElement) {
-        lastFocusedElement.focus();
-        lastFocusedElement = null;
-      }
-
-      document.body.style.overflow = "";
-    }
-
-    trigger.addEventListener("click", e => {
-      e.preventDefault();
-      openModal();
-    });
-
-    closeBtn.addEventListener("click", e => {
-      e.preventDefault();
-      closeModal();
-    });
-
-    // Close modal on Escape key
-    document.addEventListener("keydown", e => {
-      if (e.key === "Escape" && modal.getAttribute("aria-hidden") === "false") {
-        closeModal();
-      }
-    });
-
-    // Initially modal is hidden and inert
-    modal.classList.add("hidden");
-    modal.setAttribute("aria-hidden", "true");
-    setInert(modal, true);
-  }
-
-  function updateUserVehicleETAs() {
-    if (!userMarker) return;
-
-    const userPos = userMarker.getLatLng();
-    Object.entries(vehicleMarkers).forEach(([id, marker]) => {
-      const vehicle = vehiclesData.find(v => v.id === id);
-      if (!vehicle) return;
-
-      const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
-      const popupContent = `Vehicle ID: ${id}<br>Mode: ${vehicle.mode}<br>Distance: ${distance} m<br>ETA: ${eta} min`;
-      marker.setPopupContent(popupContent);
-    });
-  }
-
-  // Main initialization
+  // Wrap all startup logic here
   if (!promptLogin()) return;
 
-  setupMap();
+  initMap();
   addLocateMeButton();
-  await loadRoutes();
-  await loadStops();
   initFilters();
   setupModal();
+  setupEventListeners();
+  loadRoutes();
+  loadStops();
 
   fetchVehicles();
-  setInterval(fetchVehicles, 15000);
+  setInterval(fetchVehicles, 30 * 1000);
 }
 
-startApp();
+document.addEventListener("DOMContentLoaded", startApp);
