@@ -129,15 +129,14 @@ async function loadStops() {
 
     stopsLayer = L.geoJSON(geojson, {
       pointToLayer: (feature, latlng) => {
-        const mode = feature.properties.mode?.toLowerCase() || "podapoda";
-        const iconUrl = iconMap[mode] || iconMap["podapoda"];
-        return L.marker(latlng, {
-          icon: L.icon({
-            iconUrl,
-            iconSize: [25, 25],
-            iconAnchor: [12, 24],
-            popupAnchor: [0, -24]
-          })
+        // Create a red circle marker
+        return L.circleMarker(latlng, {
+          radius: 6,             // size of circle
+          fillColor: "#ff0000", // red color
+          color: "#880000",     // border color (dark red)
+          weight: 1,            // border width
+          opacity: 1,
+          fillOpacity: 0.8
         });
       },
       onEachFeature: (feature, layer) => {
@@ -150,6 +149,7 @@ async function loadStops() {
     console.error(err);
   }
 }
+
 
 function getIcon(mode) {
   const key = mode?.toLowerCase() || "podapoda";
