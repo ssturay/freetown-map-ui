@@ -233,15 +233,7 @@ function updateSidebarETAs() {
     `;
     etaList.appendChild(div);
   });
-}
 
-  const userPos = userMarker.getLatLng();
-  vehiclesData.forEach(v => {
-    const { distance, eta } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
-    const div = document.createElement("div");
-    div.textContent = `${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min`;
-    etaList.appendChild(div);
-  });
 }
 
 function updateSidebarAlerts() {
@@ -284,25 +276,7 @@ function updateSidebarAlerts() {
     `;
     alertList.appendChild(div);
   });
-}
 
-  const userPos = userMarker.getLatLng();
-  const nearbyVehicles = vehiclesData.filter(v => {
-    const { distance } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
-    return distance <= 500;
-  });
-
-  if (nearbyVehicles.length === 0) {
-    alertList.innerHTML = "<p>No nearby vehicles within 500m.</p>";
-    return;
-  }
-
-  nearbyVehicles.forEach(vehicle => {
-    const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
-    const div = document.createElement("div");
-    div.textContent = `${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)`;
-    alertList.appendChild(div);
-  });
 }
 
 function initFilters() {
