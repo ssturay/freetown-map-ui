@@ -221,7 +221,12 @@ function updateSidebarETAs() {
   vehiclesData.forEach(v => {
     const { distance, eta } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
     const div = document.createElement("div");
-    div.textContent = `${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min`;
+    div.innerHTML = `
+  <img src="${iconMap[v.mode.toLowerCase()]}" 
+       alt="${v.mode}" 
+       style="width:18px; height:18px; vertical-align:middle; margin-right:6px;">
+  ${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min
+`;
     etaList.appendChild(div);
   });
 }
@@ -250,7 +255,12 @@ function updateSidebarAlerts() {
   nearbyVehicles.forEach(vehicle => {
     const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
     const div = document.createElement("div");
-    div.textContent = `${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)`;
+    div.innerHTML = `
+  <img src="${iconMap[vehicle.mode.toLowerCase()]}" 
+       alt="${vehicle.mode}" 
+       style="width:18px; height:18px; vertical-align:middle; margin-right:6px;">
+  ${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)
+`;
     alertList.appendChild(div);
   });
 }
