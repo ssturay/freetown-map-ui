@@ -114,8 +114,19 @@ footer {
   font-size: 0.9rem;
 }
 
+/* Align icons and text nicely inside sidebar list items */
 .sidebar-list div {
   margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar-list div img {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Filters */
@@ -123,8 +134,31 @@ footer {
   margin-top: 1rem;
 }
 
-.filter-option {
+/* Each filter label with checkbox and icon */
+.sidebar-filter-container label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
   margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+/* Checkbox styling */
+.sidebar-filter-container input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Icons inside filter labels */
+.sidebar-filter-container img {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 /* Modal */
