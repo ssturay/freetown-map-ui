@@ -282,37 +282,35 @@ async function startApp() {
     });
   }
 
- function applyFilters() {
-  const checkedModes = Array.from(document.querySelectorAll(".sidebar-filter-container input[type=checkbox]:checked"))
-    .map(input => input.value);
+  function applyFilters() {
+    const checkedModes = Array.from(document.querySelectorAll(".sidebar-filter-container input[type=checkbox]:checked"))
+      .map(input => input.value);
 
-  // Filter vehicles
-  for (const [id, marker] of Object.entries(vehicleMarkers)) {
-    const vehicle = vehiclesData.find(v => v.id === id);
-    if (!vehicle) continue;
+    // Filter vehicles
+    for (const [id, marker] of Object.entries(vehicleMarkers)) {
+      const vehicle = vehiclesData.find(v => v.id === id);
+      if (!vehicle) continue;
 
-    if (checkedModes.includes(vehicle.mode.toLowerCase())) {
-      if (!map.hasLayer(marker)) map.addLayer(marker);
-    } else {
-      if (map.hasLayer(marker)) map.removeLayer(marker);
+      if (checkedModes.includes(vehicle.mode.toLowerCase())) {
+        if (!map.hasLayer(marker)) map.addLayer(marker);
+      } else {
+        if (map.hasLayer(marker)) map.removeLayer(marker);
+      }
+    }
+
+    // Filter stops
+    if (stopsLayer) {
+      stopsLayer.eachLayer(layer => {
+        const mode = (layer.feature.properties.mode || "").toLowerCase();
+
+        if (checkedModes.includes(mode)) {
+          if (!map.hasLayer(layer)) map.addLayer(layer);
+        } else {
+          if (map.hasLayer(layer)) map.removeLayer(layer);
+        }
+      });
     }
   }
-
-  // ✅ Filter stops
-  if (stopsLayer) {
-    stopsLayer.eachLayer(layer => {
-      const mode = (layer.feature.properties.mode || "").toLowerCase();
-
-      // Only hide/show if checkboxes have changed
-      if (checkedModes.includes(mode)) {
-        if (!map.hasLayer(layer)) map.addLayer(layer);
-      } else {
-        if (map.hasLayer(layer)) map.removeLayer(layer);
-      }
-    });
-  }
-}
-
 
   function setupMap() {
     map = L.map("map").setView([8.4912, -13.2345], 14);
@@ -325,40 +323,117 @@ async function startApp() {
     routeLayers.addTo(map);
   }
 
+  // Helper: set inert on element and all descendants (if supported)
+  function setInert(element, inert) {
+    if ('inert' in HTMLElement.prototype) {
+      element.inert = inert;
+    } else {
+      // Fallback: disable pointer events and tabIndex for all focusable descendants
+      if (inert) {
+        element.style.pointerEvents = "none";
+        element.querySelectorAll("a,button,input,select,textarea,[tabindex]").forEach(el => {
+          el.dataset.prevTabIndex = el.tabIndex;
+          el.tabIndex = -1;
+        });
+      } else {
+        element.style.pointerEvents = "";
+        element.querySelectorAll("[tabindex]").forEach(el => {
+          if (el.dataset.prevTabIndex !== undefined) {
+            el.tabIndex = parseInt(el.dataset.prevTabIndex, 10);
+            delete el.dataset.prevTabIndex;
+          } else {
+            el.removeAttribute("tabindex");
+          }
+        });
+      }
+    }
+  }
+
+  // Setup modal with proper aria-hidden and focus management
   function setupModal() {
     const modal = document.getElementById("trackingModal");
     const trigger = document.querySelector(".modal-trigger");
-    const closeBtn = modal?.querySelector(".modal-close");
+    const closeBtn = modal.querySelector(".close-modal");
 
-    if (trigger && modal) {
-      trigger.addEventListener("click", () => {
-        modal.setAttribute("aria-hidden", "false");
-      });
+    let lastFocusedElement = null;
+
+    function openModal() {
+      lastFocusedElement = document.activeElement;
+
+      modal.classList.remove("hidden");
+      modal.setAttribute("aria-hidden", "false");
+      setInert(modal, false);
+
+      // Trap focus inside modal - focus close button
+      closeBtn.focus();
+
+      // Prevent body scroll behind modal
+      document.body.style.overflow = "hidden";
     }
 
-    if (closeBtn && modal) {
-      closeBtn.addEventListener("click", () => {
-        modal.setAttribute("aria-hidden", "true");
-      });
-    }
+    function closeModal() {
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+      setInert(modal, true);
 
-    window.addEventListener("click", (e) => {
-      if (e.target === modal) {
-        modal.setAttribute("aria-hidden", "true");
+      // Restore focus to trigger button
+      if (lastFocusedElement) {
+        lastFocusedElement.focus();
+        lastFocusedElement = null;
       }
+
+      document.body.style.overflow = "";
+    }
+
+    trigger.addEventListener("click", e => {
+      e.preventDefault();
+      openModal();
+    });
+
+    closeBtn.addEventListener("click", e => {
+      e.preventDefault();
+      closeModal();
+    });
+
+    // Close modal on Escape key
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && modal.getAttribute("aria-hidden") === "false") {
+        closeModal();
+      }
+    });
+
+    // Initially modal is hidden and inert
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+    setInert(modal, true);
+  }
+
+  function updateUserVehicleETAs() {
+    if (!userMarker) return;
+
+    const userPos = userMarker.getLatLng();
+    Object.entries(vehicleMarkers).forEach(([id, marker]) => {
+      const vehicle = vehiclesData.find(v => v.id === id);
+      if (!vehicle) return;
+
+      const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
+      const popupContent = `Vehicle ID: ${id}<br>Mode: ${vehicle.mode}<br>Distance: ${distance} m<br>ETA: ${eta} min`;
+      marker.setPopupContent(popupContent);
     });
   }
 
+  // Main initialization
   if (!promptLogin()) return;
 
   setupMap();
-  setupModal();
   addLocateMeButton();
   await loadRoutes();
   await loadStops();
   initFilters();
-  await fetchVehicles();
-  setInterval(fetchVehicles, 30000);
+  setupModal();
+
+  fetchVehicles();
+  setInterval(fetchVehicles, 15000);
 }
 
-document.addEventListener("DOMContentLoaded", startApp);
+startApp();
