@@ -7,7 +7,6 @@ function promptLogin() {
 
   if (username !== VALID_USERNAME || password !== VALID_PASSWORD) {
     alert("Access denied");
-    // Clear the entire body content and show access denied message
     document.body.innerHTML = "<h2 style='text-align:center; padding: 2rem;'>Access Denied</h2>";
     return false;
   }
@@ -23,15 +22,14 @@ async function startApp() {
   let stopsLayer;
 
   const iconMap = {
-    podapoda: "https://cdn-icons-png.flaticon.com/512/743/743007.png",
-    taxi: "https://cdn-icons-png.flaticon.com/512/190/190671.png",
-    keke: "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",
+    "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
+    "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",
+    "keke": "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",
     "paratransit bus": "https://cdn-icons-png.flaticon.com/512/61/61221.png",
     "waka fine bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",
-    motorbike: "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
+    "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
   };
 
-  // Calculate ETA based on haversine formula and walking speed
   function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
     const R = 6371e3;
     const φ1 = userLat * Math.PI / 180;
@@ -39,12 +37,20 @@ async function startApp() {
     const Δφ = (vehicleLat - userLat) * Math.PI / 180;
     const Δλ = (vehicleLon - userLon) * Math.PI / 180;
 
-    const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+    const a = Math.sin(Δφ / 2) ** 2 +
+              Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
-    const walkingSpeed = 1.4; // meters per second
+    const walkingSpeed = 1.4;
 
-    return { distance: Math.round(distance), eta: Math.round(distance / walkingSpeed / 60) };
+    return {
+      distance: Math.round(distance),
+      eta: Math.round(distance / walkingSpeed / 60)
+    };
+  }
+
+  function capitalize(str) {
+    return str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
   }
 
   function addLocateMeButton() {
@@ -56,10 +62,12 @@ async function startApp() {
         alert("Geolocation is not supported by your browser.");
         return;
       }
+
       navigator.geolocation.getCurrentPosition(
-        (position) => {
+        position => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
+
           if (userMarker) {
             userMarker.setLatLng([lat, lon]);
           } else {
@@ -71,14 +79,15 @@ async function startApp() {
               })
             }).addTo(map);
           }
+
           map.setView([lat, lon], 15);
           updateUserVehicleETAs();
-          updateSidebarAlerts();
           updateSidebarETAs();
+          updateSidebarAlerts();
         },
-        (error) => {
+        err => {
           alert("Unable to retrieve your location.");
-          console.error("Geolocation error:", error);
+          console.error(err);
         }
       );
     });
@@ -87,7 +96,7 @@ async function startApp() {
   async function loadRoutes() {
     try {
       const res = await fetch("data/routes.geojson");
-      if (!res.ok) throw new Error("Failed to load routes.geojson");
+      if (!res.ok) throw new Error("Routes fetch failed.");
       const geojson = await res.json();
 
       routeLayers.clearLayers();
@@ -108,97 +117,46 @@ async function startApp() {
 
       routeLayers.addTo(map);
     } catch (err) {
-      console.error("Error loading routes:", err);
-      alert("Could not load route data.");
+      console.error(err);
     }
   }
 
   async function loadStops() {
     try {
       const res = await fetch("data/stops.geojson");
-      if (!res.ok) throw new Error("Failed to load stops.geojson");
+      if (!res.ok) throw new Error("Stops fetch failed.");
       const geojson = await res.json();
 
       if (stopsLayer) stopsLayer.clearLayers();
 
       stopsLayer = L.geoJSON(geojson, {
         pointToLayer: (feature, latlng) => {
-          const mode = feature.properties.mode ? feature.properties.mode.toLowerCase() : "default";
-          const iconUrl = iconMap[mode] || "https://cdn-icons-png.flaticon.com/512/252/252025.png";
-          const stopIcon = L.icon({
-            iconUrl,
-            iconSize: [25, 25],
-            iconAnchor: [12, 24],
-            popupAnchor: [0, -24]
+          const mode = feature.properties.mode?.toLowerCase() || "default";
+          const iconUrl = iconMap[mode] || iconMap["podapoda"];
+          return L.marker(latlng, {
+            icon: L.icon({
+              iconUrl,
+              iconSize: [25, 25],
+              iconAnchor: [12, 24],
+              popupAnchor: [0, -24]
+            })
           });
-          return L.marker(latlng, { icon: stopIcon });
         },
         onEachFeature: (feature, layer) => {
-          if (feature.properties && feature.properties.name) {
+          if (feature.properties?.name) {
             layer.bindPopup(`<strong>Stop:</strong> ${feature.properties.name}`);
           }
         }
       }).addTo(map);
     } catch (err) {
-      console.error("Error loading stops:", err);
-      alert("Could not load stops data.");
+      console.error(err);
     }
-  }
-
-  function initFilters() {
-    const filterContainer = document.querySelector(".sidebar-filter-container");
-    if (!filterContainer) return;
-
-    filterContainer.innerHTML = "";
-    const modes = ["Podapoda", "Taxi", "Keke", "Paratransit Bus", "Waka Fine Bus", "Motorbike"];
-    modes.forEach(mode => {
-      const div = document.createElement("div");
-      div.className = "filter-option";
-      div.innerHTML = `
-        <label>
-          <input type="checkbox" value="${mode.toLowerCase()}" checked />
-          ${mode}
-        </label>
-      `;
-      filterContainer.appendChild(div);
-    });
-
-    filterContainer.querySelectorAll("input[type=checkbox]").forEach(input => {
-      input.addEventListener("change", applyFilters);
-    });
-  }
-
-  function applyFilters() {
-    const checkedModes = Array.from(document.querySelectorAll(".sidebar-filter-container input[type=checkbox]:checked"))
-      .map(input => input.value);
-
-    // Filter vehicle markers
-    for (const [id, marker] of Object.entries(vehicleMarkers)) {
-      const vehicle = vehiclesData.find(v => v.id === id);
-      if (!vehicle) continue;
-      if (checkedModes.includes(vehicle.mode.toLowerCase())) {
-        if (!map.hasLayer(marker)) map.addLayer(marker);
-      } else {
-        if (map.hasLayer(marker)) map.removeLayer(marker);
-      }
-    }
-
-    // Filter stops
-    if (!stopsLayer) return;
-    stopsLayer.eachLayer(layer => {
-      const mode = (layer.feature.properties.mode || "").toLowerCase();
-      if (checkedModes.includes(mode)) {
-        if (!map.hasLayer(layer)) map.addLayer(layer);
-      } else {
-        if (map.hasLayer(layer)) map.removeLayer(layer);
-      }
-    });
   }
 
   function getIcon(mode) {
-    const key = mode ? mode.toLowerCase() : "podapoda";
+    const key = mode?.toLowerCase() || "podapoda";
     return L.icon({
-      iconUrl: iconMap[key] || iconMap["podapoda"],
+      iconUrl: iconMap[key],
       iconSize: [30, 30],
       iconAnchor: [15, 30],
       popupAnchor: [0, -30]
@@ -249,7 +207,7 @@ async function startApp() {
       if (timeLabel) timeLabel.textContent = new Date().toLocaleTimeString();
 
     } catch (err) {
-      console.error("Error fetching vehicles:", err);
+      console.error("Vehicle update error:", err);
     }
   }
 
@@ -285,7 +243,7 @@ async function startApp() {
     const userPos = userMarker.getLatLng();
     const nearbyVehicles = vehiclesData.filter(v => {
       const { distance } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
-      return distance <= 500; // radius 500 meters
+      return distance <= 500;
     });
 
     if (nearbyVehicles.length === 0) {
@@ -301,8 +259,53 @@ async function startApp() {
     });
   }
 
-  function capitalize(str) {
-    return str ? str.charAt(0).toUpperCase() + str.slice(1) : "";
+  function initFilters() {
+    const filterContainer = document.querySelector(".sidebar-filter-container");
+    if (!filterContainer) return;
+
+    filterContainer.innerHTML = "";
+    const modes = ["Podapoda", "Taxi", "Keke", "Paratransit Bus", "Waka Fine Bus", "Motorbike"];
+    modes.forEach(mode => {
+      const div = document.createElement("div");
+      div.className = "filter-option";
+      div.innerHTML = `
+        <label>
+          <input type="checkbox" value="${mode.toLowerCase()}" checked />
+          ${mode}
+        </label>
+      `;
+      filterContainer.appendChild(div);
+    });
+
+    filterContainer.querySelectorAll("input[type=checkbox]").forEach(input => {
+      input.addEventListener("change", applyFilters);
+    });
+  }
+
+  function applyFilters() {
+    const checkedModes = Array.from(document.querySelectorAll(".sidebar-filter-container input[type=checkbox]:checked"))
+      .map(input => input.value);
+
+    for (const [id, marker] of Object.entries(vehicleMarkers)) {
+      const vehicle = vehiclesData.find(v => v.id === id);
+      if (!vehicle) continue;
+
+      if (checkedModes.includes(vehicle.mode.toLowerCase())) {
+        if (!map.hasLayer(marker)) map.addLayer(marker);
+      } else {
+        if (map.hasLayer(marker)) map.removeLayer(marker);
+      }
+    }
+
+    if (!stopsLayer) return;
+    stopsLayer.eachLayer(layer => {
+      const mode = (layer.feature.properties.mode || "").toLowerCase();
+      if (checkedModes.includes(mode)) {
+        if (!map.hasLayer(layer)) map.addLayer(layer);
+      } else {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      }
+    });
   }
 
   function setupMap() {
@@ -316,18 +319,40 @@ async function startApp() {
     routeLayers.addTo(map);
   }
 
+  function setupModal() {
+    const modal = document.getElementById("trackingModal");
+    const trigger = document.querySelector(".modal-trigger");
+    const closeBtn = modal?.querySelector(".modal-close");
+
+    if (trigger && modal) {
+      trigger.addEventListener("click", () => {
+        modal.setAttribute("aria-hidden", "false");
+      });
+    }
+
+    if (closeBtn && modal) {
+      closeBtn.addEventListener("click", () => {
+        modal.setAttribute("aria-hidden", "true");
+      });
+    }
+
+    window.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        modal.setAttribute("aria-hidden", "true");
+      }
+    });
+  }
+
   if (!promptLogin()) return;
 
   setupMap();
+  setupModal();
   addLocateMeButton();
   await loadRoutes();
   await loadStops();
   initFilters();
   await fetchVehicles();
-  setInterval(fetchVehicles, 30000); // Update every 30 seconds
+  setInterval(fetchVehicles, 30000);
 }
 
-// Run after DOM ready
-document.addEventListener("DOMContentLoaded", () => {
-  startApp();
-});
+document.addEventListener("DOMContentLoaded", startApp);
