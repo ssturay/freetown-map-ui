@@ -29,6 +29,20 @@ const iconMap = {
   "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
 };
 
+function createIconImg(mode) {
+  const key = mode?.toLowerCase() || "podapoda";
+  const url = iconMap[key];
+  if (!url) return null;
+  const img = document.createElement("img");
+  img.src = url;
+  img.alt = mode;
+  img.style.width = "20px";
+  img.style.height = "20px";
+  img.style.verticalAlign = "middle";
+  img.style.marginRight = "6px";
+  return img;
+}
+
 function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
   const R = 6371e3;
   const φ1 = userLat * Math.PI / 180;
@@ -150,7 +164,6 @@ async function loadStops() {
   }
 }
 
-
 function getIcon(mode) {
   const key = mode?.toLowerCase() || "podapoda";
   return L.icon({
@@ -223,7 +236,14 @@ function updateSidebarETAs() {
   vehiclesData.forEach(v => {
     const { distance, eta } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
     const div = document.createElement("div");
-    div.textContent = `${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min`;
+
+    // Add icon before text
+    const iconImg = createIconImg(v.mode);
+    if (iconImg) div.appendChild(iconImg);
+
+    div.appendChild(document.createTextNode(
+      `${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min`
+    ));
     etaList.appendChild(div);
   });
 }
@@ -252,7 +272,14 @@ function updateSidebarAlerts() {
   nearbyVehicles.forEach(vehicle => {
     const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
     const div = document.createElement("div");
-    div.textContent = `${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)`;
+
+    // Add icon before text
+    const iconImg = createIconImg(vehicle.mode);
+    if (iconImg) div.appendChild(iconImg);
+
+    div.appendChild(document.createTextNode(
+      `${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)`
+    ));
     alertList.appendChild(div);
   });
 }
@@ -277,6 +304,7 @@ function initFilters() {
     const label = document.createElement("label");
     label.style.display = "block";
     label.style.marginBottom = "0.3rem";
+    label.style.cursor = "pointer";
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -288,6 +316,10 @@ function initFilters() {
     checkbox.addEventListener("change", applyFilters);
 
     label.appendChild(checkbox);
+
+    const iconImg = createIconImg(mode);
+    if (iconImg) label.appendChild(iconImg);
+
     label.append(` ${mode}`);
 
     filterContainer.appendChild(label);
@@ -328,94 +360,38 @@ function setupModal() {
   const trigger = document.querySelector(".modal-trigger");
   const closeBtn = document.querySelector(".modal-close");
 
-  if (!modal || !trigger || !closeBtn) {
-    console.warn("Modal elements missing, skipping modal setup.");
-    return;
-  }
+  if (!modal || !trigger || !closeBtn) return;
 
-  function openModal() {
-    modal.style.display = "block";
-    modal.setAttribute("aria-hidden", "false");
-    modal.inert = false;
-    trigger.setAttribute("aria-expanded", "true");
+  trigger.addEventListener("click", () => modal.classList.add("visible"));
+  closeBtn.addEventListener("click", () => modal.classList.remove("visible"));
 
-    // Focus modal for accessibility
-    closeBtn.focus();
-  }
-
-  function closeModal() {
-    modal.style.display = "none";
-    modal.setAttribute("aria-hidden", "true");
-    modal.inert = true;
-    trigger.setAttribute("aria-expanded", "false");
-    trigger.focus();
-  }
-
-  trigger.addEventListener("click", openModal);
-  closeBtn.addEventListener("click", closeModal);
-
-  // Close modal on outside click
-  modal.addEventListener("click", e => {
-    if (e.target === modal) closeModal();
-  });
-
-  // Close modal on Escape key
-  document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && modal.style.display === "block") {
-      closeModal();
-    }
-  });
-
-  // Handle form submit inside modal
-  const form = document.getElementById("trackingForm");
-  form.addEventListener("submit", e => {
-    e.preventDefault();
-
-    const vehicleId = form.vehicleId.value.trim();
-    const mode = form.mode.value;
-
-    if (!vehicleId || !mode) {
-      alert("Please fill out all fields.");
-      return;
-    }
-
-    alert(`Tracking started for Vehicle ID: ${vehicleId} (${mode})`);
-    closeModal();
-
-    // TODO: Add your tracking logic here
+  window.addEventListener("click", e => {
+    if (e.target === modal) modal.classList.remove("visible");
   });
 }
 
 function setupEventListeners() {
-  const clearBtn = document.getElementById("clearVehiclesBtn");
-  if (clearBtn) {
-    clearBtn.addEventListener("click", clearVehicles);
-  }
+  document.getElementById("fetchVehiclesBtn").addEventListener("click", fetchVehicles);
+  document.getElementById("clearVehiclesBtn").addEventListener("click", clearVehicles);
+  addLocateMeButton();
+  initFilters();
 }
 
 function initMap() {
-  map = L.map("map").setView([8.4844, -13.2344], 13);
+  map = L.map("map").setView([8.4657, -13.2317], 13);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18,
     attribution: "© OpenStreetMap contributors"
   }).addTo(map);
 
   routeLayers.addTo(map);
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   if (!promptLogin()) return;
-
   initMap();
-  addLocateMeButton();
-  initFilters();
+  loadRoutes();
+  loadStops();
   setupModal();
   setupEventListeners();
-
-  await loadRoutes();
-  await loadStops();
-
-  await fetchVehicles();
-  setInterval(fetchVehicles, 30 * 1000);
 });
