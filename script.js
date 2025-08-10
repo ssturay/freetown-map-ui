@@ -418,8 +418,27 @@ function initMap() {
   if (trackingForm) {
     trackingForm.addEventListener("submit", function(e) {
       e.preventDefault();
-      console.log("Tracking form submitted without reload");
-      // TODO: Add start tracking logic here
+
+      const vehicleId = document.getElementById("vehicleId").value.trim();
+      const transportMode = document.getElementById("transportMode").value.trim();
+
+      if (!vehicleId || !transportMode) {
+        alert("Please enter both Vehicle ID and Transport Mode.");
+        return;
+      }
+
+      if (typeof startTracking === "function") {
+        startTracking(vehicleId, transportMode);
+      } else {
+        console.warn("startTracking function is not defined.");
+      }
+
+      // Close modal after starting tracking
+      const modal = document.getElementById("trackingModal");
+      if (modal) {
+        modal.style.display = "none";
+        modal.setAttribute("aria-hidden", "true");
+      }
     });
   }
 
