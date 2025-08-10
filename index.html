@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freetown PT Tracker</title>
 
-  <!-- Leaflet CSS (no integrity to avoid integrity mismatch issues) -->
+  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
@@ -20,6 +20,8 @@
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
       <button id="locateMeBtn">📍 My Location</button>
       <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
+      <button id="openTrackingModal" class="modal-trigger">🚗 Start Tracking</button>
+      <button id="stopTrackingBtn" style="display:none;">🛑 Stop Tracking</button>
     </header>
 
     <main class="main-content">
@@ -49,16 +51,6 @@
       <p>Last updated: <time id="lastUpdated">--</time></p>
     </footer>
   </div>
-
-  <!-- Modal Trigger -->
-  <button
-    id="openTrackingModal"
-    class="modal-trigger"
-    aria-haspopup="dialog"
-    aria-controls="trackingModal"
-  >
-    🚗 Start Tracking
-  </button>
 
   <!-- Modal -->
   <div
@@ -97,5 +89,27 @@
 
   <!-- App JS -->
   <script src="script.js" defer></script>
+
+  <script>
+    // Handle Stop Tracking button
+    document.addEventListener("DOMContentLoaded", () => {
+      const stopBtn = document.getElementById("stopTrackingBtn");
+      if (stopBtn) {
+        stopBtn.addEventListener("click", () => {
+          if (typeof stopTracking === "function") {
+            stopTracking();
+            stopBtn.style.display = "none";
+            document.getElementById("openTrackingModal").style.display = "inline-block";
+          }
+        });
+      }
+    });
+
+    // Show/hide Stop button during tracking
+    document.addEventListener("trackingStarted", () => {
+      document.getElementById("stopTrackingBtn").style.display = "inline-block";
+      document.getElementById("openTrackingModal").style.display = "none";
+    });
+  </script>
 </body>
 </html>
