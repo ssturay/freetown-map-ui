@@ -13,6 +13,21 @@
   />
 
   <link rel="stylesheet" href="style.css" />
+  <style>
+    #stopTrackingBtn {
+      display: none;
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      margin-left: 8px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    #stopTrackingBtn:hover {
+      background-color: darkred;
+    }
+  </style>
 </head>
 <body>
   <div class="page-container">
@@ -20,7 +35,7 @@
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
       <button id="locateMeBtn">📍 My Location</button>
       <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
-      <button id="logoutBtn">🚪 Logout</button>
+      <button id="stopTrackingBtn">⏹ Stop Tracking</button>
     </header>
 
     <main class="main-content">
@@ -28,18 +43,18 @@
         <h2>Nearby Vehicles & Alerts</h2>
 
         <section id="etaSection">
-          <h3>Estimated Time of Arrival (ETA)</h3>
+          <h3 id="etaHeading">Estimated Time of Arrival (ETA)</h3>
           <div id="etaList" class="sidebar-list" role="list"></div>
         </section>
 
         <section id="alertSection">
-          <h3>Alerts</h3>
+          <h3 id="alertHeading">Alerts</h3>
           <div id="alertSidebar" class="sidebar-list" role="list"></div>
         </section>
 
         <section class="sidebar-filter-container" aria-label="Filter options">
           <h3>Filters</h3>
-          <!-- Filters will be injected by JS -->
+          <!-- Filters injected by JS -->
         </section>
       </aside>
 
@@ -77,8 +92,8 @@
         <label for="vehicleId">Vehicle ID:</label>
         <input type="text" id="vehicleId" name="vehicleId" required />
 
-        <label for="transportMode">Mode of Transport:</label>
-        <select id="transportMode" name="transportMode" required>
+        <label for="mode">Mode of Transport:</label>
+        <select id="mode" name="mode" required>
           <option value="" disabled selected>--Select--</option>
           <option value="Podapoda">Podapoda</option>
           <option value="Taxi">Taxi</option>
@@ -89,7 +104,6 @@
         </select>
 
         <button type="submit">📍 Start Tracking</button>
-        <button type="button" id="stopTrackingBtn" style="display:none;">⏹ Stop Tracking</button>
       </form>
     </div>
   </div>
