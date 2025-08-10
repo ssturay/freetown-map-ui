@@ -16,8 +16,7 @@ function promptLogin() {
   localStorage.setItem("loggedIn", "true");
   return true;
 }
-  return true;
-}
+  
 
 const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 let map, userMarker = null;
