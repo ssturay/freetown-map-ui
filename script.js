@@ -282,24 +282,28 @@ async function startApp() {
     });
   }
 
-  function applyFilters() {
-    const checkedModes = Array.from(document.querySelectorAll(".sidebar-filter-container input[type=checkbox]:checked"))
-      .map(input => input.value);
+ function applyFilters() {
+  const checkedModes = Array.from(document.querySelectorAll(".sidebar-filter-container input[type=checkbox]:checked"))
+    .map(input => input.value);
 
-    for (const [id, marker] of Object.entries(vehicleMarkers)) {
-      const vehicle = vehiclesData.find(v => v.id === id);
-      if (!vehicle) continue;
+  // Filter vehicles
+  for (const [id, marker] of Object.entries(vehicleMarkers)) {
+    const vehicle = vehiclesData.find(v => v.id === id);
+    if (!vehicle) continue;
 
-      if (checkedModes.includes(vehicle.mode.toLowerCase())) {
-        if (!map.hasLayer(marker)) map.addLayer(marker);
-      } else {
-        if (map.hasLayer(marker)) map.removeLayer(marker);
-      }
+    if (checkedModes.includes(vehicle.mode.toLowerCase())) {
+      if (!map.hasLayer(marker)) map.addLayer(marker);
+    } else {
+      if (map.hasLayer(marker)) map.removeLayer(marker);
     }
+  }
 
-    if (!stopsLayer) return;
+  // ✅ Filter stops
+  if (stopsLayer) {
     stopsLayer.eachLayer(layer => {
       const mode = (layer.feature.properties.mode || "").toLowerCase();
+
+      // Only hide/show if checkboxes have changed
       if (checkedModes.includes(mode)) {
         if (!map.hasLayer(layer)) map.addLayer(layer);
       } else {
@@ -307,6 +311,8 @@ async function startApp() {
       }
     });
   }
+}
+
 
   function setupMap() {
     map = L.map("map").setView([8.4912, -13.2345], 14);
