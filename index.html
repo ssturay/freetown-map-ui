@@ -5,45 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freetown PT Tracker</title>
 
-  <!-- Leaflet CSS (integrity removed to fix SRI error) -->
+  <!-- Leaflet CSS (no integrity to avoid integrity mismatch issues) -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    crossorigin=""
   />
 
-  <!-- Your CSS -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="page-container">
     <header>
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
-      <button id="locateMeBtn" aria-label="Locate my current location">📍 My Location</button>
-      <button id="clearVehiclesBtn" aria-label="Clear all vehicle markers">🧹 Clear Vehicles</button>
+      <button id="locateMeBtn">📍 My Location</button>
+      <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
     </header>
 
-    <!-- Main content with sidebar and map -->
     <main class="main-content">
       <aside class="sidebar" aria-label="Nearby vehicles and alerts sidebar">
         <h2>Nearby Vehicles & Alerts</h2>
 
-        <section id="etaSection" aria-labelledby="etaHeading">
+        <section id="etaSection">
           <h3 id="etaHeading">Estimated Time of Arrival (ETA)</h3>
-          <div id="etaList" class="sidebar-list" role="list">
-            <!-- ETA items will be injected here -->
-          </div>
+          <div id="etaList" class="sidebar-list" role="list"></div>
         </section>
 
-        <section id="alertSection" aria-labelledby="alertHeading">
+        <section id="alertSection">
           <h3 id="alertHeading">Alerts</h3>
-          <div id="alertSidebar" class="sidebar-list" role="list">
-            <!-- Alerts will be injected here -->
-          </div>
+          <div id="alertSidebar" class="sidebar-list" role="list"></div>
         </section>
 
         <section class="sidebar-filter-container" aria-label="Filter options">
           <h3>Filters</h3>
-          <!-- Filter panel will be injected here by JS -->
+          <!-- Filters will be injected by JS -->
         </section>
       </aside>
 
@@ -51,11 +46,11 @@
     </main>
 
     <footer>
-      <p>Last updated: <time id="lastUpdated" datetime="--">--</time></p>
+      <p>Last updated: <time id="lastUpdated">--</time></p>
     </footer>
   </div>
 
-  <!-- 🚗 Modal Trigger Button -->
+  <!-- Modal Trigger -->
   <button
     id="openTrackingModal"
     class="modal-trigger"
@@ -65,7 +60,7 @@
     🚗 Start Tracking
   </button>
 
-  <!-- 🚗 Tracking Modal -->
+  <!-- Modal -->
   <div
     id="trackingModal"
     class="modal"
@@ -75,27 +70,14 @@
     aria-hidden="true"
   >
     <div class="modal-content">
-      <button
-        class="modal-close"
-        id="closeTrackingModal"
-        aria-label="Close tracking modal"
-      >&times;</button>
+      <button class="modal-close" id="closeTrackingModal" aria-label="Close">&times;</button>
       <h2 id="trackingModalTitle">Start Tracking</h2>
-      <form id="trackingForm" autocomplete="off">
+      <form id="trackingForm">
         <label for="vehicleId">Vehicle ID:</label>
-        <input
-          type="text"
-          id="vehicleId"
-          name="vehicleId"
-          required
-          autocomplete="off"
-          aria-required="true"
-          aria-describedby="vehicleIdHelp"
-        />
-        <small id="vehicleIdHelp" class="sr-only">Enter the vehicle identification number.</small>
+        <input type="text" id="vehicleId" name="vehicleId" required />
 
         <label for="mode">Mode of Transport:</label>
-        <select id="mode" name="mode" required aria-required="true">
+        <select id="mode" name="mode" required>
           <option value="" disabled selected>--Select--</option>
           <option value="Podapoda">Podapoda</option>
           <option value="Taxi">Taxi</option>
@@ -110,13 +92,10 @@
     </div>
   </div>
 
-  <!-- Leaflet JS (integrity removed to fix SRI error) -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
-    defer
-  ></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
 
-  <!-- Your JS -->
+  <!-- App JS -->
   <script src="script.js" defer></script>
 </body>
 </html>
