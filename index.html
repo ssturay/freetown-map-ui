@@ -11,23 +11,7 @@
     href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
     crossorigin=""
   />
-
   <link rel="stylesheet" href="style.css" />
-  <style>
-    #stopTrackingBtn {
-      display: none;
-      background-color: red;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      margin-left: 8px;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    #stopTrackingBtn:hover {
-      background-color: darkred;
-    }
-  </style>
 </head>
 <body>
   <div class="page-container">
@@ -35,7 +19,6 @@
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
       <button id="locateMeBtn">📍 My Location</button>
       <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
-      <button id="stopTrackingBtn">⏹ Stop Tracking</button>
     </header>
 
     <main class="main-content">
@@ -74,6 +57,14 @@
     aria-controls="trackingModal"
   >
     🚗 Start Tracking
+  </button>
+
+  <!-- Stop Tracking Button -->
+  <button
+    id="stopTrackingBtn"
+    style="display:none; margin-left:10px;"
+  >
+    🛑 Stop Tracking
   </button>
 
   <!-- Modal -->
