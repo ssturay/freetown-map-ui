@@ -207,7 +207,6 @@ async function fetchVehicles() {
   }
 }
 
-
 function updateSidebarETAs() {
   const etaList = document.getElementById("etaList");
   if (!etaList) return;
@@ -236,21 +235,14 @@ function updateSidebarETAs() {
   });
 }
 
-
   const userPos = userMarker.getLatLng();
   vehiclesData.forEach(v => {
     const { distance, eta } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
     const div = document.createElement("div");
-    div.innerHTML = `
-  <img src="${iconMap[v.mode.toLowerCase()]}" 
-       alt="${v.mode}" 
-       style="width:18px; height:18px; vertical-align:middle; margin-right:6px;">
-  ${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min
-`;
+    div.textContent = `${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min`;
     etaList.appendChild(div);
   });
 }
-
 
 function updateSidebarAlerts() {
   const alertList = document.getElementById("alertSidebar");
@@ -294,7 +286,6 @@ function updateSidebarAlerts() {
   });
 }
 
-
   const userPos = userMarker.getLatLng();
   const nearbyVehicles = vehiclesData.filter(v => {
     const { distance } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
@@ -309,12 +300,7 @@ function updateSidebarAlerts() {
   nearbyVehicles.forEach(vehicle => {
     const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
     const div = document.createElement("div");
-    div.innerHTML = `
-  <img src="${iconMap[vehicle.mode.toLowerCase()]}" 
-       alt="${vehicle.mode}" 
-       style="width:18px; height:18px; vertical-align:middle; margin-right:6px;">
-  ${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)
-`;
+    div.textContent = `${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)`;
     alertList.appendChild(div);
   });
 }
