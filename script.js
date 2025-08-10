@@ -1,4 +1,6 @@
 function promptLogin() {
+  if (localStorage.getItem("loggedIn") === "true") return true;
+
   const username = prompt("Enter username:");
   const password = prompt("Enter password:");
 
@@ -10,6 +12,10 @@ function promptLogin() {
     document.body.innerHTML = "<h2 style='text-align:center; padding: 2rem;'>Access Denied</h2>";
     return false;
   }
+
+  localStorage.setItem("loggedIn", "true");
+  return true;
+}
   return true;
 }
 
@@ -408,6 +414,15 @@ function initMap() {
   setInterval(fetchVehicles, 5000);
 
   setupModal();
+  // Prevent tracking form reload
+  const trackingForm = document.getElementById("trackingForm");
+  if (trackingForm) {
+    trackingForm.addEventListener("submit", function(e) {
+      e.preventDefault();
+      console.log("Tracking form submitted without reload");
+      // TODO: Add start tracking logic here
+    });
+  }
 
   initFilters();
 }
