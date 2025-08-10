@@ -107,7 +107,7 @@ async function loadRoutes() {
       }),
       onEachFeature: (feature, layer) => {
         if (feature.properties && feature.properties.name) {
-          layer.bindPopup(<strong>Route:</strong> ${feature.properties.name});
+          layer.bindPopup(`<strong>Route:</strong> ${feature.properties.name}`);
         }
         routeLayers.addLayer(layer);
       }
@@ -129,19 +129,18 @@ async function loadStops() {
 
     stopsLayer = L.geoJSON(geojson, {
       pointToLayer: (feature, latlng) => {
-        // Create a red circle marker
         return L.circleMarker(latlng, {
-          radius: 6,             // size of circle
-          fillColor: "#ff0000", // red color
-          color: "#880000",     // border color (dark red)
-          weight: 1,            // border width
+          radius: 6,
+          fillColor: "#ff0000",
+          color: "#880000",
+          weight: 1,
           opacity: 1,
           fillOpacity: 0.8
         });
       },
       onEachFeature: (feature, layer) => {
         if (feature.properties?.name) {
-          layer.bindPopup(<strong>Stop:</strong> ${feature.properties.name});
+          layer.bindPopup(`<strong>Stop:</strong> ${feature.properties.name}`);
         }
       }
     }).addTo(map);
@@ -149,7 +148,6 @@ async function loadStops() {
     console.error(err);
   }
 }
-
 
 function getIcon(mode) {
   const key = mode?.toLowerCase() || "podapoda";
@@ -163,7 +161,7 @@ function getIcon(mode) {
 
 async function fetchVehicles() {
   try {
-    const res = await fetch(${BACKEND_URL}/api/vehicles);
+    const res = await fetch(`${BACKEND_URL}/api/vehicles`);
     if (!res.ok) throw new Error("Failed to fetch vehicles");
 
     const data = await res.json();
@@ -180,11 +178,11 @@ async function fetchVehicles() {
       if (!id || !lat || !lon) return;
 
       const icon = getIcon(mode);
-      let popupContent = Vehicle ID: ${id}<br>Mode: ${mode};
+      let popupContent = `Vehicle ID: ${id}<br>Mode: ${mode}`;
       if (userMarker) {
         const userPos = userMarker.getLatLng();
         const { distance, eta } = computeETA(userPos.lat, userPos.lng, lat, lon);
-        popupContent += <br>Distance: ${distance} m<br>ETA: ${eta} min;
+        popupContent += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
       }
 
       if (vehicleMarkers[id]) {
@@ -223,7 +221,7 @@ function updateSidebarETAs() {
   vehiclesData.forEach(v => {
     const { distance, eta } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
     const div = document.createElement("div");
-    div.textContent = ${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min;
+    div.textContent = `${capitalize(v.mode)} (ID: ${v.id}) — ${distance} m, ETA ~${eta} min`;
     etaList.appendChild(div);
   });
 }
@@ -252,7 +250,7 @@ function updateSidebarAlerts() {
   nearbyVehicles.forEach(vehicle => {
     const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
     const div = document.createElement("div");
-    div.textContent = ${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk);
+    div.textContent = `${capitalize(vehicle.mode)} (ID: ${vehicle.id}) is ${distance} m away (~${eta} min walk)`;
     alertList.appendChild(div);
   });
 }
@@ -273,7 +271,7 @@ function initFilters() {
   filterContainer.innerHTML = ""; // Clear existing filters
 
   modes.forEach(mode => {
-    const id = filter-${mode.replace(/\s+/g, "-").toLowerCase()};
+    const id = `filter-${mode.replace(/\s+/g, "-").toLowerCase()}`;
     const label = document.createElement("label");
     label.style.display = "block";
     label.style.marginBottom = "0.3rem";
@@ -288,7 +286,7 @@ function initFilters() {
     checkbox.addEventListener("change", applyFilters);
 
     label.appendChild(checkbox);
-    label.append( ${mode});
+    label.append(` ${mode}`);
 
     filterContainer.appendChild(label);
   });
@@ -365,57 +363,33 @@ function setupModal() {
       closeModal();
     }
   });
-
-  // Handle form submit inside modal
-  const form = document.getElementById("trackingForm");
-  form.addEventListener("submit", e => {
-    e.preventDefault();
-
-    const vehicleId = form.vehicleId.value.trim();
-    const mode = form.mode.value;
-
-    if (!vehicleId || !mode) {
-      alert("Please fill out all fields.");
-      return;
-    }
-
-    alert(Tracking started for Vehicle ID: ${vehicleId} (${mode}));
-    closeModal();
-
-    // TODO: Add your tracking logic here
-  });
-}
-
-function setupEventListeners() {
-  const clearBtn = document.getElementById("clearVehiclesBtn");
-  if (clearBtn) {
-    clearBtn.addEventListener("click", clearVehicles);
-  }
 }
 
 function initMap() {
-  map = L.map("map").setView([8.4844, -13.2344], 13);
+  map = L.map("map").setView([8.48, -13.22], 12);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18,
-    attribution: "© OpenStreetMap contributors"
+    attribution: "© OpenStreetMap contributors",
+    maxZoom: 19
   }).addTo(map);
 
   routeLayers.addTo(map);
+
+  loadRoutes();
+  loadStops();
+
+  addLocateMeButton();
+
+  fetchVehicles();
+  setInterval(fetchVehicles, 5000);
+
+  setupModal();
+
+  initFilters();
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  if (!promptLogin()) return;
-
-  initMap();
-  addLocateMeButton();
-  initFilters();
-  setupModal();
-  setupEventListeners();
-
-  await loadRoutes();
-  await loadStops();
-
-  await fetchVehicles();
-  setInterval(fetchVehicles, 30 * 1000);
+window.addEventListener("DOMContentLoaded", () => {
+  if (promptLogin()) {
+    initMap();
+  }
 });
