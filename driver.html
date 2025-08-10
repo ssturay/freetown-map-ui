@@ -45,20 +45,25 @@
 </head>
 <body>
 
+  <!-- Login Section -->
   <div class="container" id="loginSection">
     <h2>Driver Login</h2>
-    <input type="text" id="username" placeholder="Username" />
-    <input type="password" id="password" placeholder="Password" />
-    <button onclick="login()">Login</button>
+    <form onsubmit="login(); return false;">
+      <input type="text" id="username" name="username" placeholder="Username" autocomplete="username" required />
+      <input type="password" id="password" name="password" placeholder="Password" autocomplete="current-password" required />
+      <button type="submit">Login</button>
+    </form>
   </div>
 
+  <!-- Tracking Section -->
   <div class="container hidden" id="trackingSection">
     <h2>Vehicle Tracking</h2>
+
     <label for="vehicleId">Vehicle ID:</label>
-    <input type="text" id="vehicleId" placeholder="e.g. poda123" />
+    <input type="text" id="vehicleId" name="vehicleId" placeholder="e.g. poda123" required />
 
     <label for="mode">Transport Mode:</label>
-    <select id="mode">
+    <select id="mode" name="mode" required>
       <option value="Podapoda">Podapoda</option>
       <option value="Keke">Keke</option>
       <option value="Taxi">Taxi</option>
@@ -76,15 +81,14 @@
   <script>
     const VALID_USERNAME = "driver";
     const VALID_PASSWORD = "ptfreetown";
-
     const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
     let trackingInterval = null;
 
     function login() {
-      const u = document.getElementById("username").value.trim();
-      const p = document.getElementById("password").value.trim();
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
 
-      if (u === VALID_USERNAME && p === VALID_PASSWORD) {
+      if (username === VALID_USERNAME && password === VALID_PASSWORD) {
         document.getElementById("loginSection").classList.add("hidden");
         document.getElementById("trackingSection").classList.remove("hidden");
       } else {
@@ -107,23 +111,25 @@
 
       trackingInterval = setInterval(() => {
         if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(position => {
-            const { latitude, longitude } = position.coords;
-
-            fetch(`${BACKEND_URL}/api/location/update?id=${vehicleId}&lat=${latitude}&lon=${longitude}&mode=${encodeURIComponent(mode)}`)
-              .then(res => res.text())
-              .then(msg => {
-                console.log(`✅ Sent ping: ${msg}`);
-                document.getElementById("statusMessage").innerText = `📍 Sent: ${latitude.toFixed(4)}, ${longitude.toFixed(4)} @ ${new Date().toLocaleTimeString()}`;
-              })
-              .catch(err => {
-                console.error("❌ Error sending ping", err);
-                document.getElementById("statusMessage").innerText = "❌ Error sending ping.";
-              });
-
-          }, () => {
-            document.getElementById("statusMessage").innerText = "❌ Could not get location.";
-          });
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              fetch(`${BACKEND_URL}/api/location/update?id=${vehicleId}&lat=${latitude}&lon=${longitude}&mode=${encodeURIComponent(mode)}`)
+                .then(res => res.text())
+                .then(msg => {
+                  console.log(`✅ Sent ping: ${msg}`);
+                  document.getElementById("statusMessage").innerText =
+                    `📍 Sent: ${latitude.toFixed(4)}, ${longitude.toFixed(4)} @ ${new Date().toLocaleTimeString()}`;
+                })
+                .catch(err => {
+                  console.error("❌ Error sending ping", err);
+                  document.getElementById("statusMessage").innerText = "❌ Error sending ping.";
+                });
+            },
+            () => {
+              document.getElementById("statusMessage").innerText = "❌ Could not get location.";
+            }
+          );
         } else {
           alert("Geolocation not supported.");
         }
@@ -137,5 +143,6 @@
       document.getElementById("statusMessage").innerText = "⛔ Tracking stopped.";
     }
   </script>
+
 </body>
 </html>
