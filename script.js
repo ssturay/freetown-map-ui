@@ -207,15 +207,35 @@ async function fetchVehicles() {
   }
 }
 
+
 function updateSidebarETAs() {
   const etaList = document.getElementById("etaList");
   if (!etaList) return;
   etaList.innerHTML = "";
 
-  if (!userMarker || vehiclesData.length === 0) {
+  if (vehiclesData.length === 0) {
     etaList.innerHTML = "<p>No data available.</p>";
     return;
   }
+
+  vehiclesData.forEach(v => {
+    let distanceText = "";
+    if (userMarker) {
+      const userPos = userMarker.getLatLng();
+      const { distance, eta } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
+      distanceText = ` — ${distance} m, ETA ~${eta} min`;
+    }
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <img src="${iconMap[v.mode.toLowerCase()]}" 
+           alt="${v.mode}" 
+           style="width:18px; height:18px; vertical-align:middle; margin-right:6px;">
+      ${capitalize(v.mode)} (ID: ${v.id})${distanceText}
+    `;
+    etaList.appendChild(div);
+  });
+}
+
 
   const userPos = userMarker.getLatLng();
   vehiclesData.forEach(v => {
@@ -231,15 +251,49 @@ function updateSidebarETAs() {
   });
 }
 
+
 function updateSidebarAlerts() {
   const alertList = document.getElementById("alertSidebar");
   if (!alertList) return;
   alertList.innerHTML = "";
 
-  if (!userMarker) {
-    alertList.innerHTML = "<p>No location available.</p>";
+  if (vehiclesData.length === 0) {
+    alertList.innerHTML = "<p>No vehicles available.</p>";
     return;
   }
+
+  let vehiclesToShow = vehiclesData;
+
+  if (userMarker) {
+    const userPos = userMarker.getLatLng();
+    vehiclesToShow = vehiclesData.filter(v => {
+      const { distance } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
+      return distance <= 500;
+    });
+    if (vehiclesToShow.length === 0) {
+      alertList.innerHTML = "<p>No nearby vehicles within 500m.</p>";
+      return;
+    }
+  }
+
+  vehiclesToShow.forEach(vehicle => {
+    let extraInfo = "";
+    if (userMarker) {
+      const userPos = userMarker.getLatLng();
+      const { distance, eta } = computeETA(userPos.lat, userPos.lng, vehicle.lat, vehicle.lon);
+      extraInfo = ` is ${distance} m away (~${eta} min walk)`;
+    }
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <img src="${iconMap[vehicle.mode.toLowerCase()]}" 
+           alt="${vehicle.mode}" 
+           style="width:18px; height:18px; vertical-align:middle; margin-right:6px;">
+      ${capitalize(vehicle.mode)} (ID: ${vehicle.id})${extraInfo}
+    `;
+    alertList.appendChild(div);
+  });
+}
+
 
   const userPos = userMarker.getLatLng();
   const nearbyVehicles = vehiclesData.filter(v => {
