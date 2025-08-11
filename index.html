@@ -14,7 +14,7 @@
     <header>
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
       <button id="locateMeBtn">📍 My Location</button>
-      <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
+      <button id="clearVehiclesBtn" onclick="location.reload()">🧹 Clear Vehicles</button>
     </header>
 
     <main class="main-content">
@@ -30,11 +30,6 @@
           <h3>Alerts</h3>
           <div id="alertSidebar" class="sidebar-list"></div>
         </section>
-
-        <section class="sidebar-filter-container">
-          <h3>Filters</h3>
-          <!-- Filters injected by JS -->
-        </section>
       </aside>
 
       <div id="map"></div>
@@ -45,20 +40,16 @@
     </footer>
   </div>
 
-  <!-- Modal Trigger -->
-  <button id="openTrackingModal" class="modal-trigger" aria-haspopup="dialog" aria-controls="trackingModal">
+  <!-- Tracking Modal Trigger -->
+  <button id="openTrackingModal" onclick="document.getElementById('trackingModal').style.display='block'">
     🚗 Start Tracking
   </button>
-
-  <!-- Stop Tracking Button -->
-  <button id="stopTrackingBtn" style="display:none;">
-    🛑 Stop Tracking
-  </button>
+  <button id="stopTrackingBtn" style="display:none;">🛑 Stop Tracking</button>
 
   <!-- Tracking Modal -->
-  <div id="trackingModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div id="trackingModal" class="modal" style="display:none;">
     <div class="modal-content">
-      <button class="modal-close" id="closeTrackingModal" aria-label="Close">&times;</button>
+      <button onclick="document.getElementById('trackingModal').style.display='none'" class="modal-close">&times;</button>
       <h2>Start Tracking</h2>
       <form id="trackingForm">
         <label for="vehicleId">Vehicle ID:</label>
@@ -67,12 +58,12 @@
         <label for="mode">Mode of Transport:</label>
         <select id="mode" name="mode" required>
           <option value="" disabled selected>--Select--</option>
-          <option value="Podapoda">Podapoda</option>
-          <option value="Taxi">Taxi</option>
-          <option value="Keke">Keke</option>
-          <option value="Paratransit Bus">Paratransit Bus</option>
-          <option value="Waka Fine Bus">Waka Fine Bus</option>
-          <option value="Motorbike">Motorbike</option>
+          <option value="podapoda">Podapoda</option>
+          <option value="taxi">Taxi</option>
+          <option value="keke">Keke</option>
+          <option value="paratransit bus">Paratransit Bus</option>
+          <option value="waka fine bus">Waka Fine Bus</option>
+          <option value="motorbike">Motorbike</option>
         </select>
 
         <button type="submit">📍 Start Tracking</button>
