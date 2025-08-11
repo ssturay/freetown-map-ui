@@ -6,12 +6,7 @@
   <title>Freetown PT Tracker</title>
 
   <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
-    crossorigin=""
-  />
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin="" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -19,8 +14,11 @@
     <header>
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
       <button id="locateMeBtn">📍 My Location</button>
-      <button id="clearVehiclesBtn" onclick="clearVehicles()">🧹 Clear Vehicles</button>
+      <button id="clearVehiclesBtn" onclick="stopTracking()">🛑 Stop Tracking</button>
     </header>
+
+    <!-- Menu Button (works for mobile) -->
+    <button id="menuToggleBtn">☰ Menu</button>
 
     <main class="main-content">
       <aside class="sidebar" aria-label="Nearby vehicles and alerts sidebar">
@@ -38,6 +36,7 @@
 
         <section class="sidebar-filter-container" aria-label="Filter options">
           <h3>Filters</h3>
+          <!-- Injected by JS -->
         </section>
       </aside>
 
@@ -88,38 +87,12 @@
 
         <button type="submit">📍 Start Tracking</button>
       </form>
-
-      <!-- New Stop Tracking Button -->
-      <button id="stopTrackingBtn" style="margin-top:10px; background:#ff4444; color:white; padding:8px; border:none; cursor:pointer;">
-        🛑 Stop Tracking
-      </button>
     </div>
   </div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
-
   <!-- App JS -->
   <script src="script.js" defer></script>
-
-  <script>
-    // Close modal when clicking close button
-    document.getElementById("closeTrackingModal").addEventListener("click", function() {
-      document.getElementById("trackingModal").style.display = "none";
-    });
-
-    // Open modal
-    document.getElementById("openTrackingModal").addEventListener("click", function() {
-      document.getElementById("trackingModal").style.display = "block";
-    });
-
-    // Stop Tracking Button Click
-    document.getElementById("stopTrackingBtn").addEventListener("click", function() {
-      if (typeof stopTracking === "function") {
-        stopTracking();
-        alert("Tracking stopped manually.");
-      }
-    });
-  </script>
 </body>
 </html>
