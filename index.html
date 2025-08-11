@@ -4,12 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freetown PT Tracker</title>
+  <link rel="stylesheet" href="style.css" />
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-
-  <!-- Main Styles -->
-  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="page-container">
@@ -20,22 +18,22 @@
     </header>
 
     <main class="main-content">
-      <aside class="sidebar" aria-label="Nearby vehicles and alerts sidebar">
-        <h2>Nearby Vehicles & Alerts</h2>
+      <!-- Sidebar toggle button for mobile -->
+      <button class="sidebar-toggle" id="sidebarToggle">☰ Menu</button>
+
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <h2>Nearby Vehicles</h2>
         <section id="etaSection">
-          <h3>Estimated Time of Arrival (ETA)</h3>
-          <div id="etaList" class="sidebar-list" role="list"></div>
+          <div id="etaList" class="sidebar-list"></div>
         </section>
         <section id="alertSection">
-          <h3>Alerts</h3>
-          <div id="alertSidebar" class="sidebar-list" role="list"></div>
-        </section>
-        <section class="sidebar-filter-container" aria-label="Filter options">
-          <h3>Filters</h3>
+          <div id="alertSidebar" class="sidebar-list"></div>
         </section>
       </aside>
 
-      <div id="map" role="region" aria-label="Map showing vehicle locations"></div>
+      <!-- Map -->
+      <div id="map"></div>
     </main>
 
     <footer>
@@ -43,32 +41,14 @@
     </footer>
   </div>
 
-  <!-- Modal Trigger -->
-  <button
-    id="openTrackingModal"
-    class="modal-trigger"
-    aria-haspopup="dialog"
-    aria-controls="trackingModal"
-  >
-    🚗 Start Tracking
-  </button>
-
   <!-- Tracking Modal -->
-  <div
-    id="trackingModal"
-    class="modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="trackingModalTitle"
-    aria-hidden="true"
-  >
+  <div id="trackingModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-content">
       <button class="modal-close" id="closeTrackingModal" aria-label="Close">&times;</button>
-      <h2 id="trackingModalTitle">Start Tracking</h2>
+      <h2>Start Tracking</h2>
       <form id="trackingForm">
         <label for="vehicleId">Vehicle ID:</label>
         <input type="text" id="vehicleId" name="vehicleId" required />
-
         <label for="mode">Mode of Transport:</label>
         <select id="mode" name="mode" required>
           <option value="" disabled selected>--Select--</option>
@@ -79,30 +59,17 @@
           <option value="Waka Fine Bus">Waka Fine Bus</option>
           <option value="Motorbike">Motorbike</option>
         </select>
-
         <button type="submit">📍 Start Tracking</button>
       </form>
     </div>
   </div>
 
-  <!-- Login Modal -->
-  <div id="loginModal" aria-hidden="true">
-    <div class="modal-content">
-      <h2>Login</h2>
-      <form id="loginForm">
-        <input type="text" id="loginUsername" placeholder="Username" required />
-        <input type="password" id="loginPassword" placeholder="Password" required />
-        <button type="submit">Login</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Stop Tracking Button -->
+  <!-- Fixed Tracking Buttons -->
+  <button id="openTrackingModal">🚗 Start Tracking</button>
   <button id="stopTrackingBtn">⛔ Stop Tracking</button>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-
   <!-- App JS -->
   <script src="script.js" defer></script>
 </body>
