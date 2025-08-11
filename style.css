@@ -264,55 +264,65 @@ body, html {
 }
 
 
-/* Modal styles */
-.modal {
+/* --- Existing styles remain untouched --- */
+
+/* ===== Modal Login Styles ===== */
+#loginModal {
   display: none;
   position: fixed;
   z-index: 1000;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  justify-content: center;
+  align-items: center;
 }
-.modal-content {
-  background-color: #fff;
-  margin: 10% auto;
+#loginModal .modal-content {
+  background: #fff;
   padding: 1.5rem;
   border-radius: 8px;
   width: 90%;
-  max-width: 400px;
+  max-width: 350px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
-.modal-close {
-  float: right;
-  background: none;
+#loginModal h2 {
+  margin-top: 0;
+  font-size: 1.25rem;
+}
+#loginModal input {
+  width: 100%;
+  padding: 0.5rem;
+  margin: 0.4rem 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+#loginModal button {
+  width: 100%;
+  padding: 0.6rem;
+  background: #0078d4;
+  color: white;
   border: none;
-  font-size: 1.5rem;
+  border-radius: 4px;
   cursor: pointer;
+}
+#loginModal button:hover {
+  background: #005fa3;
 }
 
-/* Fixed tracking buttons */
-#trackingControls {
-  position: fixed;
-  bottom: 1rem;
-  right: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  z-index: 1100;
-}
-#trackingControls button {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-#openTrackingModal {
-  background-color: #007bff;
-  color: white;
-}
+/* Stop Tracking Button */
 #stopTrackingBtn {
-  background-color: #dc3545;
-  color: white;
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  z-index: 999;
+  background: #d9534f;
+  color: #fff;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 20px;
+  display: none;
+  cursor: pointer;
+}
+#stopTrackingBtn:hover {
+  background: #c9302c;
 }
