@@ -1,45 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Freetown Live Bus Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Freetown PT Tracker</title>
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  
-  <!-- External Styles -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Map -->
-  <div id="map" class="blurred"></div>
+  <!-- LOGIN MODAL -->
+  <div id="loginModal">
+    <div class="login-box">
+      <h2>Login</h2>
+      <input type="text" id="username" placeholder="Username" />
+      <input type="password" id="password" placeholder="Password" />
+      <button id="loginBtn">Login</button>
+      <p id="loginError"></p>
+    </div>
+  </div>
 
-  <!-- Sidebar -->
+  <!-- SIDEBAR -->
   <div class="sidebar" id="sidebar">
     <h3>Vehicles</h3>
     <div id="vehicleList"></div>
   </div>
 
-  <!-- Floating Buttons -->
-  <button id="startTrackingBtn" class="floating-btn">Start Tracking</button>
-  <button id="stopTrackingBtn" class="floating-btn hidden">Stop Tracking</button>
+  <!-- MAP -->
+  <div id="map" class="blurred"></div>
 
-  <!-- Login Modal -->
-  <div class="modal" id="loginModal">
-    <div class="modal-content">
-      <h2>Login</h2>
-      <input type="text" id="username" placeholder="Username" />
-      <input type="password" id="password" placeholder="Password" />
-      <p id="loginError"></p>
-      <button id="loginBtn">Login</button>
-    </div>
-  </div>
+  <!-- TRACKING BUTTONS -->
+  <button id="startTrackingBtn" class="">Start Tracking</button>
+  <button id="stopTrackingBtn" class="hidden">Stop Tracking</button>
 
   <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <!-- App JS -->
-  <script src="script.js"></script>
+  <script src="script.js" defer></script>
 </body>
 </html>
