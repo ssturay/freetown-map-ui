@@ -1,119 +1,126 @@
-/* =========================
-   RESET & BASE STYLES
-========================= */
+/* =====================
+   Base Styles
+   ===================== */
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
   font-family: Arial, sans-serif;
-  background-color: #f9f9f9;
 }
 
-/* Map */
-#map {
-  height: 100vh;
-  width: 100%;
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
-/* =========================
-   HEADER
-========================= */
 header {
-  background: #0078d4;
-  color: white;
-  padding: 10px 15px;
+  background: #0078ff;
+  color: #fff;
+  padding: 10px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 header h1 {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   margin: 0;
 }
 
 header button {
-  background: white;
-  color: #0078d4;
+  padding: 6px 10px;
   border: none;
-  padding: 5px 10px;
-  margin-left: 5px;
+  background: #005fcc;
+  color: #fff;
   border-radius: 4px;
   cursor: pointer;
 }
 
 header button:hover {
-  background: #e6e6e6;
+  background: #004999;
 }
 
-/* =========================
-   SIDEBAR
-========================= */
-.sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+#map {
+  flex: 1;
   height: 100%;
+}
+
+.sidebar {
+  background: #f8f9fa;
   width: 260px;
-  background: white;
-  border-right: 1px solid #ccc;
+  padding: 10px;
   overflow-y: auto;
-  z-index: 1000;
-  transition: transform 0.3s ease;
+  border-left: 1px solid #ddd;
 }
 
 .sidebar h2, .sidebar h3 {
-  margin: 10px;
-  font-size: 1.1rem;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 4px;
+  margin-top: 0;
 }
 
 .sidebar-list {
-  padding: 0 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.sidebar-list div {
-  padding: 5px 0;
-  border-bottom: 1px solid #eee;
-  font-size: 0.9rem;
+footer {
+  padding: 6px;
+  background: #f1f1f1;
+  font-size: 0.85rem;
+  text-align: center;
 }
 
-.sidebar-filter-container {
-  padding: 10px;
+/* =====================
+   Floating Tracking Controls
+   ===================== */
+.tracking-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
 }
 
-/* Collapsed state */
-.sidebar-collapsed {
-  transform: translateX(-100%);
-}
-
-/* Sidebar toggle button */
-.sidebar-toggle {
-  position: fixed;
-  top: 15px;
-  left: 15px;
-  background: #0078d4;
-  color: white;
+.tracking-controls button {
+  padding: 8px 12px;
   border: none;
-  padding: 8px 10px;
-  border-radius: 4px;
+  border-radius: 6px;
+  background: #0078ff;
+  color: white;
   cursor: pointer;
-  z-index: 1100;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
 
-.sidebar-toggle:hover {
-  background: #005fa3;
+.tracking-controls button:hover {
+  background: #005fcc;
 }
 
-/* =========================
-   MODAL
-========================= */
+#stopTrackingBtn {
+  background: #d9534f;
+}
+
+#stopTrackingBtn:hover {
+  background: #b52b27;
+}
+
+/* =====================
+   Modal Styles
+   ===================== */
 .modal {
-  display: none; /* Hidden by default */
+  display: none;
   position: fixed;
-  z-index: 2000;
+  z-index: 1100;
   left: 0;
   top: 0;
   width: 100%;
@@ -126,72 +133,50 @@ header button:hover {
   background-color: #fff;
   margin: 10% auto;
   padding: 20px;
-  border-radius: 6px;
+  border-radius: 8px;
   width: 90%;
   max-width: 400px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .modal-close {
   float: right;
-  font-size: 1.5rem;
-  cursor: pointer;
+  font-size: 20px;
   border: none;
   background: none;
-}
-
-/* =========================
-   TRACKING BUTTONS
-========================= */
-.tracking-buttons {
-  position: fixed;
-  bottom: 15px;
-  right: 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 1200;
-}
-
-.tracking-buttons button {
-  background: #0078d4;
-  color: white;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 4px;
   cursor: pointer;
-  font-size: 0.9rem;
 }
 
-.tracking-buttons button:hover {
-  background: #005fa3;
+.modal-close:hover {
+  color: red;
 }
 
-/* =========================
-   FOOTER
-========================= */
-footer {
-  padding: 5px 10px;
-  background: #f1f1f1;
-  font-size: 0.8rem;
-  text-align: center;
-}
-
-/* =========================
-   MOBILE
-========================= */
+/* =====================
+   Mobile-Friendly Sidebar
+   ===================== */
 @media (max-width: 768px) {
-  header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .sidebar {
-    width: 80%;
-    max-width: 300px;
+    position: absolute;
+    left: 0;
+    top: 60px;
+    width: 200px;
+    height: calc(100% - 60px);
+    z-index: 900;
+    background: #fff;
+    border-right: 1px solid #ddd;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
   }
-
-  .tracking-buttons {
-    bottom: 10px;
-    right: 10px;
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .main-content {
+    flex-direction: column;
+  }
+  
+  #map {
+    height: calc(100% - 60px);
   }
 }
