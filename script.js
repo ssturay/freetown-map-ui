@@ -1,4 +1,6 @@
-// === LOGIN PROMPT ===
+// ==========================
+// Login prompt logic
+// ==========================
 function promptLogin() {
   if (localStorage.getItem("loggedIn") === "true") return true;
 
@@ -18,32 +20,37 @@ function promptLogin() {
   return true;
 }
 
-// === GLOBALS ===
+// ==========================
+// Global constants & vars
+// ==========================
 const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 let map, userMarker = null;
 let vehicleMarkers = {};
 let vehiclesData = [];
+let trackedVehicleId = null;
 let routeLayers = L.featureGroup();
 let stopsLayer;
-let trackingVehicleId = null;
-let trackingMode = null;
 let trackingInterval = null;
+let allVehiclesInterval = null;
+let stopTrackingTimeout = null;
 
+// Map of icons by transport mode
 const iconMap = {
   "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
   "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",
   "keke": "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",
   "paratransit bus": "https://cdn-icons-png.flaticon.com/512/61/61221.png",
   "waka fine bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",
-  "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png",
-  "unknown": "https://cdn-icons-png.flaticon.com/512/565/565547.png"
+  "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
 };
 
-// === UTILITIES ===
+// ==========================
+// Utility functions
+// ==========================
 function getIcon(mode) {
-  const key = mode?.toLowerCase() || "unknown";
+  const key = mode?.toLowerCase() || "podapoda";
   return L.icon({
-    iconUrl: iconMap[key] || iconMap["unknown"],
+    iconUrl: iconMap[key] || iconMap["podapoda"],
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30]
@@ -69,45 +76,23 @@ function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
   };
 }
 
-// === MAP SETUP ===
-function initMap() {
-  map = L.map("map").setView([8.48, -13.22], 12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap contributors",
-    maxZoom: 19
-  }).addTo(map);
-
-  routeLayers.addTo(map);
-  loadRoutes();
-  loadStops();
-  addLocateMeButton();
-
-  // Start 2-sec refresh
-  setInterval(fetchVehicles, 2000);
-}
-
-// === ROUTES & STOPS ===
+// ==========================
+// Map + Data loading
+// ==========================
 async function loadRoutes() {
   try {
     const res = await fetch("data/routes.geojson");
     if (!res.ok) throw new Error("Routes fetch failed.");
     const geojson = await res.json();
-
     routeLayers.clearLayers();
-
     L.geoJSON(geojson, {
       style: feature => ({
         color: feature.properties.color || "#3388ff",
         weight: 5,
         opacity: 0.7
-      }),
-      onEachFeature: (feature, layer) => {
-        if (feature.properties?.name) {
-          layer.bindPopup(`<strong>Route:</strong> ${feature.properties.name}`);
-        }
-        routeLayers.addLayer(layer);
-      }
-    });
+      })
+    }).addTo(routeLayers);
+    routeLayers.addTo(map);
   } catch (err) {
     console.error(err);
   }
@@ -118,55 +103,41 @@ async function loadStops() {
     const res = await fetch("data/stops.geojson");
     if (!res.ok) throw new Error("Stops fetch failed.");
     const geojson = await res.json();
-
     if (stopsLayer) stopsLayer.clearLayers();
-
     stopsLayer = L.geoJSON(geojson, {
-      pointToLayer: (feature, latlng) =>
-        L.circleMarker(latlng, {
-          radius: 6,
-          fillColor: "#ff0000",
-          color: "#880000",
-          weight: 1,
-          opacity: 1,
-          fillOpacity: 0.8
-        }),
-      onEachFeature: (feature, layer) => {
-        if (feature.properties?.name) {
-          layer.bindPopup(`<strong>Stop:</strong> ${feature.properties.name}`);
-        }
-      }
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+        radius: 6,
+        fillColor: "#ff0000",
+        color: "#880000",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8
+      })
     }).addTo(map);
   } catch (err) {
     console.error(err);
   }
 }
 
-// === VEHICLES ===
 async function fetchVehicles() {
   try {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
     if (!res.ok) throw new Error("Failed to fetch vehicles");
+    const data = await res.json();
+    vehiclesData = data.vehicles || [];
 
-    const { vehicles } = await res.json();
-    vehiclesData = vehicles;
-
-    // Update markers
-    vehicles.forEach(v => {
-      if (!v.lat || !v.lon) return;
+    // Update markers for each vehicle
+    vehiclesData.forEach(v => {
+      if (!v.id || !v.lat || !v.lon) return;
       const icon = getIcon(v.mode);
       let popupContent = `<b>Vehicle ID:</b> ${v.id}<br><b>Mode:</b> ${v.mode}`;
-
       if (userMarker) {
         const userPos = userMarker.getLatLng();
         const { distance, eta } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
-        popupContent += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
+        popupContent += `<br><b>Distance:</b> ${distance} m<br><b>ETA:</b> ${eta} min`;
       }
-
       if (vehicleMarkers[v.id]) {
-        vehicleMarkers[v.id].setLatLng([v.lat, v.lon]);
-        vehicleMarkers[v.id].setIcon(icon);
-        vehicleMarkers[v.id].setPopupContent(popupContent);
+        vehicleMarkers[v.id].setLatLng([v.lat, v.lon]).setIcon(icon).setPopupContent(popupContent);
       } else {
         vehicleMarkers[v.id] = L.marker([v.lat, v.lon], { icon }).bindPopup(popupContent).addTo(map);
       }
@@ -179,87 +150,116 @@ async function fetchVehicles() {
   }
 }
 
+// ==========================
+// Tracking logic
+// ==========================
+function startTracking(vehicleId, mode) {
+  trackedVehicleId = vehicleId;
+  clearInterval(trackingInterval);
+  if (stopTrackingTimeout) clearTimeout(stopTrackingTimeout);
+
+  trackingInterval = setInterval(() => {
+    fetch(`${BACKEND_URL}/api/vehicles`)
+      .then(res => res.json())
+      .then(data => {
+        const vehicle = (data.vehicles || []).find(v => v.id === trackedVehicleId);
+        if (vehicle) {
+          const icon = getIcon(vehicle.mode);
+          if (vehicleMarkers[vehicle.id]) {
+            vehicleMarkers[vehicle.id].setLatLng([vehicle.lat, vehicle.lon]).setIcon(icon);
+          } else {
+            vehicleMarkers[vehicle.id] = L.marker([vehicle.lat, vehicle.lon], { icon }).addTo(map);
+          }
+          map.setView([vehicle.lat, vehicle.lon], 15);
+        }
+      });
+  }, 2000);
+
+  // Show Stop Tracking button
+  document.getElementById("stopTrackingBtn").style.display = "block";
+
+  // Auto-stop after 5 min
+  stopTrackingTimeout = setTimeout(stopTracking, 5 * 60 * 1000);
+}
+
+function stopTracking() {
+  trackedVehicleId = null;
+  clearInterval(trackingInterval);
+  document.getElementById("stopTrackingBtn").style.display = "none";
+}
+
+// ==========================
+// Sidebar updates
+// ==========================
 function updateSidebarETAs() {
   const etaList = document.getElementById("etaList");
   if (!etaList) return;
   etaList.innerHTML = "";
-
   vehiclesData.forEach(v => {
-    if (userMarker) {
-      const { distance, eta } = computeETA(userMarker.getLatLng().lat, userMarker.getLatLng().lng, v.lat, v.lon);
-      etaList.innerHTML += `
-        <div class="sidebar-item">
-          <img src="${iconMap[v.mode?.toLowerCase()] || iconMap['unknown']}" class="sidebar-icon" alt="${v.mode}">
-          <span><b>${v.id}</b> - ${eta} min (${distance} m)</span>
-        </div>
-      `;
-    }
+    const iconUrl = iconMap[v.mode?.toLowerCase()] || iconMap["podapoda"];
+    const item = document.createElement("div");
+    item.className = "sidebar-item";
+    item.innerHTML = `<img src="${iconUrl}" alt="${v.mode}" class="sidebar-icon"> ${v.id} (${v.mode})`;
+    etaList.appendChild(item);
   });
 }
 
 function updateSidebarAlerts() {
-  const alertSidebar = document.getElementById("alertSidebar");
-  if (!alertSidebar) return;
-  alertSidebar.innerHTML = "";
-
-  vehiclesData.forEach(v => {
-    alertSidebar.innerHTML += `
-      <div class="sidebar-item">
-        <img src="${iconMap[v.mode?.toLowerCase()] || iconMap['unknown']}" class="sidebar-icon" alt="${v.mode}">
-        <span>Vehicle ${v.id} - Mode: ${v.mode}</span>
-      </div>
-    `;
-  });
+  const alertList = document.getElementById("alertSidebar");
+  if (!alertList) return;
+  alertList.innerHTML = `<div class="sidebar-item">No alerts</div>`;
 }
 
-// === TRACKING ===
-function startTracking(vehicleId, mode) {
-  trackingVehicleId = vehicleId;
-  trackingMode = mode;
-  document.getElementById("stopTrackingBtn").style.display = "block";
-}
+// ==========================
+// Init + Events
+// ==========================
+function initMap() {
+  map = L.map("map").setView([8.48, -13.22], 12);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors"
+  }).addTo(map);
 
-function stopTracking() {
-  trackingVehicleId = null;
-  trackingMode = null;
-  document.getElementById("stopTrackingBtn").style.display = "none";
-}
+  routeLayers.addTo(map);
+  loadRoutes();
+  loadStops();
+  fetchVehicles();
 
-// === UI SETUP ===
-function addLocateMeButton() {
-  const locateBtn = document.getElementById("locateMeBtn");
-  if (!locateBtn) return;
+  // All vehicles refresh every 2 sec
+  allVehiclesInterval = setInterval(fetchVehicles, 2000);
 
-  locateBtn.addEventListener("click", () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(pos => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-
-      if (userMarker) {
-        userMarker.setLatLng([lat, lon]);
-      } else {
-        userMarker = L.marker([lat, lon], {
-          title: "You are here",
-          icon: L.icon({
-            iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-            iconSize: [25, 25]
-          })
-        }).addTo(map);
-      }
-      map.setView([lat, lon], 15);
+  // Floating buttons
+  const startBtn = document.getElementById("openTrackingModal");
+  if (startBtn) {
+    startBtn.addEventListener("click", () => {
+      document.getElementById("trackingModal").style.display = "block";
     });
-  });
-}
-
-// === INIT ===
-document.addEventListener("DOMContentLoaded", () => {
-  if (!promptLogin()) return;
-  initMap();
+  }
 
   const stopBtn = document.getElementById("stopTrackingBtn");
-  if (stopBtn) stopBtn.addEventListener("click", stopTracking);
+  if (stopBtn) {
+    stopBtn.addEventListener("click", stopTracking);
+  }
+
+  // Form submission
+  const trackingForm = document.getElementById("trackingForm");
+  if (trackingForm) {
+    trackingForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const id = document.getElementById("vehicleId").value.trim();
+      const mode = document.getElementById("mode").value.trim();
+      if (!id || !mode) {
+        alert("Please enter Vehicle ID and Mode");
+        return;
+      }
+      startTracking(id, mode);
+      document.getElementById("trackingModal").style.display = "none";
+    });
+  }
+}
+
+// ==========================
+// Page load
+// ==========================
+window.addEventListener("DOMContentLoaded", () => {
+  if (promptLogin()) initMap();
 });
