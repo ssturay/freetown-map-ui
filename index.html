@@ -1,45 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freetown PT Tracker</title>
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin="" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    crossorigin=""
+  />
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="page-container">
     <header>
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
-      <div class="header-actions">
-        <button id="locateMeBtn">📍 My Location</button>
-        <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
-      </div>
+      <button id="locateMeBtn">📍 My Location</button>
+      <button id="clearVehiclesBtn" onclick="clearVehicles()">🧹 Clear Vehicles</button>
     </header>
 
     <main class="main-content">
-      <!-- mobile menu toggle -->
-      <button id="sidebarToggle" aria-expanded="false" aria-controls="sidebar">☰ Menu</button>
-
-      <aside id="sidebar" class="sidebar" aria-label="Nearby vehicles and alerts sidebar">
-        <button id="closeSidebarBtn" class="close-sidebar" aria-label="Close sidebar">✖</button>
+      <aside class="sidebar" aria-label="Nearby vehicles and alerts sidebar">
         <h2>Nearby Vehicles & Alerts</h2>
 
         <section id="etaSection">
-          <h3>Estimated Time of Arrival (ETA)</h3>
+          <h3 id="etaHeading">Estimated Time of Arrival (ETA)</h3>
           <div id="etaList" class="sidebar-list" role="list"></div>
         </section>
 
         <section id="alertSection">
-          <h3>Alerts</h3>
+          <h3 id="alertHeading">Alerts</h3>
           <div id="alertSidebar" class="sidebar-list" role="list"></div>
         </section>
 
         <section class="sidebar-filter-container" aria-label="Filter options">
           <h3>Filters</h3>
-          <div id="filters"></div>
         </section>
       </aside>
 
@@ -51,14 +49,25 @@
     </footer>
   </div>
 
-  <!-- Tracking controls (floating) -->
-  <button id="openTrackingModal" class="modal-trigger" aria-haspopup="dialog" aria-controls="trackingModal">
+  <!-- Modal Trigger -->
+  <button
+    id="openTrackingModal"
+    class="modal-trigger"
+    aria-haspopup="dialog"
+    aria-controls="trackingModal"
+  >
     🚗 Start Tracking
   </button>
-  <button id="stopTrackingBtn" class="stop-tracking" style="display:none;">🛑 Stop Tracking</button>
 
   <!-- Modal -->
-  <div id="trackingModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="trackingModalTitle">
+  <div
+    id="trackingModal"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="trackingModalTitle"
+    aria-hidden="true"
+  >
     <div class="modal-content">
       <button class="modal-close" id="closeTrackingModal" aria-label="Close">&times;</button>
       <h2 id="trackingModalTitle">Start Tracking</h2>
@@ -79,12 +88,38 @@
 
         <button type="submit">📍 Start Tracking</button>
       </form>
+
+      <!-- New Stop Tracking Button -->
+      <button id="stopTrackingBtn" style="margin-top:10px; background:#ff4444; color:white; padding:8px; border:none; cursor:pointer;">
+        🛑 Stop Tracking
+      </button>
     </div>
   </div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
+
   <!-- App JS -->
   <script src="script.js" defer></script>
+
+  <script>
+    // Close modal when clicking close button
+    document.getElementById("closeTrackingModal").addEventListener("click", function() {
+      document.getElementById("trackingModal").style.display = "none";
+    });
+
+    // Open modal
+    document.getElementById("openTrackingModal").addEventListener("click", function() {
+      document.getElementById("trackingModal").style.display = "block";
+    });
+
+    // Stop Tracking Button Click
+    document.getElementById("stopTrackingBtn").addEventListener("click", function() {
+      if (typeof stopTracking === "function") {
+        stopTracking();
+        alert("Tracking stopped manually.");
+      }
+    });
+  </script>
 </body>
 </html>
