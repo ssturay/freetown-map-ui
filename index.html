@@ -6,24 +6,28 @@
   <title>Freetown PT Tracker</title>
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin=""/>
+  
+  <!-- App CSS -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="page-container">
     <header>
       <h1>🚌 Freetown PT Tracker 🇸🇱</h1>
-      <button id="locateMeBtn">📍 My Location</button>
-      <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
+      <div>
+        <button id="locateMeBtn">📍 My Location</button>
+        <button id="clearVehiclesBtn">🧹 Clear</button>
+        <button id="toggleSidebarBtn">☰ Menu</button>
+      </div>
     </header>
 
     <main class="main-content">
-      <aside class="sidebar">
+      <aside class="sidebar" id="sidebar">
         <h2>Nearby Vehicles & Alerts</h2>
 
         <section id="etaSection">
-          <h3>Estimated Time of Arrival (ETA)</h3>
+          <h3>ETA</h3>
           <div id="etaList" class="sidebar-list"></div>
         </section>
 
@@ -33,7 +37,7 @@
         </section>
       </aside>
 
-      <div id="map" role="region" aria-label="Map showing vehicle locations"></div>
+      <div id="map"></div>
     </main>
 
     <footer>
@@ -41,16 +45,10 @@
     </footer>
   </div>
 
-  <!-- Floating Action Buttons -->
-  <div class="floating-buttons">
-    <button id="openTrackingModal" class="fab">🚗 Start Tracking</button>
-    <button id="stopTrackingBtn" class="fab stop" style="display:none;">🛑 Stop Tracking</button>
-  </div>
-
   <!-- Tracking Modal -->
-  <div id="trackingModal" class="modal" style="display:none;">
+  <div id="trackingModal" class="modal" aria-hidden="true">
     <div class="modal-content">
-      <button class="modal-close" id="closeTrackingModal" aria-label="Close">&times;</button>
+      <button class="modal-close" id="closeTrackingModal">&times;</button>
       <h2>Start Tracking</h2>
       <form id="trackingForm">
         <label for="vehicleId">Vehicle ID:</label>
@@ -72,8 +70,12 @@
     </div>
   </div>
 
+  <!-- Floating Buttons -->
+  <button id="startTrackingBtn" class="floating-btn">📍 Start Tracking</button>
+  <button id="stopTrackingBtn" class="floating-btn stop-btn" style="display:none;">🛑 Stop Tracking</button>
+
   <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
 
   <!-- App JS -->
   <script src="script.js" defer></script>
