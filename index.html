@@ -14,15 +14,12 @@
   <div class="page-container">
     <header>
       <h1>🚌 Freetown PT Tracker 🇸🇱</h1>
-      <div class="header-buttons">
-        <button id="locateMeBtn">📍 My Location</button>
-        <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
-      </div>
+      <button id="locateMeBtn">📍 My Location</button>
+      <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
     </header>
 
     <main class="main-content">
-      <!-- Sidebar -->
-      <aside class="sidebar" aria-label="Nearby vehicles and alerts sidebar">
+      <aside class="sidebar">
         <h2>Nearby Vehicles & Alerts</h2>
 
         <section id="etaSection">
@@ -36,7 +33,6 @@
         </section>
       </aside>
 
-      <!-- Map -->
       <div id="map" role="region" aria-label="Map showing vehicle locations"></div>
     </main>
 
@@ -45,8 +41,14 @@
     </footer>
   </div>
 
-  <!-- Start Tracking Modal -->
-  <div id="trackingModal" class="modal" aria-hidden="true">
+  <!-- Floating Action Buttons -->
+  <div class="floating-buttons">
+    <button id="openTrackingModal" class="fab">🚗 Start Tracking</button>
+    <button id="stopTrackingBtn" class="fab stop" style="display:none;">🛑 Stop Tracking</button>
+  </div>
+
+  <!-- Tracking Modal -->
+  <div id="trackingModal" class="modal" style="display:none;">
     <div class="modal-content">
       <button class="modal-close" id="closeTrackingModal" aria-label="Close">&times;</button>
       <h2>Start Tracking</h2>
@@ -69,10 +71,6 @@
       </form>
     </div>
   </div>
-
-  <!-- Start Tracking Button (always visible bottom-right) -->
-  <button id="openTrackingModal" class="floating-btn">🚗 Start Tracking</button>
-  <button id="stopTrackingBtn" class="floating-btn stop" style="display:none;">🛑 Stop Tracking</button>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
