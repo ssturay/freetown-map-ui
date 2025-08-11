@@ -1,328 +1,195 @@
-/* ========================
-   GENERAL
-======================== */
-body, html {
+/* =========================
+   RESET & BASE STYLES
+========================= */
+html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: 'Segoe UI', Arial, sans-serif;
+  font-family: Arial, sans-serif;
+  background: #f9f9f9;
+  color: #333;
 }
 
-#map {
-  height: 100vh;
-  width: 100%;
-}
-
-/* ========================
-   LOGIN MODAL
-======================== */
-.modal {
-  display: none; /* Hidden by default */
-  position: fixed;
-  z-index: 1000;
-  left: 0; top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.4);
-}
-
-.modal-content {
-  background-color: #fff;
-  margin: 15% auto;
-  padding: 1.5rem;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-.modal-content h2 {
-  margin-top: 0;
-  font-size: 1.4rem;
-  text-align: center;
-}
-
-.modal-content label {
-  display: block;
-  margin: 0.5rem 0 0.2rem;
-  font-weight: 500;
-}
-
-.modal-content input, 
-.modal-content select {
-  width: 100%;
-  padding: 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-.modal-content button {
-  margin-top: 1rem;
-  width: 100%;
-  padding: 0.6rem;
-  background-color: #0078d7;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.modal-close {
-  float: right;
-  font-size: 1.4rem;
-  cursor: pointer;
-  background: none;
-  border: none;
-  color: #999;
-}
-
-/* ========================
-   START / STOP TRACKING BUTTONS
-======================== */
-#openTrackingModal,
-#stopTrackingBtn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1100;
-  padding: 0.6rem 1rem;
-  background-color: #0078d7;
-  color: white;
-  border: none;
-  border-radius: 25px;
-  font-size: 0.95rem;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
-
-#stopTrackingBtn {
-  background-color: #d9534f;
-  display: none; /* Hidden until tracking starts */
-}
-
-#openTrackingModal:hover,
-#stopTrackingBtn:hover {
-  opacity: 0.9;
-}
-
-/* ========================
-   SIDEBAR (MOBILE FIRST)
-======================== */
-.sidebar {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: white;
-  padding: 0.5rem;
-  border-radius: 8px;
-  width: 200px;
-  max-height: 80vh;
-  overflow-y: auto;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
-
-@media (max-width: 600px) {
-  .sidebar {
-    width: 150px; /* More compact for phones */
-    font-size: 0.8rem;
-    padding: 0.4rem;
-  }
-}
-/* ========================
-   GENERAL
-======================== */
-body, html {
+h1, h2, h3 {
   margin: 0;
   padding: 0;
+}
+
+/* =========================
+   PAGE LAYOUT
+========================= */
+.page-container {
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  font-family: 'Segoe UI', Arial, sans-serif;
 }
 
-#map {
-  height: 100vh;
-  width: 100%;
-}
-
-/* ========================
-   LOGIN MODAL
-======================== */
-.modal {
-  display: none; /* Hidden by default */
-  position: fixed;
-  z-index: 1000;
-  left: 0; top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.4);
-}
-
-.modal-content {
-  background-color: #fff;
-  margin: 15% auto;
-  padding: 1.5rem;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-.modal-content h2 {
-  margin-top: 0;
-  font-size: 1.4rem;
-  text-align: center;
-}
-
-.modal-content label {
-  display: block;
-  margin: 0.5rem 0 0.2rem;
-  font-weight: 500;
-}
-
-.modal-content input, 
-.modal-content select {
-  width: 100%;
-  padding: 0.5rem;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-.modal-content button {
-  margin-top: 1rem;
-  width: 100%;
-  padding: 0.6rem;
-  background-color: #0078d7;
+header {
+  background: #0066cc;
   color: #fff;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+header h1 {
+  font-size: 1.4rem;
+}
+
+header button {
+  background: #fff;
+  color: #0066cc;
   border: none;
+  padding: 6px 10px;
   border-radius: 4px;
   cursor: pointer;
 }
 
-.modal-close {
-  float: right;
-  font-size: 1.4rem;
-  cursor: pointer;
-  background: none;
-  border: none;
-  color: #999;
+header button:hover {
+  background: #e6e6e6;
 }
 
-/* ========================
-   START / STOP TRACKING BUTTONS
-======================== */
-#openTrackingModal,
-#stopTrackingBtn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1100;
-  padding: 0.6rem 1rem;
-  background-color: #0078d7;
-  color: white;
-  border: none;
-  border-radius: 25px;
-  font-size: 0.95rem;
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+.main-content {
+  display: flex;
+  flex: 1;
+  position: relative;
 }
 
-#stopTrackingBtn {
-  background-color: #d9534f;
-  display: none; /* Hidden until tracking starts */
-}
-
-#openTrackingModal:hover,
-#stopTrackingBtn:hover {
-  opacity: 0.9;
-}
-
-/* ========================
-   SIDEBAR (MOBILE FIRST)
-======================== */
+/* =========================
+   SIDEBAR (DESKTOP)
+========================= */
 .sidebar {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: white;
-  padding: 0.5rem;
-  border-radius: 8px;
-  width: 200px;
-  max-height: 80vh;
+  background: #ffffff;
+  border-right: 1px solid #ddd;
+  padding: 10px;
+  width: 300px;
   overflow-y: auto;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease;
+  z-index: 10;
 }
 
-@media (max-width: 600px) {
+.sidebar h2, .sidebar h3 {
+  margin-bottom: 5px;
+}
+
+.sidebar-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* =========================
+   SIDEBAR (MOBILE)
+========================= */
+.sidebar-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
   .sidebar {
-    width: 150px; /* More compact for phones */
-    font-size: 0.8rem;
-    padding: 0.4rem;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    max-width: 80%;
+    transform: translateX(-100%);
+    box-shadow: 2px 0 6px rgba(0,0,0,0.2);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-toggle {
+    display: block;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 20;
+    background: #0066cc;
+    color: #fff;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
   }
 }
 
+/* =========================
+   MAP STYLES
+========================= */
+#map {
+  flex: 1;
+  height: 100%;
+}
 
-/* --- Existing styles remain untouched --- */
+/* =========================
+   FOOTER
+========================= */
+footer {
+  background: #f0f0f0;
+  text-align: center;
+  padding: 8px;
+  font-size: 0.9rem;
+}
 
-/* ===== Modal Login Styles ===== */
-#loginModal {
+/* =========================
+   MODAL STYLES (LOGIN & TRACKING)
+========================= */
+.modal {
   display: none;
   position: fixed;
   z-index: 1000;
   left: 0; top: 0;
   width: 100%; height: 100%;
   background: rgba(0,0,0,0.5);
-  justify-content: center;
-  align-items: center;
-}
-#loginModal .modal-content {
-  background: #fff;
-  padding: 1.5rem;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 350px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-#loginModal h2 {
-  margin-top: 0;
-  font-size: 1.25rem;
-}
-#loginModal input {
-  width: 100%;
-  padding: 0.5rem;
-  margin: 0.4rem 0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-#loginModal button {
-  width: 100%;
-  padding: 0.6rem;
-  background: #0078d4;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-#loginModal button:hover {
-  background: #005fa3;
 }
 
-/* Stop Tracking Button */
+.modal-content {
+  background: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  position: absolute;
+  right: 20px;
+  top: 15px;
+  cursor: pointer;
+}
+
+/* =========================
+   FIXED TRACKING BUTTONS
+========================= */
+#openTrackingModal, 
 #stopTrackingBtn {
   position: fixed;
   bottom: 15px;
   right: 15px;
   z-index: 999;
-  background: #d9534f;
+  background: #0066cc;
   color: #fff;
-  padding: 10px 15px;
   border: none;
-  border-radius: 20px;
-  display: none;
+  padding: 10px 14px;
+  border-radius: 50px;
+  font-size: 1rem;
   cursor: pointer;
 }
-#stopTrackingBtn:hover {
-  background: #c9302c;
+
+#stopTrackingBtn {
+  background: #cc0000;
+  display: none;
+}
+
+/* Hover effect */
+#openTrackingModal:hover, #stopTrackingBtn:hover {
+  opacity: 0.85;
 }
