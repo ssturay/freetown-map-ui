@@ -32,12 +32,19 @@ header h1 {
   margin: 0;
 }
 
+/* Group buttons on the right and shift slightly inwards */
+header > div {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+  margin-right: 0.75rem; /* shift right */
+}
+
 header button {
   background-color: #00796b;
   color: white;
   border: none;
   padding: 0.4rem 0.8rem;
-  margin-left: 0.4rem;
   border-radius: 4px;
   cursor: pointer;
 }
@@ -135,7 +142,7 @@ footer {
 ======================= */
 .floating-btn {
   position: fixed;
-  bottom: 15px;
+  bottom: 3.5rem; /* Moved up to clear footer text */
   right: 15px;
   background-color: #00796b;
   color: white;
