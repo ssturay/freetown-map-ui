@@ -1,130 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Freetown PT Tracker</title>
+  <meta charset="utf-8" />
+  <title>Freetown Live Bus Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    crossorigin=""
-  />
-  <style>
-    html, body {
-      margin: 0; padding: 0; height: 100%;
-      font-family: Arial, sans-serif;
-    }
-    #map {
-      height: 100%;
-      width: 100%;
-      position: relative;
-    }
-    .blurred {
-      filter: blur(5px);
-      pointer-events: none;
-    }
-    /* Sidebar */
-    .sidebar {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(255,255,255,0.95);
-      padding: 10px;
-      border-radius: 8px;
-      max-width: 200px;
-      font-size: 0.9em;
-      overflow-y: auto;
-      max-height: 70vh;
-    }
-    .sidebar-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 6px;
-      gap: 6px;
-    }
-    .sidebar-item img {
-      width: 20px;
-      height: 20px;
-    }
-    /* Floating buttons */
-    .floating-btn {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      padding: 10px 15px;
-      font-size: 14px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-    .floating-btn.hidden {
-      display: none;
-    }
-    /* Login Modal */
-    .modal {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 999;
-    }
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 300px;
-      width: 100%;
-      text-align: center;
-    }
-    .modal-content input {
-      width: 100%;
-      padding: 8px;
-      margin: 5px 0;
-    }
-    #loginError {
-      color: red;
-      font-size: 0.85em;
-    }
-  </style>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <!-- External Styles -->
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="map"></div>
+  <!-- Map -->
+  <div id="map" class="blurred"></div>
 
   <!-- Sidebar -->
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
     <h3>Vehicles</h3>
-    <div id="etaList"></div>
-    <button id="locateMeBtn">📍 My Location</button>
+    <div id="vehicleList"></div>
   </div>
 
-  <!-- Floating Tracking Buttons -->
-  <button id="startBtn" class="floating-btn">🚗 Start Tracking</button>
-  <button id="stopBtn" class="floating-btn hidden" style="background:red;">🛑 Stop Tracking</button>
+  <!-- Floating Buttons -->
+  <button id="startTrackingBtn" class="floating-btn">Start Tracking</button>
+  <button id="stopTrackingBtn" class="floating-btn hidden">Stop Tracking</button>
 
   <!-- Login Modal -->
-  <div id="loginModal" class="modal">
+  <div class="modal" id="loginModal">
     <div class="modal-content">
       <h2>Login</h2>
-      <form id="loginForm">
-        <input type="text" id="username" placeholder="Username" required />
-        <input type="password" id="password" placeholder="Password" required />
-        <div id="loginError"></div>
-        <button type="submit">Login</button>
-      </form>
+      <input type="text" id="username" placeholder="Username" />
+      <input type="password" id="password" placeholder="Password" />
+      <p id="loginError"></p>
+      <button id="loginBtn">Login</button>
     </div>
   </div>
 
   <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <!-- App JS -->
-  <script src="script.js" defer></script>
+  <script src="script.js"></script>
 </body>
 </html>
