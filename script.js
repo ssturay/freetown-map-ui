@@ -1,41 +1,34 @@
-// ===================== LOGIN MODAL LOGIC =====================
-function setupLoginModal() {
-  const loginModal = document.getElementById("loginModal");
-  const loginForm = document.getElementById("loginForm");
-  const usernameInput = document.getElementById("loginUsername");
-  const passwordInput = document.getElementById("loginPassword");
+// === LOGIN FUNCTION ===
+function promptLogin() {
+  if (localStorage.getItem("loggedIn") === "true") return true;
 
-  // Show login modal on page load
-  loginModal.style.display = "flex";
-  loginModal.removeAttribute("aria-hidden");
-  usernameInput.focus();
+  const username = prompt("Enter username:");
+  const password = prompt("Enter password:");
 
-  loginForm.addEventListener("submit", function (e) {
-    e.preventDefault();
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value.trim();
+  const VALID_USERNAME = "admin";
+  const VALID_PASSWORD = "mypassword";
 
-    if (username === VALID_USERNAME && password === VALID_PASSWORD) {
-      localStorage.setItem("loggedIn", "true");
-      loginModal.style.display = "none";
-      initMap();
-    } else {
-      alert("Invalid credentials");
-    }
-  });
+  if (username !== VALID_USERNAME || password !== VALID_PASSWORD) {
+    alert("Access denied");
+    document.body.innerHTML = "<h2 style='text-align:center; padding: 2rem;'>Access Denied</h2>";
+    return false;
+  }
+
+  localStorage.setItem("loggedIn", "true");
+  return true;
 }
 
-// ===================== CONFIG =====================
+// === GLOBAL VARIABLES ===
 const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
-const VALID_USERNAME = "admin";
-const VALID_PASSWORD = "mypassword";
 let map, userMarker = null;
 let vehicleMarkers = {};
-let trackingInterval = null;
+let vehiclesData = [];
 let routeLayers = L.featureGroup();
 let stopsLayer;
+let trackingInterval = null;
+let trackedVehicleId = null;
 
-// Vehicle mode → icon mapping
+// === ICON MAP ===
 const iconMap = {
   "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
   "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",
@@ -45,18 +38,17 @@ const iconMap = {
   "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
 };
 
-// ===================== MAP ICON HELPER =====================
+// === UTILITY FUNCTIONS ===
 function getIcon(mode) {
   const key = mode?.toLowerCase() || "podapoda";
   return L.icon({
-    iconUrl: iconMap[key],
+    iconUrl: iconMap[key] || iconMap["podapoda"],
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30]
   });
 }
 
-// ===================== ETA HELPER =====================
 function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
   const R = 6371e3;
   const φ1 = userLat * Math.PI / 180;
@@ -64,7 +56,7 @@ function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
   const Δφ = (vehicleLat - userLat) * Math.PI / 180;
   const Δλ = (vehicleLon - userLon) * Math.PI / 180;
   const a = Math.sin(Δφ / 2) ** 2 +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+            Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c;
   const walkingSpeed = 1.4;
@@ -74,26 +66,80 @@ function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
   };
 }
 
-// ===================== VEHICLE FETCH & UPDATE =====================
+// === LOAD ROUTES ===
+async function loadRoutes() {
+  try {
+    const res = await fetch("data/routes.geojson");
+    if (!res.ok) throw new Error("Routes fetch failed.");
+    const geojson = await res.json();
+    routeLayers.clearLayers();
+    L.geoJSON(geojson, {
+      style: f => ({ color: f.properties.color || "#3388ff", weight: 5, opacity: 0.7 }),
+      onEachFeature: (feature, layer) => {
+        if (feature.properties?.name) {
+          layer.bindPopup(`<strong>Route:</strong> ${feature.properties.name}`);
+        }
+        routeLayers.addLayer(layer);
+      }
+    });
+    routeLayers.addTo(map);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// === LOAD STOPS ===
+async function loadStops() {
+  try {
+    const res = await fetch("data/stops.geojson");
+    if (!res.ok) throw new Error("Stops fetch failed.");
+    const geojson = await res.json();
+    if (stopsLayer) stopsLayer.clearLayers();
+    stopsLayer = L.geoJSON(geojson, {
+      pointToLayer: (feature, latlng) => {
+        return L.circleMarker(latlng, {
+          radius: 6,
+          fillColor: "#ff0000",
+          color: "#880000",
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 0.8
+        });
+      },
+      onEachFeature: (feature, layer) => {
+        if (feature.properties?.name) {
+          layer.bindPopup(`<strong>Stop:</strong> ${feature.properties.name}`);
+        }
+      }
+    }).addTo(map);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// === FETCH VEHICLES ===
 async function fetchVehicles() {
   try {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
     if (!res.ok) throw new Error("Failed to fetch vehicles");
-    const { vehicles } = await res.json();
+    const data = await res.json();
+    const list = data.vehicles || [];
+    vehiclesData = list;
 
-    vehicles.forEach(v => {
-      if (!v.lat || !v.lon) return;
-      const icon = getIcon(v.mode);
-      let popupContent = `<b>Vehicle ID:</b> ${v.id}<br><b>Mode:</b> ${v.mode}`;
+    list.forEach(v => {
+      const { id, lat, lon, mode } = v;
+      if (!id || !lat || !lon) return;
+      const icon = getIcon(mode);
+      let popupContent = `<b>Vehicle ID:</b> ${id}<br>Mode: ${mode}`;
       if (userMarker) {
         const userPos = userMarker.getLatLng();
-        const { distance, eta } = computeETA(userPos.lat, userPos.lng, v.lat, v.lon);
+        const { distance, eta } = computeETA(userPos.lat, userPos.lng, lat, lon);
         popupContent += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
       }
-      if (vehicleMarkers[v.id]) {
-        vehicleMarkers[v.id].setLatLng([v.lat, v.lon]).setIcon(icon).setPopupContent(popupContent);
+      if (vehicleMarkers[id]) {
+        vehicleMarkers[id].setLatLng([lat, lon]).setIcon(icon).setPopupContent(popupContent);
       } else {
-        vehicleMarkers[v.id] = L.marker([v.lat, v.lon], { icon }).bindPopup(popupContent).addTo(map);
+        vehicleMarkers[id] = L.marker([lat, lon], { icon }).bindPopup(popupContent).addTo(map);
       }
     });
 
@@ -103,77 +149,50 @@ async function fetchVehicles() {
   }
 }
 
-// ===================== ROUTES & STOPS =====================
-async function loadRoutes() {
-  const res = await fetch("data/routes.geojson");
-  const geojson = await res.json();
-  routeLayers.clearLayers();
-  L.geoJSON(geojson, {
-    style: f => ({ color: f.properties.color || "#3388ff", weight: 5, opacity: 0.7 })
-  }).addTo(routeLayers);
-}
-
-async function loadStops() {
-  const res = await fetch("data/stops.geojson");
-  const geojson = await res.json();
-  if (stopsLayer) stopsLayer.clearLayers();
-  stopsLayer = L.geoJSON(geojson, {
-    pointToLayer: (f, latlng) => L.circleMarker(latlng, {
-      radius: 6, fillColor: "#ff0000", color: "#880000", weight: 1, opacity: 1, fillOpacity: 0.8
-    })
-  }).addTo(map);
-}
-
-// ===================== TRACKING =====================
+// === START TRACKING ===
 function startTracking(vehicleId, transportMode) {
-  clearInterval(trackingInterval);
-  trackingInterval = setInterval(() => {
-    fetch(`${BACKEND_URL}/api/vehicles/${vehicleId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (!data.lat || !data.lon) return;
-        const icon = getIcon(transportMode);
-        let popupContent = `<b>Vehicle ID:</b> ${vehicleId}<br><b>Mode:</b> ${transportMode}`;
-        if (userMarker) {
-          const userPos = userMarker.getLatLng();
-          const { distance, eta } = computeETA(userPos.lat, userPos.lng, data.lat, data.lon);
-          popupContent += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
-        }
-        if (vehicleMarkers[vehicleId]) {
-          vehicleMarkers[vehicleId].setLatLng([data.lat, data.lon]).setIcon(icon).setPopupContent(popupContent);
-        } else {
-          vehicleMarkers[vehicleId] = L.marker([data.lat, data.lon], { icon }).bindPopup(popupContent).addTo(map);
-        }
-      });
-  }, 2000);
+  trackedVehicleId = vehicleId;
   document.getElementById("stopTrackingBtn").style.display = "block";
+  if (trackingInterval) clearInterval(trackingInterval);
+  trackingInterval = setInterval(() => fetchVehicles(), 2000);
 }
 
+// === STOP TRACKING ===
 function stopTracking() {
-  clearInterval(trackingInterval);
+  trackedVehicleId = null;
   document.getElementById("stopTrackingBtn").style.display = "none";
+  if (trackingInterval) clearInterval(trackingInterval);
+  trackingInterval = setInterval(() => fetchVehicles(), 2000);
 }
 
-// ===================== MAP INIT =====================
+// === INIT MAP ===
 function initMap() {
   map = L.map("map").setView([8.48, -13.22], 12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap contributors"
+    attribution: "© OpenStreetMap contributors",
+    maxZoom: 19
   }).addTo(map);
   routeLayers.addTo(map);
   loadRoutes();
   loadStops();
   fetchVehicles();
-  setInterval(fetchVehicles, 2000);
+  setInterval(fetchVehicles, 2000); // refresh every 2s even when tracking
 }
 
-// ===================== PAGE LOAD =====================
-document.addEventListener("DOMContentLoaded", () => {
-  if (localStorage.getItem("loggedIn") === "true") {
+// === EVENT LISTENERS ===
+window.addEventListener("DOMContentLoaded", () => {
+  if (promptLogin()) {
     initMap();
-  } else {
-    setupLoginModal();
-  }
 
-  document.getElementById("stopTrackingBtn").addEventListener("click", stopTracking);
+    document.getElementById("trackingForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const vehicleId = document.getElementById("vehicleId").value.trim();
+      const mode = document.getElementById("mode").value.trim();
+      if (!vehicleId || !mode) return alert("Please enter vehicle ID and mode");
+      startTracking(vehicleId, mode);
+      document.getElementById("trackingModal").style.display = "none";
+    });
+
+    document.getElementById("stopTrackingBtn").addEventListener("click", stopTracking);
+  }
 });
