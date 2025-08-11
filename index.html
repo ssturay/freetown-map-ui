@@ -5,47 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freetown PT Tracker</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin="" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Menu toggle (mobile only) -->
-  <button id="menuToggleBtn">☰ Menu</button>
+  <div class="page-container">
+    <header>
+      <h1>🚌 Freetown Public Transport Tracker</h1>
+      <div class="header-controls">
+        <button id="sidebarToggle" class="sidebar-toggle">☰ Menu</button>
+        <button id="locateMeBtn">📍 My Location</button>
+        <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
+      </div>
+    </header>
 
-  <!-- Sidebar -->
-  <div class="sidebar hidden">
-    <h3>Vehicles</h3>
-    <div id="vehicleList"></div>
+    <main class="main-content">
+      <aside class="sidebar" aria-label="Nearby vehicles and alerts sidebar">
+        <h2>Nearby Vehicles</h2>
+        <div id="etaList" class="sidebar-list"></div>
+        <h2>Alerts</h2>
+        <div id="alertSidebar" class="sidebar-list"></div>
+      </aside>
+
+      <div id="map" role="region" aria-label="Map showing vehicle locations"></div>
+    </main>
+
+    <footer>
+      <p>Last updated: <time id="lastUpdated">--</time></p>
+    </footer>
   </div>
 
-  <!-- Map -->
-  <div id="map"></div>
-
-  <!-- Tracking buttons -->
-  <button id="startTrackingBtn" class="tracking-btn">📍 Start Tracking</button>
+  <!-- Tracking Buttons -->
+  <button id="openTrackingModal" class="tracking-btn">🚗 Start Tracking</button>
   <button id="stopTrackingBtn" class="tracking-btn hidden">⛔ Stop Tracking</button>
 
-  <!-- Login Modal -->
-  <div id="loginModal" class="modal" aria-hidden="false">
+  <!-- Modal -->
+  <div id="trackingModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal-content">
-      <h2>Login</h2>
-      <input type="text" id="username" placeholder="Username" />
-      <input type="password" id="password" placeholder="Password" />
-      <button id="loginBtn">Login</button>
-    </div>
-  </div>
-
-  <!-- Tracking Modal -->
-  <div id="trackingModal" class="modal" aria-hidden="true">
-    <div class="modal-content">
-      <button class="modal-close" id="closeTrackingModal">&times;</button>
+      <button class="modal-close" id="closeTrackingModal" aria-label="Close">&times;</button>
       <h2>Start Tracking</h2>
       <form id="trackingForm">
-        <label>Vehicle ID:</label>
+        <label for="vehicleId">Vehicle ID:</label>
         <input type="text" id="vehicleId" required />
-        <label>Mode of Transport:</label>
+
+        <label for="mode">Mode of Transport:</label>
         <select id="mode" required>
-          <option value="">--Select--</option>
+          <option value="" disabled selected>--Select--</option>
           <option value="Podapoda">Podapoda</option>
           <option value="Taxi">Taxi</option>
           <option value="Keke">Keke</option>
@@ -53,12 +59,14 @@
           <option value="Waka Fine Bus">Waka Fine Bus</option>
           <option value="Motorbike">Motorbike</option>
         </select>
+
         <button type="submit">📍 Start Tracking</button>
       </form>
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
   <script src="script.js" defer></script>
 </body>
 </html>
