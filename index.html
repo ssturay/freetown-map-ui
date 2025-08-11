@@ -6,29 +6,29 @@
   <title>Freetown PT Tracker</title>
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
+
+  <!-- Your merged styles -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="page-container">
     <header>
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
+      <button id="sidebarToggle" aria-label="Toggle Sidebar">☰ Menu</button>
       <button id="locateMeBtn">📍 My Location</button>
       <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
     </header>
 
     <main class="main-content">
       <!-- Sidebar -->
-      <aside class="sidebar" aria-label="Vehicle Info">
-        <h2>Vehicles</h2>
-        <section id="etaSection">
-          <h3>ETA</h3>
-          <div id="etaList" class="sidebar-list"></div>
-        </section>
-        <section id="alertSection">
-          <h3>Alerts</h3>
-          <div id="alertSidebar" class="sidebar-list"></div>
-        </section>
+      <aside class="sidebar" aria-label="Nearby vehicles and alerts sidebar">
+        <h2>Nearby Vehicles</h2>
+        <div id="etaList" class="sidebar-list"></div>
       </aside>
 
       <!-- Map -->
@@ -41,19 +41,20 @@
   </div>
 
   <!-- Floating Tracking Buttons -->
-  <div id="trackingControls" class="tracking-controls">
-    <button id="openTrackingModal" aria-haspopup="dialog">🚗 Start Tracking</button>
-    <button id="stopTrackingBtn" style="display:none;">🛑 Stop Tracking</button>
+  <div class="tracking-controls">
+    <button id="openTrackingModal" class="tracking-btn">🚗 Start Tracking</button>
+    <button id="stopTrackingBtn" class="tracking-btn stop-btn">🛑 Stop Tracking</button>
   </div>
 
-  <!-- Tracking Modal -->
-  <div id="trackingModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="trackingModalTitle" aria-hidden="true">
+  <!-- Modal -->
+  <div id="trackingModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="trackingModalTitle">
     <div class="modal-content">
       <button class="modal-close" id="closeTrackingModal" aria-label="Close">&times;</button>
       <h2 id="trackingModalTitle">Start Tracking</h2>
       <form id="trackingForm">
         <label for="vehicleId">Vehicle ID:</label>
         <input type="text" id="vehicleId" name="vehicleId" required />
+
         <label for="mode">Mode of Transport:</label>
         <select id="mode" name="mode" required>
           <option value="" disabled selected>--Select--</option>
@@ -64,13 +65,14 @@
           <option value="Waka Fine Bus">Waka Fine Bus</option>
           <option value="Motorbike">Motorbike</option>
         </select>
+
         <button type="submit">📍 Start Tracking</button>
       </form>
     </div>
   </div>
 
   <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <!-- App JS -->
   <script src="script.js" defer></script>
