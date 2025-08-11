@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Freetown PT Tracker</title>
 
   <!-- Leaflet CSS -->
@@ -13,26 +13,37 @@
   <div class="page-container">
     <header>
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
-      <button id="locateMeBtn">📍 My Location</button>
-      <button id="clearVehiclesBtn" onclick="location.reload()">🧹 Clear Vehicles</button>
+      <div class="header-actions">
+        <button id="locateMeBtn">📍 My Location</button>
+        <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
+      </div>
     </header>
 
     <main class="main-content">
-      <aside class="sidebar">
+      <!-- mobile menu toggle -->
+      <button id="sidebarToggle" aria-expanded="false" aria-controls="sidebar">☰ Menu</button>
+
+      <aside id="sidebar" class="sidebar" aria-label="Nearby vehicles and alerts sidebar">
+        <button id="closeSidebarBtn" class="close-sidebar" aria-label="Close sidebar">✖</button>
         <h2>Nearby Vehicles & Alerts</h2>
 
         <section id="etaSection">
           <h3>Estimated Time of Arrival (ETA)</h3>
-          <div id="etaList" class="sidebar-list"></div>
+          <div id="etaList" class="sidebar-list" role="list"></div>
         </section>
 
         <section id="alertSection">
           <h3>Alerts</h3>
-          <div id="alertSidebar" class="sidebar-list"></div>
+          <div id="alertSidebar" class="sidebar-list" role="list"></div>
+        </section>
+
+        <section class="sidebar-filter-container" aria-label="Filter options">
+          <h3>Filters</h3>
+          <div id="filters"></div>
         </section>
       </aside>
 
-      <div id="map"></div>
+      <div id="map" role="region" aria-label="Map showing vehicle locations"></div>
     </main>
 
     <footer>
@@ -40,17 +51,17 @@
     </footer>
   </div>
 
-  <!-- Tracking Modal Trigger -->
-  <button id="openTrackingModal" onclick="document.getElementById('trackingModal').style.display='block'">
+  <!-- Tracking controls (floating) -->
+  <button id="openTrackingModal" class="modal-trigger" aria-haspopup="dialog" aria-controls="trackingModal">
     🚗 Start Tracking
   </button>
-  <button id="stopTrackingBtn" style="display:none;">🛑 Stop Tracking</button>
+  <button id="stopTrackingBtn" class="stop-tracking" style="display:none;">🛑 Stop Tracking</button>
 
-  <!-- Tracking Modal -->
-  <div id="trackingModal" class="modal" style="display:none;">
+  <!-- Modal -->
+  <div id="trackingModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="trackingModalTitle">
     <div class="modal-content">
-      <button onclick="document.getElementById('trackingModal').style.display='none'" class="modal-close">&times;</button>
-      <h2>Start Tracking</h2>
+      <button class="modal-close" id="closeTrackingModal" aria-label="Close">&times;</button>
+      <h2 id="trackingModalTitle">Start Tracking</h2>
       <form id="trackingForm">
         <label for="vehicleId">Vehicle ID:</label>
         <input type="text" id="vehicleId" name="vehicleId" required />
@@ -58,12 +69,12 @@
         <label for="mode">Mode of Transport:</label>
         <select id="mode" name="mode" required>
           <option value="" disabled selected>--Select--</option>
-          <option value="podapoda">Podapoda</option>
-          <option value="taxi">Taxi</option>
-          <option value="keke">Keke</option>
-          <option value="paratransit bus">Paratransit Bus</option>
-          <option value="waka fine bus">Waka Fine Bus</option>
-          <option value="motorbike">Motorbike</option>
+          <option value="Podapoda">Podapoda</option>
+          <option value="Taxi">Taxi</option>
+          <option value="Keke">Keke</option>
+          <option value="Paratransit Bus">Paratransit Bus</option>
+          <option value="Waka Fine Bus">Waka Fine Bus</option>
+          <option value="Motorbike">Motorbike</option>
         </select>
 
         <button type="submit">📍 Start Tracking</button>
