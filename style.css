@@ -1,81 +1,45 @@
-/* ===== Reset & Base ===== */
-body, html {
+html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background: #f7f7f7;
-  color: #333;
-}
-
-h1, h2, h3 {
-  margin: 0;
-  font-weight: 600;
-}
-
-button {
-  cursor: pointer;
-  border: none;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  background: #007bff;
-  color: white;
-  font-size: 0.9rem;
-}
-
-button:hover {
-  background: #0056b3;
-}
-
-/* ===== Layout ===== */
-.page-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-header, footer {
-  background: #fff;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid #ddd;
-}
-
-main.main-content {
-  flex: 1;
-  display: flex;
+  font-family: Arial, sans-serif;
 }
 
 #map {
-  flex: 1;
+  height: 100%;
+  width: 100%;
+  position: relative;
 }
 
-/* ===== Sidebar ===== */
+.blurred {
+  filter: blur(5px);
+  pointer-events: none;
+}
+
+/* Sidebar */
 .sidebar {
-  width: 240px;
-  background: #fff;
-  border-right: 1px solid #ddd;
-  padding: 0.5rem;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px;
+  border-radius: 8px;
+  max-width: 200px;
+  font-size: 0.9em;
   overflow-y: auto;
+  max-height: 70vh;
 }
 
-.sidebar h2 {
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.sidebar-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+.sidebar h3 {
+  margin: 0 0 8px 0;
+  font-size: 1em;
 }
 
 .sidebar-item {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.85rem;
-  padding: 0.3rem;
-  border-bottom: 1px solid #eee;
+  margin-bottom: 6px;
+  gap: 6px;
 }
 
 .sidebar-item img {
@@ -83,65 +47,41 @@ main.main-content {
   height: 20px;
 }
 
-/* ===== Mobile Adjustments ===== */
-@media (max-width: 768px) {
-  .sidebar {
-    width: 160px;
-    font-size: 0.8rem;
-    padding: 0.4rem;
-  }
-}
-
-/* ===== Floating Buttons ===== */
-#trackingButtons {
-  position: absolute;
-  bottom: 70px; /* Above Leaflet zoom */
-  right: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  z-index: 1000;
-}
-
+/* Floating buttons */
 .floating-btn {
-  background: #28a745;
-  padding: 0.6rem 0.8rem;
-  border-radius: 50px;
-  font-size: 0.85rem;
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  font-size: 14px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  z-index: 1000;
 }
 
 .floating-btn.hidden {
   display: none;
 }
 
-.floating-btn.stop {
-  background: #dc3545;
-}
-
-.floating-btn.stop:hover {
-  background: #a71d2a;
-}
-
-/* ===== Map Blur Before Login ===== */
-.blurred {
-  filter: blur(5px);
-  pointer-events: none;
-}
-
-/* ===== Modal ===== */
+/* Login Modal */
 .modal {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 999;
 }
 
 .modal-content {
-  background: #fff;
-  padding: 1.5rem;
+  background: white;
+  padding: 20px;
   border-radius: 8px;
   max-width: 300px;
   width: 100%;
@@ -150,13 +90,11 @@ main.main-content {
 
 .modal-content input {
   width: 100%;
-  padding: 0.5rem;
-  margin: 0.6rem 0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: 8px;
+  margin: 5px 0;
 }
 
-.error-msg {
+#loginError {
   color: red;
-  font-size: 0.8rem;
+  font-size: 0.85em;
 }
