@@ -15,7 +15,7 @@
   <div class="page-container">
     <header>
       <h1>🚌 Freetown PT Tracker 🇸🇱</h1>
-      <div>
+      <div class="header-buttons">
         <button id="locateMeBtn">📍 My Location</button>
         <button id="clearVehiclesBtn">🧹 Clear</button>
         <button id="toggleSidebarBtn">☰ Menu</button>
@@ -23,6 +23,7 @@
     </header>
 
     <main class="main-content">
+      <!-- Sidebar -->
       <aside class="sidebar" id="sidebar">
         <h2>Nearby Vehicles & Alerts</h2>
 
@@ -37,6 +38,7 @@
         </section>
       </aside>
 
+      <!-- Map -->
       <div id="map"></div>
     </main>
 
@@ -46,9 +48,9 @@
   </div>
 
   <!-- Tracking Modal -->
-  <div id="trackingModal" class="modal" aria-hidden="true">
+  <div id="trackingModal" class="modal" inert>
     <div class="modal-content">
-      <button class="modal-close" id="closeTrackingModal">&times;</button>
+      <button class="close" id="closeTrackingModal">&times;</button>
       <h2>Start Tracking</h2>
       <form id="trackingForm">
         <label for="vehicleId">Vehicle ID:</label>
