@@ -96,47 +96,53 @@ async function fetchVehicles() {
   try {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
     if (!res.ok) throw new Error("Failed to fetch vehicles");
+
     const data = await res.json();
 
-    // transform into array: [{id, lat, lon, mode}]
-    vehiclesData = Object.entries(data || {}).map(([id, info]) => ({
+    // 🔍 Log raw backend response
+    console.log("Vehicle data from backend:", data);
+
+    vehiclesData = Object.entries(data).map(([id, info]) => ({
       id,
-      lat: info?.lat,
-      lon: info?.lon,
-      mode: info?.mode || "unknown"
+      lat: info.lat,
+      lon: info.lon,
+      mode: info.mode || "unknown"
     }));
 
-    // update markers
-    vehiclesData.forEach(v => {
-      if (!v.id || v.lat==null || v.lon==null) return;
-      const icon = getIcon(v.mode);
-      const popup = `Vehicle ID: ${v.id}<br>Mode: ${v.mode}`;
-      if (vehicleMarkers[v.id]) {
-        vehicleMarkers[v.id].setLatLng([v.lat, v.lon]);
-        vehicleMarkers[v.id].setIcon(icon);
-        vehicleMarkers[v.id].setPopupContent(popup);
+    vehiclesData.forEach(vehicle => {
+      const { id, lat, lon, mode } = vehicle;
+      if (!id || !lat || !lon) return;
+
+      const icon = getIcon(mode);
+      let popupContent = `Vehicle ID: ${id}<br>Mode: ${mode}`;
+      if (userMarker) {
+        const userPos = userMarker.getLatLng();
+        const { distance, eta } = computeETA(userPos.lat, userPos.lng, lat, lon);
+        popupContent += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
+      }
+
+      if (vehicleMarkers[id]) {
+        vehicleMarkers[id].setLatLng([lat, lon]);
+        vehicleMarkers[id].setIcon(icon);
+        vehicleMarkers[id].setPopupContent(popupContent);
       } else {
-        const m = L.marker([v.lat, v.lon], { icon }).bindPopup(popup).addTo(map);
-        vehicleMarkers[v.id] = m;
+        const marker = L.marker([lat, lon], { icon }).bindPopup(popupContent).addTo(map);
+        vehicleMarkers[id] = marker;
       }
     });
 
-    // remove markers not in vehiclesData
-    Object.keys(vehicleMarkers).forEach(id => {
-      if (!vehiclesData.find(v => v.id === id)) {
-        if (map.hasLayer(vehicleMarkers[id])) map.removeLayer(vehicleMarkers[id]);
-        delete vehicleMarkers[id];
-      }
-    });
-
+    applyFilters();
     updateSidebarETAs();
     updateSidebarAlerts();
-    updateLastUpdatedBadge();
+
+    const timeLabel = document.getElementById("lastUpdated");
+    if (timeLabel) timeLabel.textContent = new Date().toLocaleTimeString();
 
   } catch (err) {
     console.error("Vehicle update error:", err);
   }
 }
+
 
 function updateLastUpdatedBadge() {
   const t = document.getElementById("lastUpdated");
