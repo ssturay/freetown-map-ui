@@ -1,6 +1,4 @@
-// =======================
-// Login Prompt (Unchanged)
-// =======================
+// ================== LOGIN PROMPT ==================
 function promptLogin() {
   if (localStorage.getItem("loggedIn") === "true") return true;
 
@@ -20,18 +18,17 @@ function promptLogin() {
   return true;
 }
 
-// =======================
-// Global Variables
-// =======================
+// ================== GLOBALS ==================
 const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 let map, userMarker = null;
 let vehicleMarkers = {};
-let vehiclesData = [];
 let routeLayers = L.featureGroup();
 let stopsLayer;
 let trackingInterval = null;
-let trackingTimeout = null;
+let trackedVehicleId = null;
+let trackedMode = null;
 
+// ================== ICON MAP ==================
 const iconMap = {
   "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
   "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",
@@ -41,179 +38,7 @@ const iconMap = {
   "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
 };
 
-// =======================
-// Map Init
-// =======================
-function initMap() {
-  map = L.map("map").setView([8.48, -13.22], 12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap contributors",
-    maxZoom: 19
-  }).addTo(map);
-
-  routeLayers.addTo(map);
-  loadRoutes();
-  loadStops();
-  addLocateMeButton();
-  fetchVehicles();
-  setInterval(fetchVehicles, 2000); // Refresh all vehicles every 2s
-
-  // Create floating tracking buttons
-  createTrackingButtons();
-}
-
-// =======================
-// Create Floating Buttons
-// =======================
-function createTrackingButtons() {
-  const startBtn = document.createElement("button");
-  startBtn.id = "floatingStartBtn";
-  startBtn.innerHTML = "🚗 Start Tracking";
-  startBtn.className = "floating-btn";
-  startBtn.addEventListener("click", openTrackingModal);
-
-  const stopBtn = document.createElement("button");
-  stopBtn.id = "floatingStopBtn";
-  stopBtn.innerHTML = "🛑 Stop Tracking";
-  stopBtn.className = "floating-btn stop-btn";
-  stopBtn.style.display = "none"; // hidden until tracking starts
-  stopBtn.addEventListener("click", stopTracking);
-
-  document.body.appendChild(startBtn);
-  document.body.appendChild(stopBtn);
-}
-
-// =======================
-// Open Tracking Modal
-// =======================
-function openTrackingModal() {
-  const modal = document.getElementById("trackingModal");
-  if (modal) {
-    modal.style.display = "block";
-    modal.removeAttribute("aria-hidden");
-    document.getElementById("vehicleId").focus();
-  }
-}
-
-// =======================
-// Close Tracking Modal
-// =======================
-function closeTrackingModal() {
-  const modal = document.getElementById("trackingModal");
-  if (modal) {
-    modal.style.display = "none";
-    modal.setAttribute("aria-hidden", "true");
-  }
-}
-
-// =======================
-// Start Tracking
-// =======================
-function startTracking(vehicleId, transportMode) {
-  console.log(`Tracking ${vehicleId} (${transportMode})`);
-
-  clearVehicles();
-
-  // Hide start button, show stop button
-  document.getElementById("floatingStartBtn").style.display = "none";
-  document.getElementById("floatingStopBtn").style.display = "block";
-
-  const updateTrackedVehicle = async () => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/vehicles/${vehicleId}`);
-      if (!res.ok) throw new Error("Vehicle fetch failed");
-      const data = await res.json();
-
-      if (!data.lat || !data.lon) {
-        console.warn("Vehicle has no location data yet");
-        return;
-      }
-
-      const icon = getIcon(transportMode);
-      let popupContent = `Vehicle ID: ${vehicleId}<br>Mode: ${transportMode}`;
-      if (userMarker) {
-        const userPos = userMarker.getLatLng();
-        const { distance, eta } = computeETA(userPos.lat, userPos.lng, data.lat, data.lon);
-        popupContent += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
-      }
-
-      if (vehicleMarkers[vehicleId]) {
-        vehicleMarkers[vehicleId].setLatLng([data.lat, data.lon]);
-        vehicleMarkers[vehicleId].setIcon(icon);
-        vehicleMarkers[vehicleId].setPopupContent(popupContent);
-      } else {
-        const marker = L.marker([data.lat, data.lon], { icon }).bindPopup(popupContent).addTo(map);
-        vehicleMarkers[vehicleId] = marker;
-      }
-
-      map.setView([data.lat, data.lon], 15);
-    } catch (err) {
-      console.error("Tracking error:", err);
-    }
-  };
-
-  updateTrackedVehicle();
-  trackingInterval = setInterval(updateTrackedVehicle, 2000);
-
-  // Auto stop after 5 minutes
-  trackingTimeout = setTimeout(stopTracking, 5 * 60 * 1000);
-}
-
-// =======================
-// Stop Tracking
-// =======================
-function stopTracking() {
-  console.log("Stopping tracking...");
-  clearInterval(trackingInterval);
-  clearTimeout(trackingTimeout);
-  trackingInterval = null;
-
-  document.getElementById("floatingStartBtn").style.display = "block";
-  document.getElementById("floatingStopBtn").style.display = "none";
-}
-
-// =======================
-// Fetch Vehicles
-// =======================
-async function fetchVehicles() {
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/vehicles`);
-    if (!res.ok) throw new Error("Failed to fetch vehicles");
-
-    const data = await res.json();
-    if (!data.vehicles) return;
-
-    vehiclesData = data.vehicles;
-
-    vehiclesData.forEach(vehicle => {
-      const { id, lat, lon, mode } = vehicle;
-      if (!id || !lat || !lon) return;
-
-      const icon = getIcon(mode);
-      let popupContent = `Vehicle ID: ${id}<br>Mode: ${mode}`;
-      if (userMarker) {
-        const userPos = userMarker.getLatLng();
-        const { distance, eta } = computeETA(userPos.lat, userPos.lng, lat, lon);
-        popupContent += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
-      }
-
-      if (vehicleMarkers[id]) {
-        vehicleMarkers[id].setLatLng([lat, lon]);
-        vehicleMarkers[id].setIcon(icon);
-        vehicleMarkers[id].setPopupContent(popupContent);
-      } else {
-        const marker = L.marker([lat, lon], { icon }).bindPopup(popupContent).addTo(map);
-        vehicleMarkers[id] = marker;
-      }
-    });
-  } catch (err) {
-    console.error("Vehicle update error:", err);
-  }
-}
-
-// =======================
-// Helpers
-// =======================
+// ================== HELPERS ==================
 function getIcon(mode) {
   const key = mode?.toLowerCase() || "podapoda";
   return L.icon({
@@ -243,11 +68,25 @@ function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
   };
 }
 
-function clearVehicles() {
-  Object.values(vehicleMarkers).forEach(marker => map.removeLayer(marker));
-  vehicleMarkers = {};
+// ================== MAP INIT ==================
+function initMap() {
+  map = L.map("map").setView([8.48, -13.22], 12);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors",
+    maxZoom: 19
+  }).addTo(map);
+
+  routeLayers.addTo(map);
+  loadRoutes();
+  loadStops();
+  addLocateMeButton();
+
+  fetchVehicles();
+  setInterval(fetchVehicles, 2000); // Refresh all vehicles every 2s
 }
 
+// ================== ROUTES & STOPS ==================
 async function loadRoutes() {
   try {
     const res = await fetch("data/routes.geojson");
@@ -255,9 +94,10 @@ async function loadRoutes() {
     const geojson = await res.json();
 
     routeLayers.clearLayers();
+
     L.geoJSON(geojson, {
-      style: f => ({
-        color: f.properties.color || "#3388ff",
+      style: feature => ({
+        color: feature.properties.color || "#3388ff",
         weight: 5,
         opacity: 0.7
       })
@@ -276,39 +116,109 @@ async function loadStops() {
     if (stopsLayer) stopsLayer.clearLayers();
 
     stopsLayer = L.geoJSON(geojson, {
-      pointToLayer: (feature, latlng) => {
-        return L.circleMarker(latlng, {
+      pointToLayer: (feature, latlng) =>
+        L.circleMarker(latlng, {
           radius: 6,
           fillColor: "#ff0000",
           color: "#880000",
           weight: 1,
           opacity: 1,
           fillOpacity: 0.8
-        });
-      }
+        })
     }).addTo(map);
   } catch (err) {
     console.error(err);
   }
 }
 
-function addLocateMeButton() {
-  const locateBtn = document.getElementById("locateMeBtn");
-  if (!locateBtn) return;
+// ================== VEHICLE FETCH ==================
+async function fetchVehicles() {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/vehicles`);
+    if (!res.ok) throw new Error("Failed to fetch vehicles");
 
-  locateBtn.addEventListener("click", () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation not supported.");
-      return;
+    const { vehicles } = await res.json();
+
+    vehicles.forEach(v => {
+      if (!v.id || !v.lat || !v.lon) return;
+
+      const icon = getIcon(v.mode);
+      let popupContent = `<b>Vehicle ID:</b> ${v.id}<br>Mode: ${v.mode}`;
+      if (userMarker) {
+        const uPos = userMarker.getLatLng();
+        const { distance, eta } = computeETA(uPos.lat, uPos.lng, v.lat, v.lon);
+        popupContent += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
+      }
+
+      if (vehicleMarkers[v.id]) {
+        vehicleMarkers[v.id].setLatLng([v.lat, v.lon]);
+        vehicleMarkers[v.id].setIcon(icon);
+        vehicleMarkers[v.id].setPopupContent(popupContent);
+      } else {
+        vehicleMarkers[v.id] = L.marker([v.lat, v.lon], { icon })
+          .bindPopup(popupContent)
+          .addTo(map);
+      }
+    });
+
+    document.getElementById("lastUpdated").textContent = new Date().toLocaleTimeString();
+  } catch (err) {
+    console.error("Vehicle update error:", err);
+  }
+}
+
+// ================== TRACKING ==================
+function startTracking(vehicleId, mode) {
+  trackedVehicleId = vehicleId;
+  trackedMode = mode;
+  clearInterval(trackingInterval);
+
+  trackingInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/vehicles`);
+      const { vehicles } = await res.json();
+      const vehicle = vehicles.find(v => v.id === trackedVehicleId);
+
+      if (vehicle) {
+        const icon = getIcon(mode);
+        if (vehicleMarkers[vehicle.id]) {
+          vehicleMarkers[vehicle.id].setLatLng([vehicle.lat, vehicle.lon]);
+          vehicleMarkers[vehicle.id].setIcon(icon);
+        } else {
+          vehicleMarkers[vehicle.id] = L.marker([vehicle.lat, vehicle.lon], { icon })
+            .addTo(map);
+        }
+        map.setView([vehicle.lat, vehicle.lon], 15);
+      }
+    } catch (err) {
+      console.error("Tracking error:", err);
     }
+  }, 2000);
+
+  document.getElementById("stopTrackingBtn").style.display = "block";
+}
+
+function stopTracking() {
+  clearInterval(trackingInterval);
+  trackingInterval = null;
+  trackedVehicleId = null;
+  trackedMode = null;
+  document.getElementById("stopTrackingBtn").style.display = "none";
+}
+
+// ================== BUTTON HANDLERS ==================
+function addLocateMeButton() {
+  document.getElementById("locateMeBtn").addEventListener("click", () => {
+    if (!navigator.geolocation) return alert("Geolocation not supported");
+
     navigator.geolocation.getCurrentPosition(pos => {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
+
       if (userMarker) {
         userMarker.setLatLng([lat, lon]);
       } else {
         userMarker = L.marker([lat, lon], {
-          title: "You are here",
           icon: L.icon({
             iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
             iconSize: [25, 25]
@@ -320,31 +230,34 @@ function addLocateMeButton() {
   });
 }
 
-// =======================
-// DOM Ready
-// =======================
+// ================== EVENT LISTENERS ==================
 document.addEventListener("DOMContentLoaded", () => {
-  if (promptLogin()) {
-    initMap();
+  if (!promptLogin()) return;
 
-    // Tracking form listener
-    const trackingForm = document.getElementById("trackingForm");
-    if (trackingForm) {
-      trackingForm.addEventListener("submit", e => {
-        e.preventDefault();
-        const vehicleId = document.getElementById("vehicleId").value.trim();
-        const transportMode = document.getElementById("mode").value.trim();
-        if (!vehicleId || !transportMode) {
-          alert("Please enter both Vehicle ID and Transport Mode.");
-          return;
-        }
-        startTracking(vehicleId, transportMode);
-        closeTrackingModal();
-      });
-    }
+  initMap();
 
-    // Modal close button
-    const closeBtn = document.getElementById("closeTrackingModal");
-    if (closeBtn) closeBtn.addEventListener("click", closeTrackingModal);
-  }
+  // Floating buttons
+  document.getElementById("startTrackingBtn").addEventListener("click", () => {
+    document.getElementById("trackingModal").style.display = "block";
+  });
+
+  document.getElementById("stopTrackingBtn").addEventListener("click", stopTracking);
+
+  document.getElementById("closeTrackingModal").addEventListener("click", () => {
+    document.getElementById("trackingModal").style.display = "none";
+  });
+
+  document.getElementById("trackingForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const id = document.getElementById("vehicleId").value.trim();
+    const mode = document.getElementById("mode").value.trim();
+    if (!id || !mode) return;
+    startTracking(id, mode);
+    document.getElementById("trackingModal").style.display = "none";
+  });
+
+  // Sidebar toggle for mobile
+  document.getElementById("toggleSidebarBtn").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("open");
+  });
 });
