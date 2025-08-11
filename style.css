@@ -1,27 +1,31 @@
-/* =====================
-   Base Styles
-   ===================== */
+/* ------------------------------
+   Base Reset & Typography
+--------------------------------*/
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: Arial, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f8f9fa;
+  color: #333;
 }
 
+/* ------------------------------
+   Layout Containers
+--------------------------------*/
 .page-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh;
 }
 
 header {
-  background: #0078ff;
-  color: #fff;
-  padding: 10px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  background: #004080;
+  color: white;
+  padding: 0.5rem 1rem;
 }
 
 header h1 {
@@ -30,21 +34,26 @@ header h1 {
 }
 
 header button {
-  padding: 6px 10px;
+  background: #0066cc;
+  color: white;
   border: none;
-  background: #005fcc;
-  color: #fff;
+  padding: 0.4rem 0.7rem;
+  margin-left: 0.4rem;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 0.9rem;
 }
 
 header button:hover {
-  background: #004999;
+  background: #0055aa;
 }
 
+/* ------------------------------
+   Main Content
+--------------------------------*/
 .main-content {
-  display: flex;
   flex: 1;
+  display: flex;
   overflow: hidden;
 }
 
@@ -53,130 +62,133 @@ header button:hover {
   height: 100%;
 }
 
+/* ------------------------------
+   Sidebar
+--------------------------------*/
 .sidebar {
-  background: #f8f9fa;
-  width: 260px;
-  padding: 10px;
+  width: 280px;
+  max-width: 100%;
+  background: #ffffff;
+  border-right: 1px solid #ddd;
+  padding: 0.8rem;
   overflow-y: auto;
-  border-left: 1px solid #ddd;
+  transition: transform 0.3s ease;
 }
 
-.sidebar h2, .sidebar h3 {
+.sidebar h2 {
+  font-size: 1rem;
   margin-top: 0;
+  color: #004080;
 }
 
 .sidebar-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
-footer {
-  padding: 6px;
-  background: #f1f1f1;
-  font-size: 0.85rem;
-  text-align: center;
-}
-
-/* =====================
-   Floating Tracking Controls
-   ===================== */
-.tracking-controls {
-  position: absolute;
-  bottom: 20px;
-  right: 15px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 1000;
-}
-
-.tracking-controls button {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 6px;
-  background: #0078ff;
-  color: white;
-  cursor: pointer;
-  font-size: 14px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-}
-
-.tracking-controls button:hover {
-  background: #005fcc;
-}
-
-#stopTrackingBtn {
-  background: #d9534f;
-}
-
-#stopTrackingBtn:hover {
-  background: #b52b27;
-}
-
-/* =====================
-   Modal Styles
-   ===================== */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 1100;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.4);
-}
-
-.modal-content {
-  background-color: #fff;
-  margin: 10% auto;
-  padding: 20px;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
-.modal-close {
-  float: right;
-  font-size: 20px;
-  border: none;
-  background: none;
-  cursor: pointer;
-}
-
-.modal-close:hover {
-  color: red;
-}
-
-/* =====================
-   Mobile-Friendly Sidebar
-   ===================== */
+/* Mobile collapsed sidebar */
 @media (max-width: 768px) {
   .sidebar {
     position: absolute;
-    left: 0;
-    top: 60px;
-    width: 200px;
-    height: calc(100% - 60px);
-    z-index: 900;
-    background: #fff;
-    border-right: 1px solid #ddd;
+    z-index: 1000;
+    height: 100%;
     transform: translateX(-100%);
-    transition: transform 0.3s ease-in-out;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
   }
-  
-  .sidebar.open {
+
+  .sidebar.sidebar-open {
     transform: translateX(0);
   }
-  
-  .main-content {
-    flex-direction: column;
-  }
-  
+
   #map {
-    height: calc(100% - 60px);
+    height: 100%;
   }
+}
+
+/* ------------------------------
+   Footer
+--------------------------------*/
+footer {
+  background: #f1f1f1;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* ------------------------------
+   Modal Styles
+--------------------------------*/
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 2000;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background: #fff;
+  margin: 10% auto;
+  padding: 1rem;
+  border-radius: 6px;
+  max-width: 400px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 1.4rem;
+  float: right;
+  cursor: pointer;
+}
+
+/* ------------------------------
+   Tracking Buttons
+--------------------------------*/
+.tracking-controls {
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 1500;
+}
+
+.tracking-btn {
+  padding: 0.5rem 0.8rem;
+  border: none;
+  border-radius: 4px;
+  background: #0066cc;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.tracking-btn:hover {
+  background: #0055aa;
+}
+
+.stop-btn {
+  background: #cc0000;
+}
+
+.stop-btn:hover {
+  background: #aa0000;
+}
+
+/* Hide stop tracking by default */
+#stopTrackingBtn {
+  display: none;
+}
+
+/* ------------------------------
+   Utility
+--------------------------------*/
+.hidden {
+  display: none !important;
 }
