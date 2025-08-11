@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Freetown Public Transport Tracker</title>
+  <title>Freetown PT Tracker</title>
 
   <!-- Leaflet CSS -->
   <link
@@ -11,51 +11,119 @@
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     crossorigin=""
   />
-
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      font-family: Arial, sans-serif;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+      position: relative;
+    }
+    .blurred {
+      filter: blur(5px);
+      pointer-events: none;
+    }
+    /* Sidebar */
+    .sidebar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255,255,255,0.95);
+      padding: 10px;
+      border-radius: 8px;
+      max-width: 200px;
+      font-size: 0.9em;
+      overflow-y: auto;
+      max-height: 70vh;
+    }
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 6px;
+    }
+    .sidebar-item img {
+      width: 20px;
+      height: 20px;
+    }
+    /* Floating buttons */
+    .floating-btn {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 15px;
+      font-size: 14px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .floating-btn.hidden {
+      display: none;
+    }
+    /* Login Modal */
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 300px;
+      width: 100%;
+      text-align: center;
+    }
+    .modal-content input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+    }
+    #loginError {
+      color: red;
+      font-size: 0.85em;
+    }
+  </style>
 </head>
 <body>
+  <div id="map"></div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h3>Vehicles</h3>
+    <div id="etaList"></div>
+    <button id="locateMeBtn">📍 My Location</button>
+  </div>
+
+  <!-- Floating Tracking Buttons -->
+  <button id="startBtn" class="floating-btn">🚗 Start Tracking</button>
+  <button id="stopBtn" class="floating-btn hidden" style="background:red;">🛑 Stop Tracking</button>
+
   <!-- Login Modal -->
-  <div id="loginModal" class="modal" role="dialog" aria-modal="true">
+  <div id="loginModal" class="modal">
     <div class="modal-content">
-      <h2>🔑 Login</h2>
-      <p>Please enter the admin password to access the tracker.</p>
-      <input type="password" id="loginPassword" placeholder="Password" />
-      <button id="loginBtn">Login</button>
-      <p id="loginError" class="error-msg"></p>
+      <h2>Login</h2>
+      <form id="loginForm">
+        <input type="text" id="username" placeholder="Username" required />
+        <input type="password" id="password" placeholder="Password" required />
+        <div id="loginError"></div>
+        <button type="submit">Login</button>
+      </form>
     </div>
-  </div>
-
-  <div class="page-container">
-    <header>
-      <h1>🚌 Freetown Public Transport Tracker</h1>
-      <button id="locateMeBtn">📍 My Location</button>
-      <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
-    </header>
-
-    <main class="main-content">
-      <aside class="sidebar" aria-label="Nearby vehicles sidebar">
-        <h2>Nearby Vehicles</h2>
-        <div id="etaList" class="sidebar-list" role="list"></div>
-      </aside>
-
-      <div id="map" class="blurred" role="region" aria-label="Map"></div>
-    </main>
-
-    <footer>
-      <p>Last updated: <time id="lastUpdated">--</time></p>
-    </footer>
-  </div>
-
-  <!-- Floating Start/Stop Buttons -->
-  <div id="trackingButtons">
-    <button id="startTrackingBtn" class="floating-btn">🚗 Start Tracking</button>
-    <button id="stopTrackingBtn" class="floating-btn hidden">🛑 Stop Tracking</button>
   </div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-
   <!-- App JS -->
   <script src="script.js" defer></script>
 </body>
