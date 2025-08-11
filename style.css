@@ -1,191 +1,182 @@
-/* =======================
-   Base Page Styles
-======================= */
+/* ================== BASE LAYOUT ================== */
 html, body {
-  margin: 0;
-  padding: 0;
   height: 100%;
+  margin: 0;
   font-family: "Segoe UI", Arial, sans-serif;
-  background-color: #f5f5f5;
+  color: #333;
 }
 
-/* =======================
-   Layout
-======================= */
+#map {
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
 .page-container {
   display: flex;
-  flex-direction: column;
   height: 100%;
-}
-
-header {
-  background-color: #004d40;
-  color: white;
-  padding: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-header h1 {
-  font-size: 1.2rem;
-  margin: 0;
-}
-
-header button {
-  background-color: #00796b;
-  color: white;
-  border: none;
-  padding: 0.4rem 0.8rem;
-  margin-left: 0.4rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-header button:hover {
-  background-color: #009688;
-}
-
-.main-content {
-  flex: 1;
-  display: flex;
   overflow: hidden;
 }
 
-/* =======================
-   Sidebar
-======================= */
+/* ================== SIDEBAR ================== */
 .sidebar {
-  background-color: white;
-  width: 300px;
-  max-width: 40%;
-  border-right: 1px solid #ddd;
+  background: #fff;
+  width: 280px;
+  flex-shrink: 0;
   overflow-y: auto;
-  padding: 0.8rem;
+  border-right: 1px solid #ddd;
+  padding: 0.5rem 1rem;
+  transition: transform 0.3s ease-in-out;
 }
 
-.sidebar h2, .sidebar h3 {
-  font-size: 1rem;
-  margin: 0.5rem 0;
+.sidebar h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
-.sidebar-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.sidebar-list div {
-  border-bottom: 1px solid #eee;
+.sidebar-item {
+  font-size: 0.9rem;
   padding: 0.4rem 0;
+  border-bottom: 1px solid #eee;
 }
 
-/* =======================
-   Map
-======================= */
-#map {
-  flex: 1;
+.alert-item {
+  font-size: 0.9rem;
+  padding: 0.4rem 0;
+  color: #b30000;
+  font-weight: 600;
+  border-bottom: 1px solid #f5cccc;
 }
 
-/* =======================
-   Footer
-======================= */
-footer {
-  background-color: #004d40;
-  color: white;
-  padding: 0.5rem;
-  font-size: 0.8rem;
-  text-align: center;
+/* Mobile compact sidebar */
+@media (max-width: 768px) {
+  .sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    transform: translateX(-100%);
+    z-index: 2000;
+    background: rgba(255, 255, 255, 0.98);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
 }
 
-/* =======================
-   Modal
-======================= */
+/* ================== BUTTONS ================== */
+button,
+input[type="submit"] {
+  cursor: pointer;
+}
+
+#toggleSidebarBtn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 3000;
+  background: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+}
+
+#locateMeBtn {
+  position: absolute;
+  bottom: 60px;
+  right: 10px;
+  z-index: 3000;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+#startTrackingBtn,
+#stopTrackingBtn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 3000;
+  background: #28a745;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+#stopTrackingBtn {
+  background: #dc3545;
+}
+
+/* ================== MODAL ================== */
 .modal {
-  display: none;
+  display: none; /* hidden by default */
   position: fixed;
-  z-index: 1000;
+  z-index: 4000; /* above everything */
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
   overflow: auto;
-  background-color: rgba(0,0,0,0.4);
+  background-color: rgba(0,0,0,0.5);
 }
 
 .modal-content {
   background-color: #fff;
   margin: 10% auto;
-  padding: 1rem;
+  padding: 1rem 1.5rem;
   border-radius: 8px;
-  max-width: 400px;
   width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
-.modal-close {
+.close {
+  color: #aaa;
   float: right;
-  font-size: 1.5rem;
-  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: #000;
+}
+
+.modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.modal input,
+.modal select {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.modal button {
+  background: #007bff;
+  color: #fff;
+  padding: 0.6rem;
   border: none;
-  background: none;
+  border-radius: 4px;
+  font-size: 1rem;
 }
 
-/* =======================
-   Floating Buttons
-======================= */
-.floating-btn {
-  position: fixed;
-  bottom: 15px;
-  right: 15px;
-  background-color: #00796b;
-  color: white;
-  padding: 0.6rem 1rem;
-  border-radius: 25px;
-  box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
-  border: none;
-  cursor: pointer;
-  z-index: 1200;
-  font-size: 0.9rem;
-}
-
-.floating-btn:hover {
-  background-color: #009688;
-}
-
-.floating-btn.stop-btn {
-  background-color: #c62828;
-}
-
-.floating-btn.stop-btn:hover {
-  background-color: #e53935;
-}
-
-/* =======================
-   Mobile Adjustments
-======================= */
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 220px; /* more compact */
-    max-width: none;
-    transform: translateX(-100%);
-    transition: transform 0.3s ease-in-out;
-    z-index: 1100;
-  }
-
-  .sidebar.open {
-    transform: translateX(0);
-  }
-
-  #map {
-    flex: none;
-    width: 100%;
-  }
-
-  header h1 {
-    font-size: 1rem;
-  }
+/* ================== MISC ================== */
+#lastUpdated {
+  font-size: 0.8rem;
+  color: #666;
 }
