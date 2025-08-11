@@ -5,20 +5,76 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Freetown PT Tracker</title>
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin="">
   <link rel="stylesheet" href="style.css" />
+
+  <style>
+    /* Ensure Start Tracking button floats above everything */
+    #openTrackingModal {
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
+      z-index: 1100; /* Above sidebar and map */
+      padding: 10px 15px;
+      font-size: 16px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    #openTrackingModal:hover {
+      background: #0056b3;
+    }
+
+    /* Make sure sidebar doesn't cover too much screen on mobile */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 250px;
+        max-width: 60%;
+      }
+    }
+
+    /* Ensure map controls (zoom) are not covered by menu */
+    .leaflet-control-container {
+      z-index: 1000;
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000; /* Above everything */
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background: white;
+      margin: 10% auto;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 400px;
+    }
+    .modal-close {
+      background: transparent;
+      border: none;
+      font-size: 20px;
+      float: right;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <div class="page-container">
     <header>
       <h1>🚌 Freetown Public Transport Tracker 🇸🇱</h1>
       <button id="locateMeBtn">📍 My Location</button>
-      <button id="clearVehiclesBtn" onclick="stopTracking()">🛑 Stop Tracking</button>
+      <button id="clearVehiclesBtn">🧹 Clear Vehicles</button>
     </header>
-
-    <!-- Menu Button (works for mobile) -->
-    <button id="menuToggleBtn">☰ Menu</button>
 
     <main class="main-content">
       <aside class="sidebar" aria-label="Nearby vehicles and alerts sidebar">
@@ -36,7 +92,7 @@
 
         <section class="sidebar-filter-container" aria-label="Filter options">
           <h3>Filters</h3>
-          <!-- Injected by JS -->
+          <!-- Filters injected by JS -->
         </section>
       </aside>
 
@@ -48,7 +104,7 @@
     </footer>
   </div>
 
-  <!-- Modal Trigger -->
+  <!-- Start Tracking Floating Button -->
   <button
     id="openTrackingModal"
     class="modal-trigger"
@@ -90,9 +146,24 @@
     </div>
   </div>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
-  <!-- App JS -->
   <script src="script.js" defer></script>
+
+  <script>
+    // Modal open/close logic
+    const trackingModal = document.getElementById("trackingModal");
+    const openBtn = document.getElementById("openTrackingModal");
+    const closeBtn = document.getElementById("closeTrackingModal");
+
+    openBtn.addEventListener("click", () => {
+      trackingModal.style.display = "block";
+    });
+    closeBtn.addEventListener("click", () => {
+      trackingModal.style.display = "none";
+    });
+    window.addEventListener("click", e => {
+      if (e.target === trackingModal) trackingModal.style.display = "none";
+    });
+  </script>
 </body>
 </html>
