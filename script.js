@@ -23,12 +23,12 @@ let stopsLayer;
 
 // icons keyed by lowercase mode
 const iconMap = {
-  "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
-  "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",
-  "keke": "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",
-  "paratransit bus": "https://cdn-icons-png.flaticon.com/512/61/61221.png",
-  "waka fine bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",
-  "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png",
+  "Podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
+  "Taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",
+  "Keke": "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",
+  "Paratransit Bus": "https://cdn-icons-png.flaticon.com/512/61/61221.png",
+  "Waka Fine Bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",
+  "Motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png",
   "unknown": "https://cdn-icons-png.flaticon.com/512/684/684908.png"
 };
 
