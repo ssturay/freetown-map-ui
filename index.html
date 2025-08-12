@@ -2,84 +2,57 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Freetown PT Tracker</title>
-
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin=""/>
-  
-  <!-- App CSS -->
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 </head>
 <body>
-  <div class="page-container">
-    <header>
-      <h1>🚌 Freetown PT Tracker 🇸🇱</h1>
-      <div class="header-buttons">
-        <button id="locateMeBtn">📍 My Location</button>
-        <button id="clearVehiclesBtn">🧹 Clear</button>
-        <button id="toggleSidebarBtn">☰ Menu</button>
-      </div>
-    </header>
-
-    <main class="main-content">
-      <!-- Sidebar -->
-      <aside class="sidebar" id="sidebar">
-        <h2>Nearby Vehicles & Alerts</h2>
-
-        <section id="etaSection">
-          <h3>ETA</h3>
-          <div id="etaList" class="sidebar-list"></div>
-        </section>
-
-        <section id="alertSection">
-          <h3>Alerts</h3>
-          <div id="alertSidebar" class="sidebar-list"></div>
-        </section>
-      </aside>
-
-      <!-- Map -->
-      <div id="map"></div>
-    </main>
-
-    <footer>
-      <p>Last updated: <time id="lastUpdated">--</time></p>
-    </footer>
-  </div>
-
-  <!-- Tracking Modal -->
-  <div id="trackingModal" class="modal">
-    <div class="modal-content">
-      <button class="close" id="closeTrackingModal">&times;</button>
-      <h2>Start Tracking</h2>
-      <form id="trackingForm">
-        <label for="vehicleId">Vehicle ID:</label>
-        <input type="text" id="vehicleId" name="vehicleId" required />
-
-        <label for="mode">Mode of Transport:</label>
-        <select id="mode" name="mode" required>
-          <option value="" disabled selected>--Select--</option>
-          <option value="Podapoda">Podapoda</option>
-          <option value="Taxi">Taxi</option>
-          <option value="Keke">Keke</option>
-          <option value="Paratransit Bus">Paratransit Bus</option>
-          <option value="Waka Fine Bus">Waka Fine Bus</option>
-          <option value="Motorbike">Motorbike</option>
-        </select>
-
-        <button type="submit">📍 Start Tracking</button>
-      </form>
+<div class="page-container">
+  <header>
+    <h1>Freetown PT Tracker</h1>
+    <div>
+      <button id="locateMeBtn">My Location</button>
+      <button id="clearBtn">Clear</button>
+      <button id="toggleSidebarBtn">Menu</button>
     </div>
+  </header>
+
+  <div class="main-content">
+    <aside id="sidebar" class="sidebar">
+      <h2>Settings</h2>
+      <label for="roleSelect">Role:</label>
+      <select id="roleSelect">
+        <option value="passenger">Passenger</option>
+        <option value="driver">Driver</option>
+      </select>
+
+      <label for="stopSelect">Stop:</label>
+      <select id="stopSelect">
+        <option value="">-- Select Stop --</option>
+        <option value="Stop A">Stop A</option>
+        <option value="Stop B">Stop B</option>
+        <option value="Stop C">Stop C</option>
+      </select>
+
+      <button id="shareLocationBtn" class="floating-btn">Share My Location</button>
+
+      <h3>Live ETAs</h3>
+      <div id="etaList" class="sidebar-list"></div>
+
+      <h3>Alerts</h3>
+      <div id="alertSidebar" class="sidebar-list"></div>
+    </aside>
+
+    <div id="map"></div>
   </div>
 
-  <!-- Floating Buttons -->
-  <button id="startTrackingBtn" class="floating-btn">📍 Start Tracking</button>
-  <button id="stopTrackingBtn" class="floating-btn stop-btn" style="display:none;">🛑 Stop Tracking</button>
+  <footer>
+    <span id="lastUpdated">Last updated: --</span>
+  </footer>
+</div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
-
-  <!-- App JS -->
-  <script src="script.js" defer></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
