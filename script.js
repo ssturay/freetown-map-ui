@@ -302,7 +302,10 @@ function openTrackingModal(openerEl) {
   try { if (page) page.inert = true; } catch {}
   modal.style.display = "block";
   modal.removeAttribute("aria-hidden");
-  document.body.classList.add("modal-open"); // added for CSS click-block
+
+  // Add body class to block map clicks
+  document.body.classList.add("modal-open");
+
   const firstInput = modal.querySelector("input, select, textarea, button");
   if (firstInput) setTimeout(() => firstInput.focus(), 40);
   if (openerEl && openerEl.focus) modal._opener = openerEl;
@@ -313,7 +316,10 @@ function closeTrackingModal() {
   if (!modal) return;
   modal.style.display = "none";
   modal.setAttribute("aria-hidden", "true");
+
+  // Remove body class so map is clickable again
   document.body.classList.remove("modal-open");
+
   const page = document.querySelector(".page-container") || document.body;
   try { if (page) page.inert = false; } catch {}
   const opener = modal._opener;
