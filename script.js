@@ -297,12 +297,13 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!promptLogin()) return;
   initMap();
 
-  // Sidebar toggle
+  // Sidebar toggle — now with body class for CSS control
   const toggleBtn = $id("toggleSidebarBtn");
   const sidebar = $id("sidebar");
   if (toggleBtn && sidebar) {
     toggleBtn.addEventListener("click", () => {
       sidebar.classList.toggle("open");
+      document.body.classList.toggle("menu-open", sidebar.classList.contains("open"));
     });
   }
 });
