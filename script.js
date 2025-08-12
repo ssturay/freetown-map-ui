@@ -1,7 +1,6 @@
 // ================== LOGIN PROMPT ==================
 function promptLogin() {
   if (localStorage.getItem("loggedIn") === "true") return true;
-
   const username = prompt("Enter username:");
   const password = prompt("Enter password:");
 
@@ -85,7 +84,7 @@ function initMap() {
 
   routeLayers.addTo(map);
   loadRoutes();
-  loadStops();
+  loadStopsFromBackend();
   addLocateMeButton();
 
   fetchVehicles();
@@ -111,25 +110,29 @@ async function loadRoutes() {
   }
 }
 
-async function loadStops() {
+async function loadStopsFromBackend() {
   try {
-    const res = await fetch("data/stops.geojson");
+    const res = await fetch(`${BACKEND_URL}/api/stops`);
     if (!res.ok) throw new Error("Stops fetch failed.");
-    const geojson = await res.json();
+    const payload = await res.json();
+    const stops = payload.stops || [];
     if (stopsLayer) stopsLayer.clearLayers();
-    stopsLayer = L.geoJSON(geojson, {
-      pointToLayer: (feature, latlng) =>
-        L.circleMarker(latlng, {
-          radius: 6,
-          fillColor: "#ff0000",
-          color: "#880000",
-          weight: 1,
-          opacity: 1,
-          fillOpacity: 0.8
-        })
-    }).addTo(map);
+    stopsLayer = L.layerGroup();
+    stops.forEach(stop => {
+      L.circleMarker([stop.lat, stop.lon], {
+        radius: 6,
+        fillColor: "#ff0000",
+        color: "#880000",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8
+      })
+        .bindPopup(`<b>${stop.name}</b>`)
+        .addTo(stopsLayer);
+    });
+    stopsLayer.addTo(map);
   } catch (err) {
-    console.error("loadStops error:", err);
+    console.error("loadStopsFromBackend error:", err);
   }
 }
 
@@ -298,42 +301,24 @@ function addLocateMeButton() {
 function openTrackingModal(openerEl) {
   const modal = $id("trackingModal");
   if (!modal) return;
-
-  // Remove inert in case it's set
-  modal.removeAttribute("inert");
-
-  const page = document.querySelector(".page-container") || document.body;
-  try { if (page) page.inert = true; } catch {}
-
   modal.style.display = "block";
   modal.removeAttribute("aria-hidden");
   document.body.classList.add("modal-open");
-
   const firstInput = modal.querySelector("input, select, textarea, button");
   if (firstInput) setTimeout(() => firstInput.focus(), 40);
-
   if (openerEl && openerEl.focus) modal._opener = openerEl;
 }
 
 function closeTrackingModal() {
   const modal = $id("trackingModal");
   if (!modal) return;
-
-  // Reapply inert so modal isn't focusable when hidden
-  modal.setAttribute("inert", "");
-
   modal.style.display = "none";
   modal.setAttribute("aria-hidden", "true");
   document.body.classList.remove("modal-open");
-
-  const page = document.querySelector(".page-container") || document.body;
-  try { if (page) page.inert = false; } catch {}
-
   const opener = modal._opener;
   if (opener && typeof opener.focus === "function") opener.focus();
   modal._opener = null;
 }
-
 
 function setupModalOutsideClick() {
   const modal = $id("trackingModal");
