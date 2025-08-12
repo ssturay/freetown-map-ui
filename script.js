@@ -24,6 +24,8 @@ let trackingInterval = null;
 let trackedVehicleId = null;
 let trackedMode = null;
 let vehiclesData = [];
+let selectedStopCoords = null; // for stop filtering
+const STOP_FILTER_RADIUS = 500; // meters
 
 // ================== ICON MAP ==================
 const iconMap = {
@@ -68,6 +70,15 @@ function $id(id) {
   return document.getElementById(id) || null;
 }
 
+function isVehicleNearStop(vehicle) {
+  if (!selectedStopCoords) return true; // no filter
+  const { distance } = computeETA(
+    selectedStopCoords.lat, selectedStopCoords.lon,
+    vehicle.lat, vehicle.lon
+  );
+  return distance <= STOP_FILTER_RADIUS;
+}
+
 // ================== MAP INIT ==================
 function initMap() {
   map = L.map("map").setView([8.48, -13.22], 12);
@@ -78,7 +89,7 @@ function initMap() {
 
   routeLayers.addTo(map);
   loadRoutes();
-  loadStops(); // also populates dropdown
+  loadStops();
   addLocateMeButton();
 
   fetchVehicles();
@@ -136,9 +147,14 @@ async function loadStops() {
           const feature = geojson.features.find(f => f.properties.name === selectedStop);
           if (feature) {
             const [lon, lat] = feature.geometry.coordinates;
+            selectedStopCoords = { lat, lon };
             map.setView([lat, lon], 16);
           }
+        } else {
+          selectedStopCoords = null; // reset filter
         }
+        updateSidebarETAs();
+        updateSidebarAlerts();
       });
     }
   } catch (err) {
@@ -154,6 +170,7 @@ async function fetchVehicles() {
     const payload = await res.json();
     vehiclesData = Array.isArray(payload.vehicles) ? payload.vehicles : [];
 
+    // update or create markers
     vehiclesData.forEach(v => {
       if (!v.id || !v.lat || !v.lon) return;
       const icon = getIcon(v.mode);
@@ -189,12 +206,17 @@ function updateSidebarETAs() {
   if (!etaList) return;
   etaList.innerHTML = "";
 
-  if (!vehiclesData.length) {
+  let list = vehiclesData;
+  if (selectedStopCoords) {
+    list = list.filter(v => isVehicleNearStop(v));
+  }
+
+  if (!list.length) {
     etaList.innerHTML = "<p>No data available.</p>";
     return;
   }
 
-  vehiclesData.forEach(v => {
+  list.forEach(v => {
     const iconURL = iconMap[(v.mode || "podapoda").toLowerCase()] || iconMap["podapoda"];
     const div = document.createElement("div");
     div.className = "sidebar-item";
@@ -217,9 +239,15 @@ function updateSidebarAlerts() {
   if (!alertList) return;
   alertList.innerHTML = "";
   let found = false;
+
+  let list = vehiclesData;
+  if (selectedStopCoords) {
+    list = list.filter(v => isVehicleNearStop(v));
+  }
+
   if (userMarker) {
     const u = userMarker.getLatLng();
-    vehiclesData.forEach(v => {
+    list.forEach(v => {
       const { eta } = computeETA(u.lat, u.lng, v.lat, v.lon);
       if (eta <= 3) {
         const div = document.createElement("div");
@@ -235,12 +263,41 @@ function updateSidebarAlerts() {
   }
 }
 
+// ================== LOCATE ME ==================
+function addLocateMeButton() {
+  const locateBtn = $id("locateMeBtn");
+  if (!locateBtn) return;
+  locateBtn.addEventListener("click", () => {
+    if (!navigator.geolocation) return alert("Geolocation not supported");
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      if (userMarker) {
+        userMarker.setLatLng([lat, lon]);
+      } else {
+        userMarker = L.marker([lat, lon], {
+          icon: L.icon({
+            iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+            iconSize: [25, 25]
+          })
+        }).addTo(map);
+      }
+      map.setView([lat, lon], 15);
+      updateSidebarETAs();
+      updateSidebarAlerts();
+    }, err => {
+      console.error("Geolocation error:", err);
+      alert("Unable to retrieve your location.");
+    });
+  });
+}
+
 // ================== INIT ==================
 document.addEventListener("DOMContentLoaded", () => {
   if (!promptLogin()) return;
   initMap();
 
-  // Sidebar toggle fix
+  // Sidebar toggle
   const toggleBtn = $id("toggleSidebarBtn");
   const sidebar = $id("sidebar");
   if (toggleBtn && sidebar) {
