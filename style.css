@@ -105,31 +105,41 @@ footer {
   background-color: #009688;
 }
 
+/* -------- MOBILE VIEW FIX -------- */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
     left: 0;
     top: 0;
     height: 100%;
-    width: 220px;
+    width: 260px; /* slightly wider for readability */
     max-width: none;
     transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
-    z-index: 1100;
+    z-index: 5000; /* higher than map tiles */
+    background-color: #fff; /* solid background so map doesn't show through */
+    box-shadow: 2px 0 6px rgba(0,0,0,0.3);
   }
+
   .sidebar.open {
     transform: translateX(0);
   }
+
+  /* Prevent map from catching clicks when menu is open */
+  body.menu-open #map {
+    pointer-events: none;
+  }
+
   #map {
     flex: none;
     width: 100%;
   }
 }
 
-/* Ensure sidebar always above map */
+/* Ensure sidebar always above map in desktop */
 .sidebar {
   position: relative;
-  z-index: 2000; /* higher than map tiles */
+  z-index: 2000;
 }
 
 /* Ensure toggle button is above map too */
