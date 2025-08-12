@@ -1,6 +1,3 @@
-/* =======================
-   Base Page Styles
-======================= */
 html, body {
   margin: 0;
   padding: 0;
@@ -9,9 +6,6 @@ html, body {
   background-color: #f5f5f5;
 }
 
-/* =======================
-   Layout
-======================= */
 .page-container {
   display: flex;
   flex-direction: column;
@@ -32,12 +26,11 @@ header h1 {
   margin: 0;
 }
 
-/* Group buttons on the right and shift slightly inwards */
 header > div {
   display: flex;
   gap: 0.4rem;
   justify-content: flex-end;
-  margin-right: 0.75rem; /* shift right */
+  margin-right: 0.75rem;
 }
 
 header button {
@@ -48,7 +41,6 @@ header button {
   border-radius: 4px;
   cursor: pointer;
 }
-
 header button:hover {
   background-color: #009688;
 }
@@ -59,9 +51,6 @@ header button:hover {
   overflow: hidden;
 }
 
-/* =======================
-   Sidebar
-======================= */
 .sidebar {
   background-color: white;
   width: 300px;
@@ -76,27 +65,26 @@ header button:hover {
   margin: 0.5rem 0;
 }
 
+.sidebar select, .sidebar button {
+  width: 100%;
+  margin-bottom: 0.6rem;
+  padding: 0.4rem;
+}
+
 .sidebar-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
-
 .sidebar-list div {
   border-bottom: 1px solid #eee;
   padding: 0.4rem 0;
 }
 
-/* =======================
-   Map
-======================= */
 #map {
   flex: 1;
 }
 
-/* =======================
-   Footer
-======================= */
 footer {
   background-color: #004d40;
   color: white;
@@ -105,108 +93,35 @@ footer {
   text-align: center;
 }
 
-/* =======================
-   Modal
-======================= */
-.modal {
-  display: none;
-  position: fixed;
-  z-index: 5000; /* above everything including map & buttons */
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
-  background-color: rgba(0,0,0,0.4);
-}
-
-.modal-content {
-  background-color: #fff;
-  margin: 10% auto;
-  padding: 1rem;
-  border-radius: 8px;
-  max-width: 400px;
-  width: 90%;
-  position: relative;
-  z-index: 5100; /* ensure form elements are always above */
-}
-
-.modal-close {
-  float: right;
-  font-size: 1.5rem;
-  cursor: pointer;
-  border: none;
-  background: none;
-}
-
-/* =======================
-   Disable interactions when modal is open
-======================= */
-body.modal-open #map {
-  pointer-events: none; /* disable click/drag on map */
-}
-
-body.modal-open .floating-btn {
-  pointer-events: none;
-  opacity: 0.5; /* optional visual cue */
-}
-
-/* =======================
-   Floating Buttons
-======================= */
 .floating-btn {
-  position: fixed;
-  bottom: 4.5rem; /* extra space to avoid overlapping footer/last updated */
-  right: 20px;    /* slight shift to the left */
   background-color: #00796b;
   color: white;
-  padding: 0.6rem 1rem;
-  border-radius: 25px;
-  box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
   border: none;
   cursor: pointer;
-  z-index: 1500; /* below modal but above map */
-  font-size: 0.9rem;
 }
-
 .floating-btn:hover {
   background-color: #009688;
 }
 
-.floating-btn.stop-btn {
-  background-color: #c62828;
-}
-
-.floating-btn.stop-btn:hover {
-  background-color: #e53935;
-}
-
-/* =======================
-   Mobile Adjustments
-======================= */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
     left: 0;
     top: 0;
     height: 100%;
-    width: 220px; /* more compact */
+    width: 220px;
     max-width: none;
     transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
     z-index: 1100;
   }
-
   .sidebar.open {
     transform: translateX(0);
   }
-
   #map {
     flex: none;
     width: 100%;
-  }
-
-  header h1 {
-    font-size: 1rem;
   }
 }
