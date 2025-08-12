@@ -125,3 +125,16 @@ footer {
     width: 100%;
   }
 }
+
+
+/* Ensure sidebar always above map */
+.sidebar {
+  position: relative;
+  z-index: 2000; /* higher than map tiles */
+}
+
+/* Ensure toggle button is above map too */
+#toggleSidebarBtn {
+  position: relative;
+  z-index: 2500;
+}
