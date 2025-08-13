@@ -21,29 +21,32 @@ let vehicleMarkers = {};
 let routeLayers = L.featureGroup();
 let stopsLayer;
 let trackingInterval = null;
+let trackedVehicleId = null;
+let trackedMode = null;
 let vehiclesData = [];
-let selectedStopCoords = null;
-const STOP_FILTER_RADIUS = 500;
-
-// Driver tracking vars
-let currentRole = "";
-let driverId = "";
-let driverMode = "";
+let selectedStopCoords = null; // for stop filtering
+const STOP_FILTER_RADIUS = 500; // meters
 
 // ================== ICON MAP ==================
 const iconMap = {
-  "podapoda": "https://cdn-icons-png.flaticon.com/512/743/743007.png",
-  "taxi": "https://cdn-icons-png.flaticon.com/512/190/190671.png",
-  "keke": "https://cdn-icons-png.flaticon.com/512/2967/2967037.png",
-  "paratransit bus": "https://cdn-icons-png.flaticon.com/512/61/61221.png",
-  "waka fine bus": "https://cdn-icons-png.flaticon.com/512/861/861060.png",
-  "motorbike": "https://cdn-icons-png.flaticon.com/512/4721/4721203.png"
+  "podapoda": "img/podapoda.png", // Your provided podapoda icon
+  "keke": "img/keke.png", // First selected keke icon
+  "taxi": "img/taxi.png", // Second selected taxi icon
+  "paratransit bus": "https://png.pngtree.com/png-clipart/20230925/original/pngtree-public-bus-illustration-png-image_13067476.png", // First bus icon
+  "waka fine bus": "https://png.pngtree.com/png-clipart/20230925/original/pngtree-travel-tour-bus-illustration-png-image_13067477.png", // Third bus icon
+  "motorbike": "https://static.vecteezy.com/system/resources/previews/013/743/488/original/motorcycle-silhouette-clipart-free-png.png" // Fourth motorcycle icon
 };
 
+// ================== HELPERS ==================
 function getIcon(mode) {
   const key = (mode || "podapoda").toLowerCase();
   const url = iconMap[key] || iconMap["podapoda"];
-  return L.icon({ iconUrl: url, iconSize: [30, 30], iconAnchor: [15, 30], popupAnchor: [0, -30] });
+  return L.icon({
+    iconUrl: url,
+    iconSize: [38, 38], // larger for better visibility
+    iconAnchor: [19, 38],
+    popupAnchor: [0, -38]
+  });
 }
 
 function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
@@ -57,13 +60,22 @@ function computeETA(userLat, userLon, vehicleLat, vehicleLon) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const distance = R * c;
   const walkingSpeed = 1.4;
-  return { distance: Math.round(distance), eta: Math.round(distance / walkingSpeed / 60) };
+  return {
+    distance: Math.round(distance),
+    eta: Math.round(distance / walkingSpeed / 60)
+  };
 }
 
-function $id(id) { return document.getElementById(id) || null; }
+function $id(id) {
+  return document.getElementById(id) || null;
+}
+
 function isVehicleNearStop(vehicle) {
-  if (!selectedStopCoords) return true;
-  const { distance } = computeETA(selectedStopCoords.lat, selectedStopCoords.lon, vehicle.lat, vehicle.lon);
+  if (!selectedStopCoords) return true; // no filter
+  const { distance } = computeETA(
+    selectedStopCoords.lat, selectedStopCoords.lon,
+    vehicle.lat, vehicle.lon
+  );
   return distance <= STOP_FILTER_RADIUS;
 }
 
@@ -92,9 +104,15 @@ async function loadRoutes() {
     const geojson = await res.json();
     routeLayers.clearLayers();
     L.geoJSON(geojson, {
-      style: f => ({ color: f.properties?.color || "#3388ff", weight: 5, opacity: 0.7 })
+      style: feature => ({
+        color: feature.properties?.color || "#3388ff",
+        weight: 5,
+        opacity: 0.7
+      })
     }).addTo(routeLayers);
-  } catch (err) { console.error("loadRoutes error:", err); }
+  } catch (err) {
+    console.error("loadRoutes error:", err);
+  }
 }
 
 async function loadStops() {
@@ -105,11 +123,18 @@ async function loadStops() {
 
     if (stopsLayer) stopsLayer.clearLayers();
     stopsLayer = L.geoJSON(geojson, {
-      pointToLayer: (f, latlng) => L.circleMarker(latlng, {
-        radius: 6, fillColor: "#ff0000", color: "#880000", weight: 1, opacity: 1, fillOpacity: 0.8
-      })
+      pointToLayer: (feature, latlng) =>
+        L.circleMarker(latlng, {
+          radius: 6,
+          fillColor: "#ff0000",
+          color: "#880000",
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 0.8
+        })
     }).addTo(map);
 
+    // Populate stop dropdown
     const stopSelect = $id("stopSelect");
     if (stopSelect) {
       stopSelect.innerHTML = `<option value="">-- Select Stop --</option>`;
@@ -125,15 +150,19 @@ async function loadStops() {
             selectedStopCoords = { lat, lon };
             map.setView([lat, lon], 16);
           }
-        } else { selectedStopCoords = null; }
+        } else {
+          selectedStopCoords = null; // reset filter
+        }
         updateSidebarETAs();
         updateSidebarAlerts();
       });
     }
-  } catch (err) { console.error("loadStops error:", err); }
+  } catch (err) {
+    console.error("loadStops error:", err);
+  }
 }
 
-// ================== VEHICLES ==================
+// ================== VEHICLE FETCH & SIDEBAR ==================
 async function fetchVehicles() {
   try {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
@@ -144,16 +173,20 @@ async function fetchVehicles() {
     vehiclesData.forEach(v => {
       if (!v.id || !v.lat || !v.lon) return;
       const icon = getIcon(v.mode);
-      let popup = `<b>Vehicle ID:</b> ${v.id}<br><b>Mode:</b> ${v.mode || "unknown"}`;
+      let popupContent = `<b>Vehicle ID:</b> ${v.id}<br><b>Mode:</b> ${v.mode || "unknown"}`;
       if (userMarker) {
         const uPos = userMarker.getLatLng();
         const { distance, eta } = computeETA(uPos.lat, uPos.lng, v.lat, v.lon);
-        popup += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
+        popupContent += `<br>Distance: ${distance} m<br>ETA: ${eta} min`;
       }
       if (vehicleMarkers[v.id]) {
-        vehicleMarkers[v.id].setLatLng([v.lat, v.lon]).setIcon(icon).setPopupContent(popup);
+        vehicleMarkers[v.id].setLatLng([v.lat, v.lon]);
+        vehicleMarkers[v.id].setIcon(icon);
+        vehicleMarkers[v.id].setPopupContent(popupContent);
       } else {
-        vehicleMarkers[v.id] = L.marker([v.lat, v.lon], { icon }).bindPopup(popup).addTo(map);
+        vehicleMarkers[v.id] = L.marker([v.lat, v.lon], { icon })
+          .bindPopup(popupContent)
+          .addTo(map);
       }
     });
 
@@ -162,7 +195,9 @@ async function fetchVehicles() {
 
     updateSidebarETAs();
     updateSidebarAlerts();
-  } catch (err) { console.error("fetchVehicles error:", err); }
+  } catch (err) {
+    console.error("fetchVehicles error:", err);
+  }
 }
 
 function updateSidebarETAs() {
@@ -171,9 +206,14 @@ function updateSidebarETAs() {
   etaList.innerHTML = "";
 
   let list = vehiclesData;
-  if (selectedStopCoords) list = list.filter(v => isVehicleNearStop(v));
+  if (selectedStopCoords) {
+    list = list.filter(v => isVehicleNearStop(v));
+  }
 
-  if (!list.length) return etaList.innerHTML = "<p>No data available.</p>";
+  if (!list.length) {
+    etaList.innerHTML = "<p>No data available.</p>";
+    return;
+  }
 
   list.forEach(v => {
     const iconURL = iconMap[(v.mode || "podapoda").toLowerCase()] || iconMap["podapoda"];
@@ -185,7 +225,10 @@ function updateSidebarETAs() {
       const { distance, eta } = computeETA(u.lat, u.lng, v.lat, v.lon);
       distanceText = ` — ${distance} m, ETA ~${eta} min`;
     }
-    div.innerHTML = `<img src="${iconURL}" alt="${v.mode}" style="width:18px;height:18px;margin-right:6px;">${v.id} (${v.mode || "unknown"}) ${distanceText}`;
+    div.innerHTML = `
+      <img src="${iconURL}" alt="${v.mode}" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;">
+      ${v.id} (${v.mode || "unknown"}) ${distanceText}
+    `;
     etaList.appendChild(div);
   });
 }
@@ -197,7 +240,9 @@ function updateSidebarAlerts() {
   let found = false;
 
   let list = vehiclesData;
-  if (selectedStopCoords) list = list.filter(v => isVehicleNearStop(v));
+  if (selectedStopCoords) {
+    list = list.filter(v => isVehicleNearStop(v));
+  }
 
   if (userMarker) {
     const u = userMarker.getLatLng();
@@ -212,7 +257,9 @@ function updateSidebarAlerts() {
       }
     });
   }
-  if (!found) alertList.innerHTML = "<p>No nearby vehicles within alert range.</p>";
+  if (!found) {
+    alertList.innerHTML = "<p>No nearby vehicles within alert range.</p>";
+  }
 }
 
 // ================== LOCATE ME ==================
@@ -222,56 +269,27 @@ function addLocateMeButton() {
   locateBtn.addEventListener("click", () => {
     if (!navigator.geolocation) return alert("Geolocation not supported");
     navigator.geolocation.getCurrentPosition(pos => {
-      const lat = pos.coords.latitude, lon = pos.coords.longitude;
-      if (userMarker) userMarker.setLatLng([lat, lon]);
-      else userMarker = L.marker([lat, lon], { icon: L.icon({ iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png", iconSize: [25, 25] }) }).addTo(map);
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      if (userMarker) {
+        userMarker.setLatLng([lat, lon]);
+      } else {
+        userMarker = L.marker([lat, lon], {
+          icon: L.icon({
+            iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+            iconSize: [25, 25]
+          })
+        }).addTo(map);
+      }
       map.setView([lat, lon], 15);
       updateSidebarETAs();
       updateSidebarAlerts();
-    }, err => { console.error("Geolocation error:", err); alert("Unable to retrieve your location."); });
-  });
-}
-
-// ================== DRIVER ROLE HANDLING ==================
-const roleSelect = $id("roleSelect");
-const modeSelectContainer = $id("modeSelectContainer");
-const modeSelect = $id("modeSelect");
-
-if (roleSelect) {
-  roleSelect.addEventListener("change", () => {
-    currentRole = roleSelect.value;
-    if (currentRole === "driver") modeSelectContainer.style.display = "block";
-    else { modeSelectContainer.style.display = "none"; stopDriverTracking(); }
-  });
-}
-
-if (modeSelect) {
-  modeSelect.addEventListener("change", () => {
-    driverMode = modeSelect.value;
-    if (driverMode) {
-      driverId = `${driverMode.replace(/\s+/g, "-")}-${Math.floor(Math.random() * 1000)}`;
-      console.log("Driver ID:", driverId);
-      startDriverTracking();
-    } else stopDriverTracking();
-  });
-}
-
-function startDriverTracking() {
-  if (!driverMode || !driverId) return;
-  if (!navigator.geolocation) return alert("Geolocation not supported");
-
-  trackingInterval = setInterval(() => {
-    navigator.geolocation.getCurrentPosition(pos => {
-      fetch(`${BACKEND_URL}/api/update_vehicle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: driverId, lat: pos.coords.latitude, lon: pos.coords.longitude, mode: driverMode })
-      }).catch(err => console.error("Update failed:", err));
+    }, err => {
+      console.error("Geolocation error:", err);
+      alert("Unable to retrieve your location.");
     });
-  }, 5000);
+  });
 }
-
-function stopDriverTracking() { if (trackingInterval) clearInterval(trackingInterval); }
 
 // ================== INIT ==================
 document.addEventListener("DOMContentLoaded", () => {
@@ -280,5 +298,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const toggleBtn = $id("toggleSidebarBtn");
   const sidebar = $id("sidebar");
-  if (toggleBtn && sidebar) toggleBtn.addEventListener("click", () => { sidebar.classList.toggle("open"); });
+  if (toggleBtn && sidebar) {
+    toggleBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("open");
+    });
+  }
 });
