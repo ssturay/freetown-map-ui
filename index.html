@@ -5,54 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Freetown PT Tracker</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
-<div class="page-container">
-  <header>
-    <h1>🚖 Freetown PT Tracker 🇸🇱</h1>
-    <div>
-      <button id="locateMeBtn">My Location</button>
-      <button id="clearBtn">Clear</button>
-      <button id="toggleSidebarBtn">Menu</button>
+  <div class="page-container">
+
+    <header>
+      <h1>🚖 Freetown PT Tracker 🇸🇱</h1>
+      <div>
+        <button id="locateMeBtn">My Location</button>
+        <button id="clearBtn">Clear</button>
+        <button id="toggleSidebarBtn">Menu</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <!-- Sidebar comes AFTER map in HTML but will overlay on top -->
+      <div id="map"></div>
+
+      <aside id="sidebar" class="sidebar">
+        <h2>Stop Filter</h2>
+        <select id="stopSelect"></select>
+
+        <h3>Estimated Time of Arrival (ETA)</h3>
+        <div id="etaList" class="sidebar-list"></div>
+
+        <h3>Alerts</h3>
+        <div id="alertSidebar" class="sidebar-list"></div>
+
+        <h3>Last Updated:</h3>
+        <p id="lastUpdated"></p>
+      </aside>
     </div>
-  </header>
 
-  <div class="main-content">
-    <aside id="sidebar" class="sidebar">
-      <h2>Settings</h2>
-      <label for="roleSelect">Role:</label>
-      <select id="roleSelect">
-        <option value="passenger">Passenger</option>
-        <option value="driver">Driver</option>
-      </select>
-
-      <label for="stopSelect">Stop:</label>
-      <select id="stopSelect">
-        <option value="">-- Select Stop --</option>
-        <option value="Stop A">Stop A</option>
-        <option value="Stop B">Stop B</option>
-        <option value="Stop C">Stop C</option>
-      </select>
-
-      <button id="shareLocationBtn" class="floating-btn">Share My Location</button>
-
-      <h3>Live ETAs</h3>
-      <div id="etaList" class="sidebar-list"></div>
-
-      <h3>Alerts</h3>
-      <div id="alertSidebar" class="sidebar-list"></div>
-    </aside>
-
-    <div id="map"></div>
+    <footer>
+      <span id="footerTime"></span>
+    </footer>
   </div>
 
-  <footer>
-    <span id="lastUpdated">Last updated: --</span>
-  </footer>
-</div>
-
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="script.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="script.js"></script>
+  <script>
+    setInterval(() => {
+      document.getElementById("footerTime").textContent =
+        new Date().toLocaleTimeString();
+    }, 1000);
+  </script>
 </body>
 </html>
