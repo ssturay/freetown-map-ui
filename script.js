@@ -297,7 +297,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!promptLogin()) return;
   initMap();
 
-  // Sidebar toggle — now with body class for CSS control
+  // Sidebar toggle
   const toggleBtn = $id("toggleSidebarBtn");
   const sidebar = $id("sidebar");
   if (toggleBtn && sidebar) {
