@@ -26,6 +26,7 @@ let trackedMode = null;
 let vehiclesData = [];
 let selectedStopCoords = null; // for stop filtering
 const STOP_FILTER_RADIUS = 500; // meters
+let currentRole = "";
 
 // ================== ICON MAP ==================
 const iconMap = {
@@ -165,12 +166,12 @@ async function loadStops() {
 // ================== VEHICLE FETCH & SIDEBAR ==================
 async function fetchVehicles() {
   try {
+    if (currentRole === "driver") return; // don't fetch if driver mode
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
     if (!res.ok) throw new Error("Failed to fetch vehicles");
     const payload = await res.json();
     vehiclesData = Array.isArray(payload.vehicles) ? payload.vehicles : [];
 
-    // update or create markers
     vehiclesData.forEach(v => {
       if (!v.id || !v.lat || !v.lon) return;
       const icon = getIcon(v.mode);
@@ -204,6 +205,10 @@ async function fetchVehicles() {
 function updateSidebarETAs() {
   const etaList = $id("etaList");
   if (!etaList) return;
+  if (currentRole === "driver") {
+    etaList.innerHTML = "<p>Driver mode active — ETA list hidden.</p>";
+    return;
+  }
   etaList.innerHTML = "";
 
   let list = vehiclesData;
@@ -237,6 +242,10 @@ function updateSidebarETAs() {
 function updateSidebarAlerts() {
   const alertList = $id("alertSidebar");
   if (!alertList) return;
+  if (currentRole === "driver") {
+    alertList.innerHTML = "<p>Driver mode active — Alerts hidden.</p>";
+    return;
+  }
   alertList.innerHTML = "";
   let found = false;
 
@@ -261,6 +270,29 @@ function updateSidebarAlerts() {
   if (!found) {
     alertList.innerHTML = "<p>No nearby vehicles within alert range.</p>";
   }
+}
+
+// ================== DRIVER MODE LOCATION SENDING ==================
+function startDriverTracking() {
+  if (!navigator.geolocation) return alert("Geolocation not supported");
+  trackingInterval = setInterval(() => {
+    navigator.geolocation.getCurrentPosition(pos => {
+      fetch(`${BACKEND_URL}/api/update_vehicle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "driver123", // temporary fixed ID
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          mode: "podapoda"
+        })
+      }).catch(err => console.error("Update failed:", err));
+    });
+  }, 5000); // send every 5 seconds
+}
+
+function stopDriverTracking() {
+  if (trackingInterval) clearInterval(trackingInterval);
 }
 
 // ================== LOCATE ME ==================
@@ -303,7 +335,21 @@ document.addEventListener("DOMContentLoaded", () => {
   if (toggleBtn && sidebar) {
     toggleBtn.addEventListener("click", () => {
       sidebar.classList.toggle("open");
-      document.body.classList.toggle("menu-open", sidebar.classList.contains("open"));
+    });
+  }
+
+  // Role change
+  const roleSelect = $id("roleSelect");
+  if (roleSelect) {
+    roleSelect.addEventListener("change", () => {
+      currentRole = roleSelect.value;
+      if (currentRole === "driver") {
+        startDriverTracking();
+      } else {
+        stopDriverTracking();
+      }
+      updateSidebarETAs();
+      updateSidebarAlerts();
     });
   }
 });
