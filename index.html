@@ -20,17 +20,28 @@
     </header>
 
     <div class="main-content">
-      <!-- Sidebar comes AFTER map in HTML but will overlay on top -->
       <div id="map"></div>
 
       <aside id="sidebar" class="sidebar">
-        
         <h2>Role</h2>
         <select id="roleSelect">
           <option value="">-- Select Role --</option>
           <option value="passenger">Passenger</option>
           <option value="driver">Driver</option>
         </select>
+
+        <div id="modeSelectContainer" style="display:none;">
+          <h2>Vehicle Type</h2>
+          <select id="modeSelect">
+            <option value="">-- Select Mode --</option>
+            <option value="podapoda">Podapoda</option>
+            <option value="taxi">Taxi</option>
+            <option value="keke">Keke</option>
+            <option value="paratransit bus">Paratransit Bus</option>
+            <option value="waka fine bus">Waka Fine Bus</option>
+            <option value="motorbike">Motorbike</option>
+          </select>
+        </div>
 
         <h2>Stop Filter</h2>
         <select id="stopSelect"></select>
