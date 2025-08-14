@@ -22,7 +22,7 @@ let vehiclesData = [];
 let selectedStopCoords = null;
 const STOP_FILTER_RADIUS = 500;
 let stopsGeoJSON = null;
-let selectedStopMarker = null; // <-- for stop popup marker
+let selectedStopMarker = null; // for stop popup marker
 
 // ================== ICONS ==================
 const iconMap = {
@@ -34,8 +34,12 @@ const iconMap = {
   "motorbike": "assets/icons/motorbike.png"
 };
 function getIcon(mode) {
+  let key = (mode || "").toLowerCase().trim();
+  if (key.endsWith(" driver")) {
+    key = key.replace(" driver", "").trim();
+  }
   return L.icon({
-    iconUrl: iconMap[(mode || "").toLowerCase()] || iconMap["podapoda"],
+    iconUrl: iconMap[key] || iconMap["podapoda"],
     iconSize: [32, 32],
     iconAnchor: [16, 32]
   });
@@ -69,7 +73,7 @@ function initMap() {
   setInterval(fetchVehicles, 2000);
 }
 
-// ================== LOAD DATA ==================
+// ================== LOAD ROUTES ==================
 async function loadRoutes(){
   try {
     const res = await fetch("data/routes.geojson");
@@ -98,25 +102,19 @@ async function loadStops(){
           fillOpacity: 0.8
         });
 
-        // Bind popup
         marker.bindPopup(`<b>${feature.properties.name}</b>`);
 
-        // Click to select stop
         marker.on("click", () => {
           const [lon, lat] = feature.geometry.coordinates;
           selectedStopCoords = { lat, lon };
 
-          // Remove old marker
           if (selectedStopMarker) map.removeLayer(selectedStopMarker);
 
-          // Add new popup marker
           selectedStopMarker = L.marker([lat, lon]).addTo(map);
           selectedStopMarker.bindPopup(`<b>${feature.properties.name}</b>`).openPopup();
 
-          // Center map
           map.setView([lat, lon], 16);
 
-          // Sync dropdown
           $id("stopSelect").value = feature.properties.name;
 
           updateETAs();
@@ -127,14 +125,12 @@ async function loadStops(){
       }
     }).addTo(map);
 
-    // Populate stop dropdown
     const stopSelect = $id("stopSelect");
     stopSelect.innerHTML = `<option value="">-- Select Stop --</option>`;
     stopsGeoJSON.features.forEach(f => {
       stopSelect.innerHTML += `<option value="${f.properties.name}">${f.properties.name}</option>`;
     });
 
-    // Dropdown change event
     stopSelect.addEventListener("change", () => {
       const val = stopSelect.value;
       if (val){
@@ -142,10 +138,8 @@ async function loadStops(){
         const [lon, lat] = f.geometry.coordinates;
         selectedStopCoords = { lat, lon };
 
-        // Remove old marker
         if (selectedStopMarker) map.removeLayer(selectedStopMarker);
 
-        // Add new popup marker
         selectedStopMarker = L.marker([lat, lon]).addTo(map);
         selectedStopMarker.bindPopup(`<b>${f.properties.name}</b>`).openPopup();
 
@@ -216,7 +210,7 @@ function updateETAs(){
   }
   list.forEach(v=>{
     const {distance,eta} = userMarker ? computeETA(userMarker.getLatLng().lat,userMarker.getLatLng().lng,v.lat,v.lon) : {distance:"?",eta:"?"};
-    el.innerHTML += `<div><img src="${iconMap[v.mode.toLowerCase()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">${v.id} (${v.mode}) — ${distance} m, ETA ~${eta} min</div>`;
+    el.innerHTML += `<div><img src="${iconMap[(v.mode || "").toLowerCase().replace(' driver','').trim()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">${v.id} (${v.mode}) — ${distance} m, ETA ~${eta} min</div>`;
   });
 }
 function updateAlerts(){
