@@ -22,6 +22,7 @@ let vehiclesData = [];
 let selectedStopCoords = null;
 const STOP_FILTER_RADIUS = 500;
 let stopsGeoJSON = null;
+let selectedStopMarker = null; // marker for selected stop
 
 // ================== ICONS ==================
 const iconMap = {
@@ -78,27 +79,67 @@ async function loadRoutes(){
     L.geoJSON(geo, { style:{ color:"#3388ff", weight:5, opacity:0.7 } }).addTo(routeLayers);
   } catch(e){console.error(e)}
 }
+
 async function loadStops(){
   try {
     const res = await fetch("data/stops.geojson");
     stopsGeoJSON = await res.json();
+
     if (stopsLayer) stopsLayer.clearLayers();
+
     stopsLayer = L.geoJSON(stopsGeoJSON, {
-      pointToLayer:(_,latlng)=>L.circleMarker(latlng,{radius:6,fillColor:"#f00",color:"#800",weight:1,fillOpacity:0.8})
+      pointToLayer: (_, latlng) =>
+        L.circleMarker(latlng, { radius: 6, fillColor: "#f00", color: "#800", weight: 1, fillOpacity: 0.8 }),
+      onEachFeature: (feature, layer) => {
+        layer.on("click", () => {
+          const [lon, lat] = feature.geometry.coordinates;
+          selectedStopCoords = { lat, lon };
+
+          if (selectedStopMarker) map.removeLayer(selectedStopMarker);
+
+          selectedStopMarker = L.marker([lat, lon])
+            .addTo(map)
+            .bindPopup(`<b>${feature.properties.name}</b>`)
+            .openPopup();
+
+          map.setView([lat, lon], 16);
+          $id("stopSelect").value = feature.properties.name;
+
+          updateETAs();
+          updateAlerts();
+        });
+      }
     }).addTo(map);
+
     const stopSelect = $id("stopSelect");
     stopSelect.innerHTML = `<option value="">-- Select Stop --</option>`;
     stopsGeoJSON.features.forEach(f=>{
       stopSelect.innerHTML += `<option value="${f.properties.name}">${f.properties.name}</option>`;
     });
-    stopSelect.addEventListener("change",()=>{
+
+    stopSelect.addEventListener("change", () => {
       const val = stopSelect.value;
       if (val){
-        const f = stopsGeoJSON.features.find(x=>x.properties.name===val);
-        const [lon,lat] = f.geometry.coordinates;
-        selectedStopCoords = {lat,lon};
-        map.setView([lat,lon],16);
-      } else selectedStopCoords = null;
+        const f = stopsGeoJSON.features.find(x => x.properties.name === val);
+        const [lon, lat] = f.geometry.coordinates;
+        selectedStopCoords = { lat, lon };
+        map.setView([lat, lon], 16);
+
+        if (selectedStopMarker) map.removeLayer(selectedStopMarker);
+
+        selectedStopMarker = L.marker([lat, lon])
+          .addTo(map)
+          .bindPopup(`<b>${f.properties.name}</b>`)
+          .openPopup();
+      } else {
+        selectedStopCoords = null;
+        if (selectedStopMarker) {
+          map.removeLayer(selectedStopMarker);
+          selectedStopMarker = null;
+        }
+      }
+      updateETAs();
+      updateAlerts();
     });
   } catch(e){console.error(e)}
 }
@@ -109,6 +150,7 @@ async function fetchVehicles(){
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
     const payload = await res.json();
     vehiclesData = payload.vehicles || [];
+
     vehiclesData.forEach(v=>{
       if (!v.lat||!v.lon) return;
       let icon = getIcon(v.mode);
@@ -123,6 +165,7 @@ async function fetchVehicles(){
         vehicleMarkers[v.id] = L.marker([v.lat,v.lon],{icon}).bindPopup(content).addTo(map);
       }
     });
+
     autoTrackNearestVehicle();
     updateETAs();
     updateAlerts();
@@ -199,6 +242,14 @@ function snapToNearestStop(lat,lon){
     const [slon,slat] = nearest.geometry.coordinates;
     selectedStopCoords = {lat:slat,lon:slon};
     $id("stopSelect").value = nearest.properties.name;
+
+    if (selectedStopMarker) map.removeLayer(selectedStopMarker);
+
+    selectedStopMarker = L.marker([slat, slon])
+      .addTo(map)
+      .bindPopup(`<b>${nearest.properties.name}</b>`)
+      .openPopup();
+
     map.setView([slat,slon],16);
   }
 }
