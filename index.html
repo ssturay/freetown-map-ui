@@ -23,28 +23,35 @@
       <div id="map"></div>
 
       <aside id="sidebar" class="sidebar">
+        <h2>Stop Filter</h2>
+        <select id="stopSelect"></select>
+
         <h2>Role</h2>
         <select id="roleSelect">
           <option value="">-- Select Role --</option>
           <option value="passenger">Passenger</option>
-          <option value="driver">Driver</option>
+          <option value="driver_podapoda">Driver - Podapoda</option>
+          <option value="driver_keke">Driver - Keke</option>
+          <option value="driver_taxi">Driver - Taxi</option>
+          <option value="driver_paratransit_bus">Driver - Paratransit Bus</option>
+          <option value="driver_waka_fine_bus">Driver - Waka Fine Bus</option>
+          <option value="driver_motorbike">Driver - Motorbike</option>
         </select>
 
-        <div id="modeSelectContainer" style="display:none;">
-          <h2>Vehicle Type</h2>
+        <div id="driverInputs" style="display:none;">
+          <label for="vehicleId">Vehicle ID:</label>
+          <input type="text" id="vehicleId" placeholder="Enter vehicle ID" />
+          <label for="modeSelect">Mode of Transport:</label>
           <select id="modeSelect">
-            <option value="">-- Select Mode --</option>
             <option value="podapoda">Podapoda</option>
-            <option value="taxi">Taxi</option>
             <option value="keke">Keke</option>
+            <option value="taxi">Taxi</option>
             <option value="paratransit bus">Paratransit Bus</option>
             <option value="waka fine bus">Waka Fine Bus</option>
             <option value="motorbike">Motorbike</option>
           </select>
+          <button id="startTrackingBtn">Start Tracking</button>
         </div>
-
-        <h2>Stop Filter</h2>
-        <select id="stopSelect"></select>
 
         <h3>Estimated Time of Arrival (ETA)</h3>
         <div id="etaList" class="sidebar-list"></div>
