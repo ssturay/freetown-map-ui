@@ -24,17 +24,19 @@ let trackingInterval = null;
 let trackedVehicleId = null;
 let trackedMode = null;
 let vehiclesData = [];
+let stopsData = [];
 let selectedStopCoords = null;
 const STOP_FILTER_RADIUS = 500; // meters
+const SNAP_RADIUS = 50; // meters for snapping location to stop
 
-// ================== ICON MAP (Local) ==================
+// ================== ICON MAP ==================
 const iconMap = {
-  "podapoda": "/assets/icons/podapoda.png",
-  "keke": "/assets/icons/keke.png",
-  "taxi": "/assets/icons/taxi.png",
-  "paratransit bus": "/assets/icons/paratransit_bus.png",
-  "waka fine bus": "/assets/icons/waka_fine_bus.png",
-  "motorbike": "/assets/icons/motorbike.png"
+  "podapoda": "assets/icons/podapoda.png",
+  "keke": "assets/icons/keke.png",
+  "taxi": "assets/icons/taxi.png",
+  "paratransit bus": "assets/icons/paratransit_bus.png",
+  "waka fine bus": "assets/icons/waka_fine_bus.png",
+  "motorbike": "assets/icons/motorbike.png"
 };
 
 // ================== HELPERS ==================
@@ -43,9 +45,9 @@ function getIcon(mode) {
   const url = iconMap[key] || iconMap["podapoda"];
   return L.icon({
     iconUrl: url,
-    iconSize: [35, 35],
-    iconAnchor: [17, 35],
-    popupAnchor: [0, -35]
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30]
   });
 }
 
@@ -77,6 +79,19 @@ function isVehicleNearStop(vehicle) {
     vehicle.lat, vehicle.lon
   );
   return distance <= STOP_FILTER_RADIUS;
+}
+
+function findNearestStop(lat, lon) {
+  let nearest = null;
+  let minDist = Infinity;
+  stopsData.forEach(stop => {
+    const { distance } = computeETA(lat, lon, stop.lat, stop.lon);
+    if (distance < minDist) {
+      minDist = distance;
+      nearest = stop;
+    }
+  });
+  return (minDist <= SNAP_RADIUS) ? nearest : null;
 }
 
 // ================== MAP INIT ==================
@@ -121,6 +136,12 @@ async function loadStops() {
     if (!res.ok) throw new Error("Stops fetch failed.");
     const geojson = await res.json();
 
+    stopsData = geojson.features.map(f => ({
+      name: f.properties.name,
+      lat: f.geometry.coordinates[1],
+      lon: f.geometry.coordinates[0]
+    }));
+
     if (stopsLayer) stopsLayer.clearLayers();
     stopsLayer = L.geoJSON(geojson, {
       pointToLayer: (feature, latlng) =>
@@ -137,18 +158,15 @@ async function loadStops() {
     const stopSelect = $id("stopSelect");
     if (stopSelect) {
       stopSelect.innerHTML = `<option value="">-- Select Stop --</option>`;
-      geojson.features.forEach(f => {
-        stopSelect.innerHTML += `<option value="${f.properties.name}">${f.properties.name}</option>`;
+      stopsData.forEach(stop => {
+        stopSelect.innerHTML += `<option value="${stop.name}">${stop.name}</option>`;
       });
       stopSelect.addEventListener("change", () => {
         const selectedStop = stopSelect.value;
         if (selectedStop) {
-          const feature = geojson.features.find(f => f.properties.name === selectedStop);
-          if (feature) {
-            const [lon, lat] = feature.geometry.coordinates;
-            selectedStopCoords = { lat, lon };
-            map.setView([lat, lon], 16);
-          }
+          const stopObj = stopsData.find(s => s.name === selectedStop);
+          selectedStopCoords = { lat: stopObj.lat, lon: stopObj.lon };
+          map.setView([stopObj.lat, stopObj.lon], 16);
         } else {
           selectedStopCoords = null;
         }
@@ -161,7 +179,7 @@ async function loadStops() {
   }
 }
 
-// ================== VEHICLE FETCH & SIDEBAR ==================
+// ================== VEHICLE FETCH ==================
 async function fetchVehicles() {
   try {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
@@ -199,6 +217,7 @@ async function fetchVehicles() {
   }
 }
 
+// ================== SIDEBAR UPDATES ==================
 function updateSidebarETAs() {
   const etaList = $id("etaList");
   if (!etaList) return;
@@ -270,17 +289,25 @@ function addLocateMeButton() {
     navigator.geolocation.getCurrentPosition(pos => {
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
+
+      const nearestStop = findNearestStop(lat, lon);
+      if (nearestStop) {
+        selectedStopCoords = { lat: nearestStop.lat, lon: nearestStop.lon };
+        const stopSelect = $id("stopSelect");
+        if (stopSelect) stopSelect.value = nearestStop.name;
+        map.setView([nearestStop.lat, nearestStop.lon], 16);
+      }
+
       if (userMarker) {
         userMarker.setLatLng([lat, lon]);
       } else {
         userMarker = L.marker([lat, lon], {
           icon: L.icon({
-            iconUrl: "/assets/icons/my_location.png",
+            iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
             iconSize: [25, 25]
           })
         }).addTo(map);
       }
-      map.setView([lat, lon], 15);
       updateSidebarETAs();
       updateSidebarAlerts();
     }, err => {
