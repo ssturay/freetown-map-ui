@@ -20,32 +20,37 @@
     </header>
 
     <div class="main-content">
+      <!-- Map -->
       <div id="map"></div>
 
+      <!-- Sidebar -->
       <aside id="sidebar" class="sidebar">
+        
+        <!-- Role Selection -->
         <h2>Role</h2>
-        <select id="roleSelect">
-          <option value="">-- Select Role --</option>
-          <option value="passenger">Passenger</option>
-          <option value="podapoda">Podapoda Driver</option>
-          <option value="keke">Keke Driver</option>
-          <option value="taxi">Taxi Driver</option>
-          <option value="paratransit bus">Paratransit Bus Driver</option>
-          <option value="waka fine bus">Waka Fine Bus Driver</option>
-          <option value="motorbike">Motorbike Driver</option>
-        </select>
-
-        <div id="driverOptions" style="display:none;">
-          <input type="text" id="vehicleId" placeholder="Vehicle ID (optional)">
-          <button id="startTrackingBtn">Start Tracking</button>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <img id="roleIcon" src="https://cdn-icons-png.flaticon.com/512/1077/1077012.png" 
+               alt="Role Icon" style="width: 24px; height: 24px;">
+          <select id="roleSelect">
+            <option value="Passenger">Passenger</option>
+            <option value="Podapoda Driver">Podapoda Driver</option>
+            <option value="Keke Driver">Keke Driver</option>
+            <option value="Taxi Driver">Taxi Driver</option>
+            <option value="Paratransit Bus Driver">Paratransit Bus Driver</option>
+            <option value="Waka Fine Bus Driver">Waka Fine Bus Driver</option>
+            <option value="Motorbike Driver">Motorbike Driver</option>
+          </select>
         </div>
 
+        <!-- Stop Filter -->
         <h2>Stop Filter</h2>
         <select id="stopSelect"></select>
 
+        <!-- ETA -->
         <h3>Estimated Time of Arrival (ETA)</h3>
         <div id="etaList" class="sidebar-list"></div>
 
+        <!-- Alerts -->
         <h3>Alerts</h3>
         <div id="alertSidebar" class="sidebar-list"></div>
 
