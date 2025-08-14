@@ -6,6 +6,15 @@
   <title>Freetown PT Tracker</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    /* Allow background images in select options */
+    #roleSelect option {
+      padding-left: 28px;
+      background-repeat: no-repeat;
+      background-position: 5px center;
+      background-size: 20px 20px;
+    }
+  </style>
 </head>
 <body>
   <div class="page-container">
@@ -32,13 +41,13 @@
           <img id="roleIcon" src="https://cdn-icons-png.flaticon.com/512/1077/1077012.png" 
                alt="Role Icon" style="width: 24px; height: 24px;">
           <select id="roleSelect">
-            <option value="Passenger">Passenger</option>
-            <option value="Podapoda Driver">Podapoda Driver</option>
-            <option value="Keke Driver">Keke Driver</option>
-            <option value="Taxi Driver">Taxi Driver</option>
-            <option value="Paratransit Bus Driver">Paratransit Bus Driver</option>
-            <option value="Waka Fine Bus Driver">Waka Fine Bus Driver</option>
-            <option value="Motorbike Driver">Motorbike Driver</option>
+            <option value="Passenger" style="background-image: url('https://cdn-icons-png.flaticon.com/512/1077/1077012.png');">Passenger</option>
+            <option value="Podapoda Driver" style="background-image: url('assets/icons/podapoda.png');">Podapoda Driver</option>
+            <option value="Keke Driver" style="background-image: url('assets/icons/keke.png');">Keke Driver</option>
+            <option value="Taxi Driver" style="background-image: url('assets/icons/taxi.png');">Taxi Driver</option>
+            <option value="Paratransit Bus Driver" style="background-image: url('assets/icons/paratransit_bus.png');">Paratransit Bus Driver</option>
+            <option value="Waka Fine Bus Driver" style="background-image: url('assets/icons/waka_fine_bus.png');">Waka Fine Bus Driver</option>
+            <option value="Motorbike Driver" style="background-image: url('assets/icons/motorbike.png');">Motorbike Driver</option>
           </select>
         </div>
 
@@ -71,6 +80,15 @@
       document.getElementById("footerTime").textContent =
         new Date().toLocaleTimeString();
     }, 1000);
+
+    // Update role icon dynamically
+    const roleSelect = document.getElementById("roleSelect");
+    const roleIcon = document.getElementById("roleIcon");
+    roleSelect.addEventListener("change", () => {
+      const selectedOption = roleSelect.options[roleSelect.selectedIndex];
+      const bgImg = selectedOption.style.backgroundImage.replace(/url\(["']?|["']?\)/g, "");
+      if (bgImg) roleIcon.src = bgImg;
+    });
   </script>
 </body>
 </html>
