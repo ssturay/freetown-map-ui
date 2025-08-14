@@ -49,6 +49,7 @@ header button:hover {
   flex: 1;
   display: flex;
   overflow: hidden;
+  position: relative;
 }
 
 #map {
@@ -107,10 +108,8 @@ footer {
   background-color: #009688;
 }
 
+/* Mobile overlay for sidebar */
 @media (max-width: 768px) {
-  .main-content {
-    position: relative;
-  }
   .sidebar {
     position: absolute;
     left: 0;
