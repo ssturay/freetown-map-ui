@@ -24,17 +24,17 @@ let trackingInterval = null;
 let trackedVehicleId = null;
 let trackedMode = null;
 let vehiclesData = [];
-let selectedStopCoords = null; // for stop filtering
+let selectedStopCoords = null;
 const STOP_FILTER_RADIUS = 500; // meters
 
-// ================== ICON MAP ==================
+// ================== ICON MAP (Local) ==================
 const iconMap = {
-  "podapoda": "img/podapoda.png", // Your provided podapoda icon
-  "keke": "img/keke.png", // First selected keke icon
-  "taxi": "img/taxi.png", // Second selected taxi icon
-  "paratransit bus": "https://png.pngtree.com/png-clipart/20230925/original/pngtree-public-bus-illustration-png-image_13067476.png", // First bus icon
-  "waka fine bus": "https://png.pngtree.com/png-clipart/20230925/original/pngtree-travel-tour-bus-illustration-png-image_13067477.png", // Third bus icon
-  "motorbike": "https://static.vecteezy.com/system/resources/previews/013/743/488/original/motorcycle-silhouette-clipart-free-png.png" // Fourth motorcycle icon
+  "podapoda": "/assets/icons/podapoda.png",
+  "keke": "/assets/icons/keke.png",
+  "taxi": "/assets/icons/taxi.png",
+  "paratransit bus": "/assets/icons/paratransit_bus.png",
+  "waka fine bus": "/assets/icons/waka_fine_bus.png",
+  "motorbike": "/assets/icons/motorbike.png"
 };
 
 // ================== HELPERS ==================
@@ -43,9 +43,9 @@ function getIcon(mode) {
   const url = iconMap[key] || iconMap["podapoda"];
   return L.icon({
     iconUrl: url,
-    iconSize: [38, 38], // larger for better visibility
-    iconAnchor: [19, 38],
-    popupAnchor: [0, -38]
+    iconSize: [35, 35],
+    iconAnchor: [17, 35],
+    popupAnchor: [0, -35]
   });
 }
 
@@ -71,7 +71,7 @@ function $id(id) {
 }
 
 function isVehicleNearStop(vehicle) {
-  if (!selectedStopCoords) return true; // no filter
+  if (!selectedStopCoords) return true;
   const { distance } = computeETA(
     selectedStopCoords.lat, selectedStopCoords.lon,
     vehicle.lat, vehicle.lon
@@ -134,7 +134,6 @@ async function loadStops() {
         })
     }).addTo(map);
 
-    // Populate stop dropdown
     const stopSelect = $id("stopSelect");
     if (stopSelect) {
       stopSelect.innerHTML = `<option value="">-- Select Stop --</option>`;
@@ -151,7 +150,7 @@ async function loadStops() {
             map.setView([lat, lon], 16);
           }
         } else {
-          selectedStopCoords = null; // reset filter
+          selectedStopCoords = null;
         }
         updateSidebarETAs();
         updateSidebarAlerts();
@@ -226,7 +225,7 @@ function updateSidebarETAs() {
       distanceText = ` — ${distance} m, ETA ~${eta} min`;
     }
     div.innerHTML = `
-      <img src="${iconURL}" alt="${v.mode}" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;">
+      <img src="${iconURL}" alt="${v.mode}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">
       ${v.id} (${v.mode || "unknown"}) ${distanceText}
     `;
     etaList.appendChild(div);
@@ -276,7 +275,7 @@ function addLocateMeButton() {
       } else {
         userMarker = L.marker([lat, lon], {
           icon: L.icon({
-            iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+            iconUrl: "/assets/icons/my_location.png",
             iconSize: [25, 25]
           })
         }).addTo(map);
