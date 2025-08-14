@@ -1,11 +1,9 @@
-// ================== LOGIN PROMPT ==================
+// ================== LOGIN ==================
 function promptLogin() {
   if (localStorage.getItem("loggedIn") === "true") return true;
   const username = prompt("Enter username:");
   const password = prompt("Enter password:");
-  const VALID_USERNAME = "admin";
-  const VALID_PASSWORD = "mypassword";
-  if (username !== VALID_USERNAME || password !== VALID_PASSWORD) {
+  if (username !== "admin" || password !== "mypassword") {
     alert("Access denied");
     document.body.innerHTML = "<h2 style='text-align:center; padding: 2rem;'>Access Denied</h2>";
     return false;
@@ -20,12 +18,12 @@ let map, userMarker = null;
 let vehicleMarkers = {};
 let routeLayers = L.featureGroup();
 let stopsLayer;
-let selectedStopCoords = null;
-const STOP_FILTER_RADIUS = 800; // meters
 let vehiclesData = [];
-let trackedVehicleId = null;
+let selectedStopCoords = null;
+const STOP_FILTER_RADIUS = 500;
+let stopsGeoJSON = null;
 
-// ================== ICON MAP ==================
+// ================== ICONS ==================
 const iconMap = {
   "podapoda": "assets/icons/podapoda.png",
   "keke": "assets/icons/keke.png",
@@ -34,273 +32,182 @@ const iconMap = {
   "waka fine bus": "assets/icons/waka_fine_bus.png",
   "motorbike": "assets/icons/motorbike.png"
 };
-
-// ================== HELPERS ==================
 function getIcon(mode) {
-  const key = (mode || "podapoda").toLowerCase();
-  const url = iconMap[key] || iconMap["podapoda"];
   return L.icon({
-    iconUrl: url,
-    iconSize: [35, 35],
-    iconAnchor: [17, 35],
-    popupAnchor: [0, -35]
+    iconUrl: iconMap[(mode || "").toLowerCase()] || iconMap["podapoda"],
+    iconSize: [32, 32],
+    iconAnchor: [16, 32]
   });
 }
 
+// ================== HELPERS ==================
 function computeETA(lat1, lon1, lat2, lon2) {
   const R = 6371e3;
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(Δφ / 2) ** 2 +
-            Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  const walkingSpeed = 1.4;
-  return {
-    distance: Math.round(distance),
-    eta: Math.round(distance / walkingSpeed / 60)
-  };
+  const φ1 = lat1 * Math.PI/180;
+  const φ2 = lat2 * Math.PI/180;
+  const Δφ = (lat2-lat1) * Math.PI/180;
+  const Δλ = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(Δφ/2)**2 +
+            Math.cos(φ1)*Math.cos(φ2) *
+            Math.sin(Δλ/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const d = R * c;
+  return { distance: Math.round(d), eta: Math.round(d / 1.4 / 60) };
 }
-
-function $id(id) {
-  return document.getElementById(id) || null;
-}
-
-function isVehicleNearStop(vehicle) {
-  if (!selectedStopCoords) return true;
-  const { distance } = computeETA(
-    selectedStopCoords.lat, selectedStopCoords.lon,
-    vehicle.lat, vehicle.lon
-  );
-  return distance <= STOP_FILTER_RADIUS;
-}
+function $id(id){return document.getElementById(id)}
 
 // ================== MAP INIT ==================
 function initMap() {
   map = L.map("map").setView([8.48, -13.22], 12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap contributors",
-    maxZoom: 19
-  }).addTo(map);
-
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
   routeLayers.addTo(map);
   loadRoutes();
   loadStops();
   addLocateMeButton();
-
   fetchVehicles();
   setInterval(fetchVehicles, 2000);
 }
 
-// ================== ROUTES & STOPS ==================
-async function loadRoutes() {
+// ================== LOAD DATA ==================
+async function loadRoutes(){
   try {
     const res = await fetch("data/routes.geojson");
-    if (!res.ok) throw new Error("Routes fetch failed.");
-    const geojson = await res.json();
+    if (!res.ok) throw new Error();
+    const geo = await res.json();
     routeLayers.clearLayers();
-    L.geoJSON(geojson, {
-      style: feature => ({
-        color: feature.properties?.color || "#3388ff",
-        weight: 5,
-        opacity: 0.7
-      })
-    }).addTo(routeLayers);
-  } catch (err) {
-    console.error("loadRoutes error:", err);
-  }
+    L.geoJSON(geo, { style:{ color:"#3388ff", weight:5, opacity:0.7 } }).addTo(routeLayers);
+  } catch(e){console.error(e)}
 }
-
-async function loadStops() {
+async function loadStops(){
   try {
     const res = await fetch("data/stops.geojson");
-    if (!res.ok) throw new Error("Stops fetch failed.");
-    const geojson = await res.json();
-
+    stopsGeoJSON = await res.json();
     if (stopsLayer) stopsLayer.clearLayers();
-    stopsLayer = L.geoJSON(geojson, {
-      pointToLayer: (feature, latlng) =>
-        L.circleMarker(latlng, {
-          radius: 6,
-          fillColor: "#ff0000",
-          color: "#880000",
-          weight: 1,
-          opacity: 1,
-          fillOpacity: 0.8
-        })
+    stopsLayer = L.geoJSON(stopsGeoJSON, {
+      pointToLayer:(_,latlng)=>L.circleMarker(latlng,{radius:6,fillColor:"#f00",color:"#800",weight:1,fillOpacity:0.8})
     }).addTo(map);
-
     const stopSelect = $id("stopSelect");
-    if (stopSelect) {
-      stopSelect.innerHTML = `<option value="">-- Select Stop --</option>`;
-      geojson.features.forEach(f => {
-        stopSelect.innerHTML += `<option value="${f.properties.name}">${f.properties.name}</option>`;
-      });
-      stopSelect.addEventListener("change", () => {
-        const selectedStop = stopSelect.value;
-        if (selectedStop) {
-          const feature = geojson.features.find(f => f.properties.name === selectedStop);
-          if (feature) {
-            const [lon, lat] = feature.geometry.coordinates;
-            selectedStopCoords = { lat, lon };
-            map.setView([lat, lon], 16);
-            autoTrackNearestVehicle();
-          }
-        } else {
-          selectedStopCoords = null;
-          trackedVehicleId = null;
-        }
-      });
-    }
-  } catch (err) {
-    console.error("loadStops error:", err);
-  }
+    stopSelect.innerHTML = `<option value="">-- Select Stop --</option>`;
+    stopsGeoJSON.features.forEach(f=>{
+      stopSelect.innerHTML += `<option value="${f.properties.name}">${f.properties.name}</option>`;
+    });
+    stopSelect.addEventListener("change",()=>{
+      const val = stopSelect.value;
+      if (val){
+        const f = stopsGeoJSON.features.find(x=>x.properties.name===val);
+        const [lon,lat] = f.geometry.coordinates;
+        selectedStopCoords = {lat,lon};
+        map.setView([lat,lon],16);
+      } else selectedStopCoords = null;
+    });
+  } catch(e){console.error(e)}
 }
 
-// ================== VEHICLE FETCH & AUTO-TRACK ==================
-async function fetchVehicles() {
+// ================== FETCH VEHICLES ==================
+async function fetchVehicles(){
   try {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
-    if (!res.ok) throw new Error("Failed to fetch vehicles");
     const payload = await res.json();
-    vehiclesData = Array.isArray(payload.vehicles) ? payload.vehicles : [];
-
-    vehiclesData.forEach(v => {
-      if (!v.id || !v.lat || !v.lon) return;
-      const icon = getIcon(v.mode);
-      if (vehicleMarkers[v.id]) {
-        vehicleMarkers[v.id].setLatLng([v.lat, v.lon]).setIcon(icon);
+    vehiclesData = payload.vehicles || [];
+    vehiclesData.forEach(v=>{
+      if (!v.lat||!v.lon) return;
+      let icon = getIcon(v.mode);
+      let content = `<b>${v.id}</b><br>${v.mode}`;
+      if (userMarker){
+        const {distance,eta} = computeETA(userMarker.getLatLng().lat,userMarker.getLatLng().lng,v.lat,v.lon);
+        content += `<br>${distance}m ~${eta}min`;
+      }
+      if (vehicleMarkers[v.id]){
+        vehicleMarkers[v.id].setLatLng([v.lat,v.lon]).setPopupContent(content);
       } else {
-        vehicleMarkers[v.id] = L.marker([v.lat, v.lon], { icon }).addTo(map);
+        vehicleMarkers[v.id] = L.marker([v.lat,v.lon],{icon}).bindPopup(content).addTo(map);
       }
     });
-
-    updateSidebarETAs();
-    updateSidebarAlerts();
-
-    if (trackedVehicleId) {
-      const tracked = vehiclesData.find(v => v.id === trackedVehicleId);
-      if (tracked) {
-        map.panTo([tracked.lat, tracked.lon]);
-      }
-    }
-  } catch (err) {
-    console.error("fetchVehicles error:", err);
-  }
+    autoTrackNearestVehicle();
+    updateETAs();
+    updateAlerts();
+    if ($id("lastUpdated")) $id("lastUpdated").textContent = new Date().toLocaleTimeString();
+  } catch(e){console.error(e)}
 }
 
-function autoTrackNearestVehicle() {
+// ================== AUTO TRACK NEAREST VEHICLE ==================
+function autoTrackNearestVehicle(){
   if (!selectedStopCoords) return;
   let nearest = null;
-  let minDistance = Infinity;
-  vehiclesData.forEach(v => {
-    const { distance } = computeETA(selectedStopCoords.lat, selectedStopCoords.lon, v.lat, v.lon);
-    if (distance < minDistance) {
-      minDistance = distance;
+  let minDist = Infinity;
+  vehiclesData.forEach(v=>{
+    const {distance} = computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon);
+    if (distance < minDist){
+      minDist = distance;
       nearest = v;
     }
   });
-  if (nearest) {
-    trackedVehicleId = nearest.id;
-    map.panTo([nearest.lat, nearest.lon]);
-  }
+  if (nearest) map.setView([nearest.lat,nearest.lon],15);
 }
 
-// ================== SIDEBAR ==================
-function updateSidebarETAs() {
-  const etaList = $id("etaList");
-  etaList.innerHTML = "";
+// ================== UI UPDATES ==================
+function updateETAs(){
+  const el = $id("etaList");
+  el.innerHTML = "";
   let list = vehiclesData;
-  if (selectedStopCoords) {
-    list = list.filter(v => isVehicleNearStop(v));
+  if (selectedStopCoords){
+    list = list.filter(v=>computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon).distance <= STOP_FILTER_RADIUS);
   }
-  if (!list.length) {
-    etaList.innerHTML = "<p>No data available.</p>";
-    return;
-  }
-  list.forEach(v => {
-    const iconURL = iconMap[(v.mode || "podapoda").toLowerCase()] || iconMap["podapoda"];
-    const div = document.createElement("div");
-    div.className = "sidebar-item";
-    let distanceText = "";
-    if (selectedStopCoords) {
-      const { distance, eta } = computeETA(selectedStopCoords.lat, selectedStopCoords.lon, v.lat, v.lon);
-      distanceText = ` — ${distance} m, ETA ~${eta} min`;
-    }
-    div.innerHTML = `
-      <img src="${iconURL}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">
-      ${v.id} (${v.mode || "unknown"}) ${distanceText}
-    `;
-    etaList.appendChild(div);
+  list.forEach(v=>{
+    const {distance,eta} = userMarker ? computeETA(userMarker.getLatLng().lat,userMarker.getLatLng().lng,v.lat,v.lon) : {distance:"?",eta:"?"};
+    el.innerHTML += `<div><img src="${iconMap[v.mode.toLowerCase()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">${v.id} (${v.mode}) — ${distance} m, ETA ~${eta} min</div>`;
   });
 }
-
-function updateSidebarAlerts() {
-  const alertList = $id("alertSidebar");
-  alertList.innerHTML = "";
+function updateAlerts(){
+  const el = $id("alertSidebar");
+  el.innerHTML = "";
   let found = false;
-  let list = vehiclesData;
-  if (selectedStopCoords) {
-    list = list.filter(v => isVehicleNearStop(v));
-  }
-  list.forEach(v => {
-    const { eta } = computeETA(selectedStopCoords.lat, selectedStopCoords.lon, v.lat, v.lon);
-    if (eta <= 3) {
-      const div = document.createElement("div");
-      div.className = "alert-item";
-      div.textContent = `⚠️ ${v.id} arriving in ~${eta} min`;
-      alertList.appendChild(div);
+  vehiclesData.forEach(v=>{
+    const {eta} = selectedStopCoords ? computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon) : {eta:999};
+    if (eta <= 3){
+      el.innerHTML += `<div>⚠️ ${v.id} arriving in ~${eta} min</div>`;
       found = true;
     }
   });
-  if (!found) {
-    alertList.innerHTML = "<p>No nearby vehicles within alert range.</p>";
-  }
+  if (!found) el.innerHTML = "<p>No nearby vehicles</p>";
 }
 
-// ================== LOCATE ME ==================
-function addLocateMeButton() {
-  const locateBtn = $id("locateMeBtn");
-  locateBtn.addEventListener("click", () => {
-    if (!navigator.geolocation) return alert("Geolocation not supported");
-    navigator.geolocation.getCurrentPosition(pos => {
+// ================== LOCATION ==================
+function addLocateMeButton(){
+  const btn = $id("locateMeBtn");
+  btn.addEventListener("click",()=>{
+    navigator.geolocation.getCurrentPosition(pos=>{
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
-      if (userMarker) {
-        userMarker.setLatLng([lat, lon]);
-      } else {
-        userMarker = L.marker([lat, lon], {
-          icon: L.icon({
-            iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-            iconSize: [25, 25]
-          })
-        }).addTo(map);
+      if (userMarker){userMarker.setLatLng([lat,lon])}
+      else {
+        userMarker = L.marker([lat,lon],{icon:L.icon({iconUrl:"https://cdn-icons-png.flaticon.com/512/684/684908.png",iconSize:[25,25]})}).addTo(map);
       }
-      map.setView([lat, lon], 15);
-    });
+      snapToNearestStop(lat,lon);
+    },()=>alert("Location unavailable"));
   });
+}
+function snapToNearestStop(lat,lon){
+  if (!stopsGeoJSON) return;
+  let nearest=null, min=Infinity;
+  stopsGeoJSON.features.forEach(f=>{
+    const [slon,slat] = f.geometry.coordinates;
+    const {distance} = computeETA(lat,lon,slat,slon);
+    if (distance<min){min=distance;nearest=f}
+  });
+  if (nearest){
+    const [slon,slat] = nearest.geometry.coordinates;
+    selectedStopCoords = {lat:slat,lon:slon};
+    $id("stopSelect").value = nearest.properties.name;
+    map.setView([slat,slon],16);
+  }
 }
 
 // ================== INIT ==================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded",()=>{
   if (!promptLogin()) return;
   initMap();
-
   const toggleBtn = $id("toggleSidebarBtn");
   const sidebar = $id("sidebar");
-  if (toggleBtn && sidebar) {
-    toggleBtn.addEventListener("click", () => {
-      sidebar.classList.toggle("open");
-    });
-  }
-
-  const roleSelect = $id("roleSelect");
-  const driverInputs = $id("driverInputs");
-  if (roleSelect) {
-    roleSelect.addEventListener("change", () => {
-      driverInputs.style.display = roleSelect.value.startsWith("driver") ? "block" : "none";
-    });
-  }
+  toggleBtn.addEventListener("click",()=>sidebar.classList.toggle("open"));
 });
