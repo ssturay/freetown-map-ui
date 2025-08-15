@@ -20,10 +20,11 @@ let routeLayers = L.featureGroup();
 let stopsLayer;
 let vehiclesData = [];
 let selectedStopCoords = null;
-let selectedRouteId = null; // NEW — route tracking
+let selectedRouteId = null; // Store current route_id for driver
 const STOP_FILTER_RADIUS = 500;
 let stopsGeoJSON = null;
-let selectedStopMarker = null; // for stop popup marker
+let selectedStopMarker = null;
+let driverId = null; // driver unique ID
 
 // ================== ICONS ==================
 const iconMap = {
@@ -103,21 +104,21 @@ async function loadStops(){
           fillOpacity: 0.8
         });
 
-        marker.bindPopup(`<b>${feature.properties.name}</b>`);
+        marker.bindPopup(`<b>${feature.properties.name}</b><br><i>${feature.properties.route_id}</i>`);
 
         marker.on("click", () => {
           const [lon, lat] = feature.geometry.coordinates;
           selectedStopCoords = { lat, lon };
-          selectedRouteId = feature.properties.route_id || null; // NEW — store route id
+          selectedRouteId = feature.properties.route_id;
 
           if (selectedStopMarker) map.removeLayer(selectedStopMarker);
-
           selectedStopMarker = L.marker([lat, lon]).addTo(map);
-          selectedStopMarker.bindPopup(`<b>${feature.properties.name}</b>`).openPopup();
+          selectedStopMarker.bindPopup(`<b>${feature.properties.name}</b><br><i>${selectedRouteId}</i>`).openPopup();
+
+          $id("stopSelect").value = feature.properties.name;
+          updateRouteDisplay();
 
           map.setView([lat, lon], 16);
-          $id("stopSelect").value = feature.properties.name;
-
           updateETAs();
           updateAlerts();
         });
@@ -129,7 +130,9 @@ async function loadStops(){
     const stopSelect = $id("stopSelect");
     stopSelect.innerHTML = `<option value="">-- Select Stop --</option>`;
     stopsGeoJSON.features.forEach(f => {
-      stopSelect.innerHTML += `<option value="${f.properties.name}">${f.properties.name}</option>`;
+      stopSelect.innerHTML += `<option value="${f.properties.name}" data-route="${f.properties.route_id}">
+        ${f.properties.name} — ${f.properties.route_id}
+      </option>`;
     });
 
     stopSelect.addEventListener("change", () => {
@@ -138,14 +141,14 @@ async function loadStops(){
         const f = stopsGeoJSON.features.find(x => x.properties.name === val);
         const [lon, lat] = f.geometry.coordinates;
         selectedStopCoords = { lat, lon };
-        selectedRouteId = f.properties.route_id || null; // NEW — store route id
+        selectedRouteId = f.properties.route_id;
 
         if (selectedStopMarker) map.removeLayer(selectedStopMarker);
-
         selectedStopMarker = L.marker([lat, lon]).addTo(map);
-        selectedStopMarker.bindPopup(`<b>${f.properties.name}</b>`).openPopup();
+        selectedStopMarker.bindPopup(`<b>${f.properties.name}</b><br><i>${selectedRouteId}</i>`).openPopup();
 
         map.setView([lat, lon], 16);
+        updateRouteDisplay();
       } else {
         selectedStopCoords = null;
         selectedRouteId = null;
@@ -153,6 +156,7 @@ async function loadStops(){
           map.removeLayer(selectedStopMarker);
           selectedStopMarker = null;
         }
+        updateRouteDisplay();
       }
       updateETAs();
       updateAlerts();
@@ -171,7 +175,6 @@ async function fetchVehicles(){
     const res = await fetch(url);
     const payload = await res.json();
     vehiclesData = payload.vehicles || [];
-
     vehiclesData.forEach(v=>{
       if (!v.lat||!v.lon) return;
       let icon = getIcon(v.mode);
@@ -242,32 +245,15 @@ function addLocateMeButton(){
     navigator.geolocation.getCurrentPosition(pos=>{
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
-
       if (userMarker){userMarker.setLatLng([lat,lon])}
       else {
         userMarker = L.marker([lat,lon],{icon:L.icon({iconUrl:"https://cdn-icons-png.flaticon.com/512/684/684908.png",iconSize:[25,25]})}).addTo(map);
       }
-
-      // NEW — send driver location to backend
-      const role = $id("roleSelect").value;
-      if (role.toLowerCase().includes("driver")) {
-        fetch(`${BACKEND_URL}/api/update_vehicle`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id: role.replace(" Driver","").trim() + "_" + Date.now(),
-            mode: role,
-            lat: lat,
-            lon: lon,
-            route_id: selectedRouteId || ""
-          })
-        });
-      }
-
       snapToNearestStop(lat,lon);
     },()=>alert("Location unavailable"));
   });
 }
+
 function snapToNearestStop(lat,lon){
   if (!stopsGeoJSON) return;
   let nearest=null, min=Infinity;
@@ -279,14 +265,24 @@ function snapToNearestStop(lat,lon){
   if (nearest){
     const [slon,slat] = nearest.geometry.coordinates;
     selectedStopCoords = {lat:slat,lon:slon};
-    selectedRouteId = nearest.properties.route_id || null; // NEW — store route id
+    selectedRouteId = nearest.properties.route_id;
     $id("stopSelect").value = nearest.properties.name;
+    updateRouteDisplay();
 
     if (selectedStopMarker) map.removeLayer(selectedStopMarker);
     selectedStopMarker = L.marker([slat, slon]).addTo(map);
-    selectedStopMarker.bindPopup(`<b>${nearest.properties.name}</b>`).openPopup();
+    selectedStopMarker.bindPopup(`<b>${nearest.properties.name}</b><br><i>${selectedRouteId}</i>`).openPopup();
 
     map.setView([slat,slon],16);
+  }
+}
+
+function updateRouteDisplay(){
+  const el = $id("currentRoute");
+  if (selectedRouteId) {
+    el.textContent = `📍 Current Route: ${selectedRouteId}`;
+  } else {
+    el.textContent = "";
   }
 }
 
@@ -297,4 +293,23 @@ document.addEventListener("DOMContentLoaded",()=>{
   const toggleBtn = $id("toggleSidebarBtn");
   const sidebar = $id("sidebar");
   toggleBtn.addEventListener("click",()=>sidebar.classList.toggle("open"));
+
+  driverId = "driver_" + Math.floor(Math.random() * 100000);
+
+  // Auto location updates for drivers
+  if ($id("roleSelect").value.toLowerCase().includes("driver")) {
+    navigator.geolocation.watchPosition(pos => {
+      fetch(`${BACKEND_URL}/api/update_vehicle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: driverId,
+          mode: $id("roleSelect").value,
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          route_id: selectedRouteId
+        })
+      });
+    });
+  }
 });
