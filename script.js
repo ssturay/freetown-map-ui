@@ -20,11 +20,11 @@ let routeLayers = L.featureGroup();
 let stopsLayer;
 let vehiclesData = [];
 let selectedStopCoords = null;
-let selectedRouteId = null; // Store current route_id for driver
+let selectedRouteId = null;
 const STOP_FILTER_RADIUS = 500;
 let stopsGeoJSON = null;
 let selectedStopMarker = null;
-let driverId = null; // driver unique ID
+let driverId = null;
 
 // ================== ICONS ==================
 const iconMap = {
@@ -104,7 +104,8 @@ async function loadStops(){
           fillOpacity: 0.8
         });
 
-        marker.bindPopup(`<b>${feature.properties.name}</b><br><i>${feature.properties.route_id}</i>`);
+        // Popup now only shows stop name
+        marker.bindPopup(`<b>${feature.properties.name}</b>`);
 
         marker.on("click", () => {
           const [lon, lat] = feature.geometry.coordinates;
@@ -113,7 +114,7 @@ async function loadStops(){
 
           if (selectedStopMarker) map.removeLayer(selectedStopMarker);
           selectedStopMarker = L.marker([lat, lon]).addTo(map);
-          selectedStopMarker.bindPopup(`<b>${feature.properties.name}</b><br><i>${selectedRouteId}</i>`).openPopup();
+          selectedStopMarker.bindPopup(`<b>${feature.properties.name}</b>`).openPopup();
 
           $id("stopSelect").value = feature.properties.name;
           updateRouteDisplay();
@@ -131,7 +132,7 @@ async function loadStops(){
     stopSelect.innerHTML = `<option value="">-- Select Stop --</option>`;
     stopsGeoJSON.features.forEach(f => {
       stopSelect.innerHTML += `<option value="${f.properties.name}" data-route="${f.properties.route_id}">
-        ${f.properties.name} — ${f.properties.route_id}
+        ${f.properties.name}
       </option>`;
     });
 
@@ -145,7 +146,7 @@ async function loadStops(){
 
         if (selectedStopMarker) map.removeLayer(selectedStopMarker);
         selectedStopMarker = L.marker([lat, lon]).addTo(map);
-        selectedStopMarker.bindPopup(`<b>${f.properties.name}</b><br><i>${selectedRouteId}</i>`).openPopup();
+        selectedStopMarker.bindPopup(`<b>${f.properties.name}</b>`).openPopup();
 
         map.setView([lat, lon], 16);
         updateRouteDisplay();
@@ -271,7 +272,7 @@ function snapToNearestStop(lat,lon){
 
     if (selectedStopMarker) map.removeLayer(selectedStopMarker);
     selectedStopMarker = L.marker([slat, slon]).addTo(map);
-    selectedStopMarker.bindPopup(`<b>${nearest.properties.name}</b><br><i>${selectedRouteId}</i>`).openPopup();
+    selectedStopMarker.bindPopup(`<b>${nearest.properties.name}</b>`).openPopup();
 
     map.setView([slat,slon],16);
   }
@@ -296,7 +297,6 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   driverId = "driver_" + Math.floor(Math.random() * 100000);
 
-  // Auto location updates for drivers
   if ($id("roleSelect").value.toLowerCase().includes("driver")) {
     navigator.geolocation.watchPosition(pos => {
       fetch(`${BACKEND_URL}/api/update_vehicle`, {
