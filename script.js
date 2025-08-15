@@ -23,6 +23,7 @@ let selectedStopCoords = null;
 const STOP_FILTER_RADIUS = 500;
 let stopsGeoJSON = null;
 let selectedStopMarker = null; // for stop popup marker
+let driverWatchId = null; // for live GPS tracking
 
 // ================== ICONS ==================
 const iconMap = {
@@ -263,11 +264,68 @@ function snapToNearestStop(lat,lon){
   }
 }
 
+// ================== DRIVER TRACKING ==================
+function startDriverTracking(mode) {
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported on this device.");
+    return;
+  }
+
+  const driverId = `${mode.replace(" Driver","")}_${Date.now()}`;
+
+  if (driverWatchId !== null) {
+    navigator.geolocation.clearWatch(driverWatchId);
+  }
+
+  driverWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+
+      fetch(`${BACKEND_URL}/api/update_vehicle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: driverId,
+          mode: mode,
+          lat: lat,
+          lon: lon
+        })
+      }).catch(err => console.error("Location update failed:", err));
+
+      if (userMarker) {
+        userMarker.setLatLng([lat, lon]);
+      } else {
+        userMarker = L.marker([lat, lon], { icon: getIcon(mode) }).addTo(map);
+      }
+    },
+    err => console.error("Geolocation error:", err),
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+  );
+}
+function stopDriverTracking() {
+  if (driverWatchId !== null) {
+    navigator.geolocation.clearWatch(driverWatchId);
+    driverWatchId = null;
+  }
+}
+
 // ================== INIT ==================
 document.addEventListener("DOMContentLoaded",()=>{
   if (!promptLogin()) return;
   initMap();
+
   const toggleBtn = $id("toggleSidebarBtn");
   const sidebar = $id("sidebar");
   toggleBtn.addEventListener("click",()=>sidebar.classList.toggle("open"));
+
+  const roleSelect = $id("roleSelect");
+  roleSelect.addEventListener("change", () => {
+    const role = roleSelect.value;
+    if (role.toLowerCase().includes("driver")) {
+      startDriverTracking(role);
+    } else {
+      stopDriverTracking();
+    }
+  });
 });
