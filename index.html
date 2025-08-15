@@ -14,13 +14,20 @@
       background-position: 5px center;
       background-size: 20px 20px;
     }
+    /* Style for current route display */
+    #currentRoute {
+      font-weight: bold;
+      color: #2a4d69;
+      margin-top: 5px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
   <div class="page-container">
 
     <header>
-      <h1>🚖 Freetown PT Tracker (FreeTTApp) 🇸🇱</h1>
+      <h1>🚖Freetown PT Tracker (FreeTTApp)🇸🇱</h1>
       <div>
         <button id="locateMeBtn">My Location</button>
         <button id="clearBtn">Clear</button>
@@ -54,6 +61,7 @@
         <!-- Stop Filter -->
         <h2>Stop Filter</h2>
         <select id="stopSelect"></select>
+        <p id="currentRoute"></p> <!-- Shows the active route -->
 
         <!-- ETA -->
         <h3>Estimated Time of Arrival (ETA)</h3>
