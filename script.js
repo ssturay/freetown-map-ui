@@ -20,12 +20,10 @@ let routeLayers = L.featureGroup();
 let stopsLayer;
 let vehiclesData = [];
 let selectedStopCoords = null;
-let selectedRouteId = null; // track selected route
-let selectedStopMarker = null;
-let routeHighlightLayer = null; // highlighted route
+let selectedRouteId = null; // NEW — route tracking
 const STOP_FILTER_RADIUS = 500;
 let stopsGeoJSON = null;
-let routesGeoJSON = null;
+let selectedStopMarker = null; // for stop popup marker
 
 // ================== ICONS ==================
 const iconMap = {
@@ -51,18 +49,18 @@ function getIcon(mode) {
 // ================== HELPERS ==================
 function computeETA(lat1, lon1, lat2, lon2) {
   const R = 6371e3;
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(Δφ / 2) ** 2 +
-    Math.cos(φ1) * Math.cos(φ2) *
-    Math.sin(Δλ / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const φ1 = lat1 * Math.PI/180;
+  const φ2 = lat2 * Math.PI/180;
+  const Δφ = (lat2-lat1) * Math.PI/180;
+  const Δλ = (lon2-lon1) * Math.PI/180;
+  const a = Math.sin(Δφ/2)**2 +
+            Math.cos(φ1)*Math.cos(φ2) *
+            Math.sin(Δλ/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   const d = R * c;
   return { distance: Math.round(d), eta: Math.round(d / 1.4 / 60) };
 }
-function $id(id) { return document.getElementById(id) }
+function $id(id){return document.getElementById(id)}
 
 // ================== MAP INIT ==================
 function initMap() {
@@ -77,30 +75,18 @@ function initMap() {
 }
 
 // ================== LOAD ROUTES ==================
-async function loadRoutes() {
+async function loadRoutes(){
   try {
     const res = await fetch("data/routes.geojson");
     if (!res.ok) throw new Error();
-    routesGeoJSON = await res.json();
+    const geo = await res.json();
     routeLayers.clearLayers();
-    L.geoJSON(routesGeoJSON, { style: { color: "#3388ff", weight: 5, opacity: 0.7 } }).addTo(routeLayers);
-  } catch (e) { console.error(e) }
-}
-
-// ================== HIGHLIGHT ROUTE ==================
-function highlightRoute(routeId) {
-  if (!routesGeoJSON) return;
-  if (routeHighlightLayer) {
-    map.removeLayer(routeHighlightLayer);
-  }
-  routeHighlightLayer = L.geoJSON(routesGeoJSON, {
-    filter: feature => feature.properties.route_id === routeId,
-    style: { color: "orange", weight: 6, opacity: 0.9 }
-  }).addTo(map);
+    L.geoJSON(geo, { style:{ color:"#3388ff", weight:5, opacity:0.7 } }).addTo(routeLayers);
+  } catch(e){console.error(e)}
 }
 
 // ================== LOAD STOPS ==================
-async function loadStops() {
+async function loadStops(){
   try {
     const res = await fetch("data/stops.geojson");
     stopsGeoJSON = await res.json();
@@ -119,7 +105,22 @@ async function loadStops() {
 
         marker.bindPopup(`<b>${feature.properties.name}</b>`);
 
-        marker.on("click", () => selectStop(feature));
+        marker.on("click", () => {
+          const [lon, lat] = feature.geometry.coordinates;
+          selectedStopCoords = { lat, lon };
+          selectedRouteId = feature.properties.route_id || null; // NEW — store route id
+
+          if (selectedStopMarker) map.removeLayer(selectedStopMarker);
+
+          selectedStopMarker = L.marker([lat, lon]).addTo(map);
+          selectedStopMarker.bindPopup(`<b>${feature.properties.name}</b>`).openPopup();
+
+          map.setView([lat, lon], 16);
+          $id("stopSelect").value = feature.properties.name;
+
+          updateETAs();
+          updateAlerts();
+        });
 
         return marker;
       }
@@ -133,125 +134,100 @@ async function loadStops() {
 
     stopSelect.addEventListener("change", () => {
       const val = stopSelect.value;
-      if (val) {
+      if (val){
         const f = stopsGeoJSON.features.find(x => x.properties.name === val);
-        selectStop(f);
+        const [lon, lat] = f.geometry.coordinates;
+        selectedStopCoords = { lat, lon };
+        selectedRouteId = f.properties.route_id || null; // NEW — store route id
+
+        if (selectedStopMarker) map.removeLayer(selectedStopMarker);
+
+        selectedStopMarker = L.marker([lat, lon]).addTo(map);
+        selectedStopMarker.bindPopup(`<b>${f.properties.name}</b>`).openPopup();
+
+        map.setView([lat, lon], 16);
       } else {
-        clearSelectedStop();
+        selectedStopCoords = null;
+        selectedRouteId = null;
+        if (selectedStopMarker) {
+          map.removeLayer(selectedStopMarker);
+          selectedStopMarker = null;
+        }
       }
+      updateETAs();
+      updateAlerts();
     });
 
-  } catch (e) { console.error(e); }
-}
-
-// ================== SELECT STOP ==================
-function selectStop(feature) {
-  const [lon, lat] = feature.geometry.coordinates;
-  selectedStopCoords = { lat, lon };
-  selectedRouteId = feature.properties.route_id || null;
-
-  if (selectedStopMarker) map.removeLayer(selectedStopMarker);
-
-  selectedStopMarker = L.marker([lat, lon]).addTo(map);
-  selectedStopMarker.bindPopup(`<b>${feature.properties.name}</b>`).openPopup();
-
-  map.setView([lat, lon], 16);
-  $id("stopSelect").value = feature.properties.name;
-
-  if (selectedRouteId) {
-    highlightRoute(selectedRouteId);
-  }
-
-  updateETAs();
-  updateAlerts();
-}
-
-// ================== CLEAR STOP ==================
-function clearSelectedStop() {
-  selectedStopCoords = null;
-  selectedRouteId = null;
-  if (selectedStopMarker) {
-    map.removeLayer(selectedStopMarker);
-    selectedStopMarker = null;
-  }
-  if (routeHighlightLayer) {
-    map.removeLayer(routeHighlightLayer);
-    routeHighlightLayer = null;
-  }
-  updateETAs();
-  updateAlerts();
+  } catch(e){ console.error(e); }
 }
 
 // ================== FETCH VEHICLES ==================
-async function fetchVehicles() {
+async function fetchVehicles(){
   try {
-    const res = await fetch(`${BACKEND_URL}/api/vehicles`);
+    let url = `${BACKEND_URL}/api/vehicles`;
+    if (selectedRouteId) {
+      url += `?route_id=${encodeURIComponent(selectedRouteId)}`;
+    }
+    const res = await fetch(url);
     const payload = await res.json();
     vehiclesData = payload.vehicles || [];
-    vehiclesData.forEach(v => {
-      if (!v.lat || !v.lon) return;
+
+    vehiclesData.forEach(v=>{
+      if (!v.lat||!v.lon) return;
       let icon = getIcon(v.mode);
       let content = `<b>${v.id}</b><br>${v.mode}`;
-      if (userMarker) {
-        const { distance, eta } = computeETA(userMarker.getLatLng().lat, userMarker.getLatLng().lng, v.lat, v.lon);
+      if (userMarker){
+        const {distance,eta} = computeETA(userMarker.getLatLng().lat,userMarker.getLatLng().lng,v.lat,v.lon);
         content += `<br>${distance}m ~${eta}min`;
       }
-      if (vehicleMarkers[v.id]) {
-        vehicleMarkers[v.id].setLatLng([v.lat, v.lon]).setPopupContent(content);
+      if (vehicleMarkers[v.id]){
+        vehicleMarkers[v.id].setLatLng([v.lat,v.lon]).setPopupContent(content);
       } else {
-        vehicleMarkers[v.id] = L.marker([v.lat, v.lon], { icon }).bindPopup(content).addTo(map);
+        vehicleMarkers[v.id] = L.marker([v.lat,v.lon],{icon}).bindPopup(content).addTo(map);
       }
     });
     autoTrackNearestVehicle();
     updateETAs();
     updateAlerts();
     if ($id("lastUpdated")) $id("lastUpdated").textContent = new Date().toLocaleTimeString();
-  } catch (e) { console.error(e) }
+  } catch(e){console.error(e)}
 }
 
 // ================== AUTO TRACK NEAREST VEHICLE ==================
-function autoTrackNearestVehicle() {
+function autoTrackNearestVehicle(){
   if (!selectedStopCoords) return;
   let nearest = null;
   let minDist = Infinity;
-  vehiclesData.forEach(v => {
-    const { distance } = computeETA(selectedStopCoords.lat, selectedStopCoords.lon, v.lat, v.lon);
-    if (distance < minDist) {
+  vehiclesData.forEach(v=>{
+    const {distance} = computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon);
+    if (distance < minDist){
       minDist = distance;
       nearest = v;
     }
   });
-  if (nearest) map.setView([nearest.lat, nearest.lon], 15);
+  if (nearest) map.setView([nearest.lat,nearest.lon],15);
 }
 
 // ================== UI UPDATES ==================
-function updateETAs() {
+function updateETAs(){
   const el = $id("etaList");
   el.innerHTML = "";
   let list = vehiclesData;
-
-  if (selectedRouteId) {
-    list = list.filter(v => v.route_id === selectedRouteId);
+  if (selectedStopCoords){
+    list = list.filter(v=>computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon).distance <= STOP_FILTER_RADIUS);
   }
-
-  if (selectedStopCoords) {
-    list = list.filter(v => computeETA(selectedStopCoords.lat, selectedStopCoords.lon, v.lat, v.lon).distance <= STOP_FILTER_RADIUS);
-  }
-
-  list.forEach(v => {
-    const { distance, eta } = userMarker ? computeETA(userMarker.getLatLng().lat, userMarker.getLatLng().lng, v.lat, v.lon) : { distance: "?", eta: "?" };
-    el.innerHTML += `<div><img src="${iconMap[(v.mode || "").toLowerCase().replace(' driver', '').trim()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">${v.id} (${v.mode}) — ${distance} m, ETA ~${eta} min</div>`;
+  list.forEach(v=>{
+    const {distance,eta} = userMarker ? computeETA(userMarker.getLatLng().lat,userMarker.getLatLng().lng,v.lat,v.lon) : {distance:"?",eta:"?"};
+    el.innerHTML += `<div><img src="${iconMap[(v.mode || "").toLowerCase().replace(' driver','').trim()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">${v.id} (${v.mode}) — ${distance} m, ETA ~${eta} min</div>`;
   });
 }
-function updateAlerts() {
+function updateAlerts(){
   const el = $id("alertSidebar");
   el.innerHTML = "";
   let found = false;
-
-  vehiclesData.forEach(v => {
-    if (selectedRouteId && v.route_id !== selectedRouteId) return;
-    const { eta } = selectedStopCoords ? computeETA(selectedStopCoords.lat, selectedStopCoords.lon, v.lat, v.lon) : { eta: 999 };
-    if (eta <= 3) {
+  vehiclesData.forEach(v=>{
+    const {eta} = selectedStopCoords ? computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon) : {eta:999};
+    if (eta <= 3){
       el.innerHTML += `<div>⚠️ ${v.id} arriving in ~${eta} min</div>`;
       found = true;
     }
@@ -260,38 +236,65 @@ function updateAlerts() {
 }
 
 // ================== LOCATION ==================
-function addLocateMeButton() {
+function addLocateMeButton(){
   const btn = $id("locateMeBtn");
-  btn.addEventListener("click", () => {
-    navigator.geolocation.getCurrentPosition(pos => {
+  btn.addEventListener("click",()=>{
+    navigator.geolocation.getCurrentPosition(pos=>{
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
-      if (userMarker) { userMarker.setLatLng([lat, lon]) }
+
+      if (userMarker){userMarker.setLatLng([lat,lon])}
       else {
-        userMarker = L.marker([lat, lon], { icon: L.icon({ iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png", iconSize: [25, 25] }) }).addTo(map);
+        userMarker = L.marker([lat,lon],{icon:L.icon({iconUrl:"https://cdn-icons-png.flaticon.com/512/684/684908.png",iconSize:[25,25]})}).addTo(map);
       }
-      snapToNearestStop(lat, lon);
-    }, () => alert("Location unavailable"));
+
+      // NEW — send driver location to backend
+      const role = $id("roleSelect").value;
+      if (role.toLowerCase().includes("driver")) {
+        fetch(`${BACKEND_URL}/api/update_vehicle`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: role.replace(" Driver","").trim() + "_" + Date.now(),
+            mode: role,
+            lat: lat,
+            lon: lon,
+            route_id: selectedRouteId || ""
+          })
+        });
+      }
+
+      snapToNearestStop(lat,lon);
+    },()=>alert("Location unavailable"));
   });
 }
-function snapToNearestStop(lat, lon) {
+function snapToNearestStop(lat,lon){
   if (!stopsGeoJSON) return;
-  let nearest = null, min = Infinity;
-  stopsGeoJSON.features.forEach(f => {
-    const [slon, slat] = f.geometry.coordinates;
-    const { distance } = computeETA(lat, lon, slat, slon);
-    if (distance < min) { min = distance; nearest = f }
+  let nearest=null, min=Infinity;
+  stopsGeoJSON.features.forEach(f=>{
+    const [slon,slat] = f.geometry.coordinates;
+    const {distance} = computeETA(lat,lon,slat,slon);
+    if (distance<min){min=distance;nearest=f}
   });
-  if (nearest) {
-    selectStop(nearest);
+  if (nearest){
+    const [slon,slat] = nearest.geometry.coordinates;
+    selectedStopCoords = {lat:slat,lon:slon};
+    selectedRouteId = nearest.properties.route_id || null; // NEW — store route id
+    $id("stopSelect").value = nearest.properties.name;
+
+    if (selectedStopMarker) map.removeLayer(selectedStopMarker);
+    selectedStopMarker = L.marker([slat, slon]).addTo(map);
+    selectedStopMarker.bindPopup(`<b>${nearest.properties.name}</b>`).openPopup();
+
+    map.setView([slat,slon],16);
   }
 }
 
 // ================== INIT ==================
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded",()=>{
   if (!promptLogin()) return;
   initMap();
   const toggleBtn = $id("toggleSidebarBtn");
   const sidebar = $id("sidebar");
-  toggleBtn.addEventListener("click", () => sidebar.classList.toggle("open"));
+  toggleBtn.addEventListener("click",()=>sidebar.classList.toggle("open"));
 });
