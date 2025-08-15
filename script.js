@@ -22,8 +22,9 @@ let vehiclesData = [];
 let selectedStopCoords = null;
 const STOP_FILTER_RADIUS = 500;
 let stopsGeoJSON = null;
-let selectedStopMarker = null; // for stop popup marker
-let driverWatchId = null; // for live GPS tracking
+let selectedStopMarker = null;
+let currentDriverId = null; // logged-in driver's unique ID
+let driverWatchId = null; // watchPosition ID
 
 // ================== ICONS ==================
 const iconMap = {
@@ -72,6 +73,16 @@ function initMap() {
   addLocateMeButton();
   fetchVehicles();
   setInterval(fetchVehicles, 2000);
+
+  // Listen for role changes
+  $id("roleSelect").addEventListener("change", () => {
+    const role = $id("roleSelect").value;
+    if (role.toLowerCase().includes("driver")) {
+      startDriverTracking(role);
+    } else {
+      stopDriverTracking();
+    }
+  });
 }
 
 // ================== LOAD ROUTES ==================
@@ -159,12 +170,61 @@ async function loadStops(){
   } catch(e){ console.error(e); }
 }
 
+// ================== DRIVER TRACKING ==================
+function startDriverTracking(mode) {
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported on this device.");
+    return;
+  }
+
+  currentDriverId = `${mode.replace(" Driver","")}_${Date.now()}`;
+
+  if (driverWatchId !== null) {
+    navigator.geolocation.clearWatch(driverWatchId);
+  }
+
+  driverWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+
+      fetch(`${BACKEND_URL}/api/update_vehicle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: currentDriverId,
+          mode: mode,
+          lat: lat,
+          lon: lon
+        })
+      }).catch(err => console.error("Location update failed:", err));
+
+      if (userMarker) {
+        userMarker.setLatLng([lat, lon]);
+      } else {
+        userMarker = L.marker([lat, lon], { icon: getIcon(mode) }).addTo(map);
+      }
+    },
+    err => console.error("Geolocation error:", err),
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+  );
+}
+
+function stopDriverTracking() {
+  if (driverWatchId !== null) {
+    navigator.geolocation.clearWatch(driverWatchId);
+    driverWatchId = null;
+  }
+  currentDriverId = null;
+}
+
 // ================== FETCH VEHICLES ==================
 async function fetchVehicles(){
   try {
     const res = await fetch(`${BACKEND_URL}/api/vehicles`);
     const payload = await res.json();
     vehiclesData = payload.vehicles || [];
+
     vehiclesData.forEach(v=>{
       if (!v.lat||!v.lon) return;
       let icon = getIcon(v.mode);
@@ -179,9 +239,11 @@ async function fetchVehicles(){
         vehicleMarkers[v.id] = L.marker([v.lat,v.lon],{icon}).bindPopup(content).addTo(map);
       }
     });
+
     autoTrackNearestVehicle();
     updateETAs();
     updateAlerts();
+
     if ($id("lastUpdated")) $id("lastUpdated").textContent = new Date().toLocaleTimeString();
   } catch(e){console.error(e)}
 }
@@ -206,6 +268,12 @@ function updateETAs(){
   const el = $id("etaList");
   el.innerHTML = "";
   let list = vehiclesData;
+
+  // Remove self if driver
+  if (currentDriverId) {
+    list = list.filter(v => v.id !== currentDriverId);
+  }
+
   if (selectedStopCoords){
     list = list.filter(v=>computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon).distance <= STOP_FILTER_RADIUS);
   }
@@ -214,17 +282,21 @@ function updateETAs(){
     el.innerHTML += `<div><img src="${iconMap[(v.mode || "").toLowerCase().replace(' driver','').trim()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">${v.id} (${v.mode}) — ${distance} m, ETA ~${eta} min</div>`;
   });
 }
+
 function updateAlerts(){
   const el = $id("alertSidebar");
   el.innerHTML = "";
   let found = false;
+
   vehiclesData.forEach(v=>{
+    if (currentDriverId && v.id === currentDriverId) return; // skip self
     const {eta} = selectedStopCoords ? computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon) : {eta:999};
     if (eta <= 3){
       el.innerHTML += `<div>⚠️ ${v.id} arriving in ~${eta} min</div>`;
       found = true;
     }
   });
+
   if (!found) el.innerHTML = "<p>No nearby vehicles</p>";
 }
 
@@ -243,6 +315,7 @@ function addLocateMeButton(){
     },()=>alert("Location unavailable"));
   });
 }
+
 function snapToNearestStop(lat,lon){
   if (!stopsGeoJSON) return;
   let nearest=null, min=Infinity;
@@ -264,68 +337,11 @@ function snapToNearestStop(lat,lon){
   }
 }
 
-// ================== DRIVER TRACKING ==================
-function startDriverTracking(mode) {
-  if (!navigator.geolocation) {
-    alert("Geolocation not supported on this device.");
-    return;
-  }
-
-  const driverId = `${mode.replace(" Driver","")}_${Date.now()}`;
-
-  if (driverWatchId !== null) {
-    navigator.geolocation.clearWatch(driverWatchId);
-  }
-
-  driverWatchId = navigator.geolocation.watchPosition(
-    pos => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-
-      fetch(`${BACKEND_URL}/api/update_vehicle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: driverId,
-          mode: mode,
-          lat: lat,
-          lon: lon
-        })
-      }).catch(err => console.error("Location update failed:", err));
-
-      if (userMarker) {
-        userMarker.setLatLng([lat, lon]);
-      } else {
-        userMarker = L.marker([lat, lon], { icon: getIcon(mode) }).addTo(map);
-      }
-    },
-    err => console.error("Geolocation error:", err),
-    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-  );
-}
-function stopDriverTracking() {
-  if (driverWatchId !== null) {
-    navigator.geolocation.clearWatch(driverWatchId);
-    driverWatchId = null;
-  }
-}
-
 // ================== INIT ==================
 document.addEventListener("DOMContentLoaded",()=>{
   if (!promptLogin()) return;
   initMap();
-
   const toggleBtn = $id("toggleSidebarBtn");
   const sidebar = $id("sidebar");
   toggleBtn.addEventListener("click",()=>sidebar.classList.toggle("open"));
-
-  const roleSelect = $id("roleSelect");
-  roleSelect.addEventListener("change", () => {
-    const role = roleSelect.value;
-    if (role.toLowerCase().includes("driver")) {
-      startDriverTracking(role);
-    } else {
-      stopDriverTracking();
-    }
-  });
 });
