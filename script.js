@@ -104,7 +104,7 @@ async function loadStops(){
           fillOpacity: 0.8
         });
 
-        // Popup now only shows stop name
+        // Popup shows only stop name
         marker.bindPopup(`<b>${feature.properties.name}</b>`);
 
         marker.on("click", () => {
@@ -112,13 +112,14 @@ async function loadStops(){
           selectedStopCoords = { lat, lon };
           selectedRouteId = feature.properties.route_id;
 
+          // Set dropdown selection automatically
+          $id("stopSelect").value = feature.properties.name;
+
           if (selectedStopMarker) map.removeLayer(selectedStopMarker);
           selectedStopMarker = L.marker([lat, lon]).addTo(map);
           selectedStopMarker.bindPopup(`<b>${feature.properties.name}</b>`).openPopup();
 
-          $id("stopSelect").value = feature.properties.name;
           updateRouteDisplay();
-
           map.setView([lat, lon], 16);
           updateETAs();
           updateAlerts();
@@ -165,6 +166,7 @@ async function loadStops(){
 
   } catch(e){ console.error(e); }
 }
+
 
 // ================== FETCH VEHICLES ==================
 async function fetchVehicles(){
