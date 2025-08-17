@@ -293,9 +293,30 @@ function updateRouteDisplay(){
 document.addEventListener("DOMContentLoaded",()=>{
   if (!promptLogin()) return;
   initMap();
+
   const toggleBtn = $id("toggleSidebarBtn");
   const sidebar = $id("sidebar");
   toggleBtn.addEventListener("click",()=>sidebar.classList.toggle("open"));
+
+  // ✅ Clear button logic
+  const clearBtn = $id("clearBtn");
+  clearBtn.addEventListener("click", () => {
+    selectedStopCoords = null;
+    selectedRouteId = null;
+
+    if (selectedStopMarker) {
+      map.removeLayer(selectedStopMarker);
+      selectedStopMarker = null;
+    }
+
+    $id("stopSelect").value = "";
+    updateRouteDisplay();
+
+    $id("etaList").innerHTML = "";
+    $id("alertSidebar").innerHTML = "<p>No nearby vehicles</p>";
+
+    map.setView([8.48, -13.22], 12);
+  });
 
   driverId = "driver_" + Math.floor(Math.random() * 100000);
 
