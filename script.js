@@ -72,7 +72,6 @@ function initMap() {
   routeLayers.addTo(map);
   loadRoutes();
   loadStops();
-  addLocateMeButton();
   fetchVehicles();
   setInterval(fetchVehicles, 2000);
 }
@@ -317,36 +316,62 @@ document.addEventListener("DOMContentLoaded",()=>{
   if (!promptLogin()) return;
   initMap();
 
+  // MENU toggle
   const toggleBtn = $id("toggleSidebarBtn");
   const sidebar = $id("sidebar");
-  toggleBtn.addEventListener("click",()=>sidebar.classList.toggle("open"));
+  if (toggleBtn && sidebar) {
+    toggleBtn.addEventListener("click",()=> sidebar.classList.toggle("open"));
+  }
 
+  // CLEAR button
   const clearBtn = $id("clearBtn");
-  clearBtn.addEventListener("click", () => {
-    selectedStopCoords = null;
-    selectedRouteId = null;
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      selectedStopCoords = null;
+      selectedRouteId = null;
 
-    if (selectedStopMarker) {
-      map.removeLayer(selectedStopMarker);
-      selectedStopMarker = null;
-    }
+      if (selectedStopMarker) {
+        map.removeLayer(selectedStopMarker);
+        selectedStopMarker = null;
+      }
 
-    $id("stopSelect").value = "";
-    updateRouteDisplay();
+      $id("stopSelect").value = "";
+      updateRouteDisplay();
 
-    $id("etaList").innerHTML = "";
-    $id("alertSidebar").innerHTML = "<p>No nearby vehicles</p>";
+      $id("etaList").innerHTML = "";
+      $id("alertSidebar").innerHTML = "<p>No nearby vehicles</p>";
 
-    map.setView([8.48, -13.22], 12);
+      map.setView([8.48, -13.22], 12);
 
-    if ($id("roleSelect").value.toLowerCase().includes("driver")) {
-      showStatusBanner("⚠️ Select a stop to start sharing location", "orange");
-    } else {
-      showStatusBanner("", "transparent");
-    }
-  });
+      if ($id("roleSelect").value.toLowerCase().includes("driver")) {
+        showStatusBanner("⚠️ Select a stop to start sharing location", "orange");
+      } else {
+        showStatusBanner("", "transparent");
+      }
+    });
+  }
+
+  // LOCATE ME button
+  const locateBtn = $id("locateMeBtn");
+  if (locateBtn) {
+    locateBtn.addEventListener("click",()=>{
+      navigator.geolocation.getCurrentPosition(pos=>{
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        if (userMarker){ userMarker.setLatLng([lat,lon]); }
+        else {
+          userMarker = L.marker([lat,lon],{
+            icon:L.icon({
+              iconUrl:"https://cdn-icons-png.flaticon.com/512/684/684908.png",
+              iconSize:[25,25]
+            })
+          }).addTo(map);
+        }
+        snapToNearestStop(lat,lon);
+      },()=>alert("Location unavailable"));
+    });
+  }
 
   driverId = "driver_" + Math.floor(Math.random() * 100000);
-
   startDriverTracking();
 });
