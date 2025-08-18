@@ -25,6 +25,8 @@ const STOP_FILTER_RADIUS = 500;
 let stopsGeoJSON = null;
 let selectedStopMarker = null;
 let driverId = null;
+let driverMarker = null;
+let driverWatcher = null;
 
 // ================== ICONS ==================
 const iconMap = {
@@ -104,7 +106,6 @@ async function loadStops(){
           fillOpacity: 0.8
         });
 
-        // Popup shows only stop name
         marker.bindPopup(`<b>${feature.properties.name}</b>`);
 
         marker.on("click", () => {
@@ -112,7 +113,6 @@ async function loadStops(){
           selectedStopCoords = { lat, lon };
           selectedRouteId = feature.properties.route_id;
 
-          // Set dropdown selection automatically
           $id("stopSelect").value = feature.properties.name;
 
           if (selectedStopMarker) map.removeLayer(selectedStopMarker);
@@ -123,6 +123,8 @@ async function loadStops(){
           map.setView([lat, lon], 16);
           updateETAs();
           updateAlerts();
+
+          startDriverTracking(); // ensure driver updates have correct route
         });
 
         return marker;
@@ -151,6 +153,7 @@ async function loadStops(){
 
         map.setView([lat, lon], 16);
         updateRouteDisplay();
+        startDriverTracking(); // restart driver tracking with correct stop
       } else {
         selectedStopCoords = null;
         selectedRouteId = null;
@@ -167,7 +170,6 @@ async function loadStops(){
   } catch(e){ console.error(e); }
 }
 
-
 // ================== FETCH VEHICLES ==================
 async function fetchVehicles(){
   try {
@@ -182,8 +184,8 @@ async function fetchVehicles(){
       if (!v.lat||!v.lon) return;
       let icon = getIcon(v.mode);
       let content = `<b>${v.id}</b><br>${v.mode}`;
-      if (userMarker){
-        const {distance,eta} = computeETA(userMarker.getLatLng().lat,userMarker.getLatLng().lng,v.lat,v.lon);
+      if (selectedStopCoords){
+        const {distance,eta} = computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon);
         content += `<br>${distance}m ~${eta}min`;
       }
       if (vehicleMarkers[v.id]){
@@ -223,7 +225,9 @@ function updateETAs(){
     list = list.filter(v=>computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon).distance <= STOP_FILTER_RADIUS);
   }
   list.forEach(v=>{
-    const {distance,eta} = userMarker ? computeETA(userMarker.getLatLng().lat,userMarker.getLatLng().lng,v.lat,v.lon) : {distance:"?",eta:"?"};
+    const {distance,eta} = selectedStopCoords
+      ? computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon)
+      : (userMarker ? computeETA(userMarker.getLatLng().lat,userMarker.getLatLng().lng,v.lat,v.lon) : {distance:"?",eta:"?"});
     el.innerHTML += `<div><img src="${iconMap[(v.mode || "").toLowerCase().replace(' driver','').trim()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">${v.id} (${v.mode}) — ${distance} m, ETA ~${eta} min</div>`;
   });
 }
@@ -277,6 +281,7 @@ function snapToNearestStop(lat,lon){
     selectedStopMarker.bindPopup(`<b>${nearest.properties.name}</b>`).openPopup();
 
     map.setView([slat,slon],16);
+    startDriverTracking(); // restart if driver
   }
 }
 
@@ -289,6 +294,38 @@ function updateRouteDisplay(){
   }
 }
 
+// ================== DRIVER TRACKING ==================
+function startDriverTracking(){
+  if (!$id("roleSelect").value.toLowerCase().includes("driver")) return;
+  if (!selectedRouteId) return; // must have a stop/route
+
+  if (driverWatcher) navigator.geolocation.clearWatch(driverWatcher);
+
+  driverWatcher = navigator.geolocation.watchPosition(pos => {
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+
+    // local marker for driver
+    if (driverMarker){ driverMarker.setLatLng([lat,lon]); }
+    else {
+      driverMarker = L.marker([lat,lon],{icon:getIcon($id("roleSelect").value)}).addTo(map);
+      driverMarker.bindPopup("You are here (Driver)").openPopup();
+    }
+
+    // send to backend
+    fetch(`${BACKEND_URL}/api/update_vehicle`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: driverId,
+        mode: $id("roleSelect").value,
+        lat, lon,
+        route_id: selectedRouteId
+      })
+    });
+  });
+}
+
 // ================== INIT ==================
 document.addEventListener("DOMContentLoaded",()=>{
   if (!promptLogin()) return;
@@ -298,7 +335,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   const sidebar = $id("sidebar");
   toggleBtn.addEventListener("click",()=>sidebar.classList.toggle("open"));
 
-  // ✅ Clear button logic
   const clearBtn = $id("clearBtn");
   clearBtn.addEventListener("click", () => {
     selectedStopCoords = null;
@@ -320,19 +356,6 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   driverId = "driver_" + Math.floor(Math.random() * 100000);
 
-  if ($id("roleSelect").value.toLowerCase().includes("driver")) {
-    navigator.geolocation.watchPosition(pos => {
-      fetch(`${BACKEND_URL}/api/update_vehicle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: driverId,
-          mode: $id("roleSelect").value,
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-          route_id: selectedRouteId
-        })
-      });
-    });
-  }
+  // initial attempt at tracking if already driver + stop
+  startDriverTracking();
 });
