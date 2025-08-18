@@ -124,7 +124,11 @@ async function loadStops(){
           updateETAs();
           updateAlerts();
 
-          startDriverTracking(); // ensure driver updates have correct route
+          if ($id("roleSelect").value.toLowerCase().includes("driver")) {
+            startDriverTracking();
+          } else {
+            showStatusBanner("🚌 Tracking nearest vehicles…", "blue");
+          }
         });
 
         return marker;
@@ -153,7 +157,12 @@ async function loadStops(){
 
         map.setView([lat, lon], 16);
         updateRouteDisplay();
-        startDriverTracking(); // restart driver tracking with correct stop
+
+        if ($id("roleSelect").value.toLowerCase().includes("driver")) {
+          startDriverTracking();
+        } else {
+          showStatusBanner("🚌 Tracking nearest vehicles…", "blue");
+        }
       } else {
         selectedStopCoords = null;
         selectedRouteId = null;
@@ -162,6 +171,7 @@ async function loadStops(){
           selectedStopMarker = null;
         }
         updateRouteDisplay();
+        showStatusBanner("", "transparent");
       }
       updateETAs();
       updateAlerts();
@@ -245,59 +255,35 @@ function updateAlerts(){
   if (!found) el.innerHTML = "<p>No nearby vehicles</p>";
 }
 
-// ================== LOCATION ==================
-function addLocateMeButton(){
-  const btn = $id("locateMeBtn");
-  btn.addEventListener("click",()=>{
-    navigator.geolocation.getCurrentPosition(pos=>{
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      if (userMarker){userMarker.setLatLng([lat,lon])}
-      else {
-        userMarker = L.marker([lat,lon],{icon:L.icon({iconUrl:"https://cdn-icons-png.flaticon.com/512/684/684908.png",iconSize:[25,25]})}).addTo(map);
-      }
-      snapToNearestStop(lat,lon);
-    },()=>alert("Location unavailable"));
-  });
-}
-
-function snapToNearestStop(lat,lon){
-  if (!stopsGeoJSON) return;
-  let nearest=null, min=Infinity;
-  stopsGeoJSON.features.forEach(f=>{
-    const [slon,slat] = f.geometry.coordinates;
-    const {distance} = computeETA(lat,lon,slat,slon);
-    if (distance<min){min=distance;nearest=f}
-  });
-  if (nearest){
-    const [slon,slat] = nearest.geometry.coordinates;
-    selectedStopCoords = {lat:slat,lon:slon};
-    selectedRouteId = nearest.properties.route_id;
-    $id("stopSelect").value = nearest.properties.name;
-    updateRouteDisplay();
-
-    if (selectedStopMarker) map.removeLayer(selectedStopMarker);
-    selectedStopMarker = L.marker([slat, slon]).addTo(map);
-    selectedStopMarker.bindPopup(`<b>${nearest.properties.name}</b>`).openPopup();
-
-    map.setView([slat,slon],16);
-    startDriverTracking(); // restart if driver
+// ================== STATUS BANNER ==================
+function showStatusBanner(message, color="green"){
+  let el = $id("statusBanner");
+  if (!el){
+    el = document.createElement("div");
+    el.id = "statusBanner";
+    el.style.position = "fixed";
+    el.style.bottom = "10px";
+    el.style.left = "50%";
+    el.style.transform = "translateX(-50%)";
+    el.style.padding = "6px 12px";
+    el.style.borderRadius = "6px";
+    el.style.fontSize = "14px";
+    el.style.fontWeight = "bold";
+    el.style.color = "white";
+    el.style.zIndex = "1000";
+    document.body.appendChild(el);
   }
-}
-
-function updateRouteDisplay(){
-  const el = $id("currentRoute");
-  if (selectedRouteId) {
-    el.textContent = `📍 Current Route: ${selectedRouteId}`;
-  } else {
-    el.textContent = "";
-  }
+  el.style.background = color;
+  el.textContent = message;
 }
 
 // ================== DRIVER TRACKING ==================
 function startDriverTracking(){
   if (!$id("roleSelect").value.toLowerCase().includes("driver")) return;
-  if (!selectedRouteId) return; // must have a stop/route
+  if (!selectedRouteId) {
+    showStatusBanner("⚠️ Select a stop to start sharing location", "orange");
+    return;
+  }
 
   if (driverWatcher) navigator.geolocation.clearWatch(driverWatcher);
 
@@ -305,14 +291,12 @@ function startDriverTracking(){
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
 
-    // local marker for driver
     if (driverMarker){ driverMarker.setLatLng([lat,lon]); }
     else {
       driverMarker = L.marker([lat,lon],{icon:getIcon($id("roleSelect").value)}).addTo(map);
       driverMarker.bindPopup("You are here (Driver)").openPopup();
     }
 
-    // send to backend
     fetch(`${BACKEND_URL}/api/update_vehicle`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -323,6 +307,8 @@ function startDriverTracking(){
         route_id: selectedRouteId
       })
     });
+
+    showStatusBanner("📡 Live location sharing active", "green");
   });
 }
 
@@ -352,10 +338,15 @@ document.addEventListener("DOMContentLoaded",()=>{
     $id("alertSidebar").innerHTML = "<p>No nearby vehicles</p>";
 
     map.setView([8.48, -13.22], 12);
+
+    if ($id("roleSelect").value.toLowerCase().includes("driver")) {
+      showStatusBanner("⚠️ Select a stop to start sharing location", "orange");
+    } else {
+      showStatusBanner("", "transparent");
+    }
   });
 
   driverId = "driver_" + Math.floor(Math.random() * 100000);
 
-  // initial attempt at tracking if already driver + stop
   startDriverTracking();
 });
