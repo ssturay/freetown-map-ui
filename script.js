@@ -124,7 +124,7 @@ async function loadStops(){
           updateETAs();
           updateAlerts();
 
-          startDriverTracking(); // ensure driver updates have correct route
+          startDriverTracking();
         });
 
         return marker;
@@ -153,7 +153,7 @@ async function loadStops(){
 
         map.setView([lat, lon], 16);
         updateRouteDisplay();
-        startDriverTracking(); // restart driver tracking with correct stop
+        startDriverTracking();
       } else {
         selectedStopCoords = null;
         selectedRouteId = null;
@@ -244,7 +244,7 @@ function updateAlerts(){
   });
   if (!found) el.innerHTML = "<p>No nearby vehicles</p>";
 
-  updateBanner(); // <-- integrate banner updates here
+  updateBanner();
 }
 
 // ================== BANNER HANDLING ==================
@@ -255,13 +255,12 @@ function showBanner(message, color) {
   banner.style.color = "white";
   banner.style.display = "block";
 
-  // reset animations
   banner.classList.remove("pulse-green", "shake-orange");
 
   if (color === "green") {
     banner.classList.add("pulse-green");
   } else if (color === "orange") {
-    void banner.offsetWidth; // restart shake
+    void banner.offsetWidth;
     banner.classList.add("shake-orange");
   }
 }
@@ -319,7 +318,7 @@ function snapToNearestStop(lat,lon){
     selectedStopMarker.bindPopup(`<b>${nearest.properties.name}</b>`).openPopup();
 
     map.setView([slat,slon],16);
-    startDriverTracking(); // restart if driver
+    startDriverTracking();
   }
 }
 
@@ -340,7 +339,7 @@ function startDriverTracking(){
   }
   if (!selectedRouteId) {
     updateBanner();
-    return; // must have a stop/route
+    return;
   }
 
   if (driverWatcher) navigator.geolocation.clearWatch(driverWatcher);
@@ -349,14 +348,12 @@ function startDriverTracking(){
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
 
-    // local marker for driver
     if (driverMarker){ driverMarker.setLatLng([lat,lon]); }
     else {
       driverMarker = L.marker([lat,lon],{icon:getIcon($id("roleSelect").value)}).addTo(map);
       driverMarker.bindPopup("You are here (Driver)").openPopup();
     }
 
-    // send to backend
     fetch(`${BACKEND_URL}/api/update_vehicle`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -368,7 +365,7 @@ function startDriverTracking(){
       })
     });
 
-    updateBanner(); // keep banner in sync
+    updateBanner();
   });
 }
 
@@ -404,6 +401,5 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   driverId = "driver_" + Math.floor(Math.random() * 100000);
 
-  // initial attempt at tracking if already driver + stop
   startDriverTracking();
 });
