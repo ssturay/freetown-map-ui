@@ -243,6 +243,44 @@ function updateAlerts(){
     }
   });
   if (!found) el.innerHTML = "<p>No nearby vehicles</p>";
+
+  updateBanner(); // <-- integrate banner updates here
+}
+
+// ================== BANNER HANDLING ==================
+function showBanner(message, color) {
+  const banner = $id("statusBanner");
+  banner.textContent = message;
+  banner.style.backgroundColor = color;
+  banner.style.color = "white";
+  banner.style.display = "block";
+
+  // reset animations
+  banner.classList.remove("pulse-green", "shake-orange");
+
+  if (color === "green") {
+    banner.classList.add("pulse-green");
+  } else if (color === "orange") {
+    void banner.offsetWidth; // restart shake
+    banner.classList.add("shake-orange");
+  }
+}
+function hideBanner() {
+  const banner = $id("statusBanner");
+  banner.style.display = "none";
+  banner.classList.remove("pulse-green", "shake-orange");
+}
+function updateBanner() {
+  const role = $id("roleSelect").value.toLowerCase();
+  if (role.includes("driver")) {
+    if (!selectedStopCoords || !selectedRouteId) {
+      showBanner("⚠️ Select a stop to start sharing location", "orange");
+    } else {
+      showBanner("📡 Live location sharing active", "green");
+    }
+  } else {
+    hideBanner();
+  }
 }
 
 // ================== LOCATION ==================
@@ -296,8 +334,14 @@ function updateRouteDisplay(){
 
 // ================== DRIVER TRACKING ==================
 function startDriverTracking(){
-  if (!$id("roleSelect").value.toLowerCase().includes("driver")) return;
-  if (!selectedRouteId) return; // must have a stop/route
+  if (!$id("roleSelect").value.toLowerCase().includes("driver")) {
+    updateBanner();
+    return;
+  }
+  if (!selectedRouteId) {
+    updateBanner();
+    return; // must have a stop/route
+  }
 
   if (driverWatcher) navigator.geolocation.clearWatch(driverWatcher);
 
@@ -323,6 +367,8 @@ function startDriverTracking(){
         route_id: selectedRouteId
       })
     });
+
+    updateBanner(); // keep banner in sync
   });
 }
 
@@ -350,6 +396,8 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     $id("etaList").innerHTML = "";
     $id("alertSidebar").innerHTML = "<p>No nearby vehicles</p>";
+
+    hideBanner();
 
     map.setView([8.48, -13.22], 12);
   });
