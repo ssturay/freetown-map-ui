@@ -8,63 +8,100 @@
   <style>
     /* Reset & layout */
     * { box-sizing: border-box; margin:0; padding:0; }
-    html, body { height:100%; font-family: Arial, sans-serif; }
+    html, body { height:100%; font-family: Arial, sans-serif; background:#fff; }
     .page-container { display:flex; flex-direction:column; height:100%; }
 
     /* Header */
     header {
       background-color: #0a5f4a;
       color:white;
-      padding: 0.5rem 1rem;
+      padding: 0.6rem 1rem;
       display:flex;
       justify-content: space-between;
       align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
-    header h1 { font-size: 1.3rem; line-height:1.2; }
+    header h1 { font-size: 1.2rem; line-height:1.3; }
     header div button {
       background-color: #2e9464;
       color:white;
       border:none;
-      padding: 0.5rem 1rem;
+      padding: 0.45rem 0.9rem;
       margin-left: 0.5rem;
       border-radius: 4px;
       cursor:pointer;
+      font-size: 0.9rem;
     }
     header div button:hover { background-color: #248257; }
 
-    /* Main content */
+    /* Main layout */
     .main-content { display:flex; flex:1; overflow:hidden; }
     #map { flex:1; height:100%; }
 
     /* Sidebar */
     .sidebar {
-      width: 300px;
+      width: 310px;
       max-width: 100%;
-      background-color:#f8f8f8;
+      background-color:#fafafa;
       padding: 1rem;
       overflow-y:auto;
+      border-left: 1px solid #ddd;
       display:none;
       flex-shrink:0;
     }
     .sidebar.open { display:block; }
+    .sidebar h2, .sidebar h3 {
+      margin: 0.7rem 0 0.4rem 0;
+      color:#0a5f4a;
+      font-size: 1rem;
+      border-bottom:1px solid #ccc;
+      padding-bottom:0.2rem;
+    }
+    .sidebar-list {
+      margin-bottom:1rem;
+      max-height:160px;
+      overflow-y:auto;
+      font-size: 0.9rem;
+      background:#fff;
+      border:1px solid #ddd;
+      border-radius:4px;
+      padding:0.5rem;
+    }
+    #currentRoute { font-weight:bold; color:#2a4d69; margin:0.3rem 0 0.6rem 0; }
 
-    /* Select with icon */
-    #roleSelect option { padding-left: 28px; background-repeat:no-repeat; background-position:5px center; background-size:20px 20px; }
-
-    /* Sections */
-    h2,h3 { margin:0.5rem 0; color:#0a5f4a; }
-    .sidebar-list { margin-bottom:1rem; max-height:200px; overflow-y:auto; }
-    #currentRoute { font-weight:bold; color:#2a4d69; margin:0.2rem 0 0.8rem 0; }
+    /* Selects */
+    select {
+      width:100%;
+      padding:0.4rem;
+      border:1px solid #ccc;
+      border-radius:4px;
+      font-size:0.9rem;
+    }
+    #roleSelect option {
+      padding-left: 28px;
+      background-repeat:no-repeat;
+      background-position:5px center;
+      background-size:20px 20px;
+    }
 
     /* Footer */
-    footer { background-color:#0a5f4a; color:white; text-align:center; padding:0.5rem; font-weight:bold; }
+    footer {
+      background-color:#0a5f4a;
+      color:white;
+      text-align:center;
+      padding:0.5rem;
+      font-weight:bold;
+      font-size:0.85rem;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
+    }
 
     /* Status banner */
     #statusBanner {
       display:none;
-      padding:0.5rem 1rem;
+      padding:0.6rem;
       text-align:center;
       font-weight:bold;
+      font-size: 0.95rem;
     }
     .pulse-green { animation:pulse 1.5s infinite; }
     .shake-orange { animation:shake 0.5s infinite; }
@@ -84,9 +121,9 @@
     <header>
       <h1>🚖 Freetown PT Tracker 🇸🇱</h1>
       <div>
-        <button id="locateMeBtn">📍My Location</button>
-        <button id="clearBtn">🧹Clear</button>
-        <button id="toggleSidebarBtn">☰Menu</button>
+        <button id="locateMeBtn">My Location</button>
+        <button id="clearBtn">Clear</button>
+        <button id="toggleSidebarBtn">Menu</button>
       </div>
     </header>
 
@@ -97,8 +134,9 @@
 
       <aside id="sidebar" class="sidebar">
         <h2>Role</h2>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <img id="roleIcon" src="https://cdn-icons-png.flaticon.com/512/1077/1077012.png" alt="Role Icon" style="width:24px;height:24px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:0.5rem;">
+          <img id="roleIcon" src="https://cdn-icons-png.flaticon.com/512/1077/1077012.png" 
+               alt="Role Icon" style="width:24px;height:24px;">
           <select id="roleSelect">
             <option value="Passenger" style="background-image:url('https://cdn-icons-png.flaticon.com/512/1077/1077012.png');">Passenger</option>
             <option value="Podapoda Driver" style="background-image:url('assets/icons/podapoda.png');">Podapoda Driver</option>
@@ -124,7 +162,7 @@
         <div id="passengerList" class="sidebar-list"></div>
 
         <h3>Last Updated:</h3>
-        <p id="lastUpdated"></p>
+        <p id="lastUpdated" style="font-size:0.85rem; color:#555;"></p>
       </aside>
     </div>
 
