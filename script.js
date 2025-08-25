@@ -28,6 +28,11 @@ let driverId = null;
 let driverMarker = null;
 let driverWatcher = null;
 
+// NEW: passenger sharing
+let passengerId = null;
+let passengerInterval = null;
+let passengerMarkers = {}; // { passengerId: LeafletMarker }
+
 // ================== ICONS ==================
 const iconMap = {
   "podapoda": "assets/icons/podapoda.png",
@@ -48,6 +53,11 @@ function getIcon(mode) {
     iconAnchor: [16, 32]
   });
 }
+const passengerIcon = L.icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/1077/1077012.png",
+  iconSize: [20, 20],
+  iconAnchor: [10, 20]
+});
 
 // ================== HELPERS ==================
 function computeETA(lat1, lon1, lat2, lon2) {
@@ -124,7 +134,11 @@ async function loadStops(){
           updateETAs();
           updateAlerts();
 
+          // keep driver tracking in sync
           startDriverTracking();
+
+          // NEW: if passenger, begin sharing presence for this stop
+          maybeStartPassengerPresence();
         });
 
         return marker;
@@ -154,6 +168,9 @@ async function loadStops(){
         map.setView([lat, lon], 16);
         updateRouteDisplay();
         startDriverTracking();
+
+        // NEW: passenger presence when a stop is chosen
+        maybeStartPassengerPresence();
       } else {
         selectedStopCoords = null;
         selectedRouteId = null;
@@ -162,6 +179,8 @@ async function loadStops(){
           selectedStopMarker = null;
         }
         updateRouteDisplay();
+        // NEW: no stop -> stop passenger presence
+        stopPassengerPresence();
       }
       updateETAs();
       updateAlerts();
@@ -170,7 +189,7 @@ async function loadStops(){
   } catch(e){ console.error(e); }
 }
 
-// ================== FETCH VEHICLES ==================
+// ================== FETCH VEHICLES (and PASSENGERS) ==================
 async function fetchVehicles(){
   try {
     let url = `${BACKEND_URL}/api/vehicles`;
@@ -180,6 +199,8 @@ async function fetchVehicles(){
     const res = await fetch(url);
     const payload = await res.json();
     vehiclesData = payload.vehicles || [];
+
+    // Vehicles
     vehiclesData.forEach(v=>{
       if (!v.lat||!v.lon) return;
       let icon = getIcon(v.mode);
@@ -194,6 +215,35 @@ async function fetchVehicles(){
         vehicleMarkers[v.id] = L.marker([v.lat,v.lon],{icon}).bindPopup(content).addTo(map);
       }
     });
+
+    // NEW: Passengers (visible to drivers and anyone fetching the route)
+    const passengers = payload.passengers || [];
+    const liveIds = new Set();
+
+    passengers.forEach(p => {
+      if (!p.id || !p.lat || !p.lon) return;
+      liveIds.add(p.id);
+      const text = p.stop_name ? `🧍 Passenger at <b>${p.stop_name}</b>` : `🧍 Passenger waiting`;
+      const sub = p.route_id ? `<br>Route: ${p.route_id}` : "";
+      const popup = `${text}${sub}`;
+
+      if (passengerMarkers[p.id]) {
+        passengerMarkers[p.id].setLatLng([p.lat, p.lon]).setPopupContent(popup);
+      } else {
+        passengerMarkers[p.id] = L.marker([p.lat, p.lon], { icon: passengerIcon })
+          .bindPopup(popup)
+          .addTo(map);
+      }
+    });
+
+    // Cleanup passenger markers that disappeared from the feed
+    Object.keys(passengerMarkers).forEach(id => {
+      if (!liveIds.has(id)) {
+        map.removeLayer(passengerMarkers[id]);
+        delete passengerMarkers[id];
+      }
+    });
+
     autoTrackNearestVehicle();
     updateETAs();
     updateAlerts();
@@ -319,6 +369,9 @@ function snapToNearestStop(lat,lon){
 
     map.setView([slat,slon],16);
     startDriverTracking();
+
+    // NEW: passenger presence if role is passenger
+    maybeStartPassengerPresence();
   }
 }
 
@@ -348,12 +401,14 @@ function startDriverTracking(){
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
 
+    // local marker for driver
     if (driverMarker){ driverMarker.setLatLng([lat,lon]); }
     else {
       driverMarker = L.marker([lat,lon],{icon:getIcon($id("roleSelect").value)}).addTo(map);
       driverMarker.bindPopup("You are here (Driver)").openPopup();
     }
 
+    // send to backend
     fetch(`${BACKEND_URL}/api/update_vehicle`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -367,6 +422,62 @@ function startDriverTracking(){
 
     updateBanner();
   });
+}
+
+// ================== PASSENGER PRESENCE (NEW) ==================
+function maybeStartPassengerPresence(){
+  const role = $id("roleSelect").value.toLowerCase();
+  if (!role.includes("passenger")) {
+    stopPassengerPresence();
+    return;
+  }
+  if (!selectedStopCoords || !selectedRouteId) {
+    stopPassengerPresence();
+    return;
+  }
+  if (!passengerId) {
+    passengerId = "passenger_" + Math.floor(Math.random() * 100000);
+  }
+
+  // send immediately, then keep-alive every 10s while conditions hold
+  const send = () => {
+    fetch(`${BACKEND_URL}/api/update_passenger`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: passengerId,
+        lat: selectedStopCoords.lat,
+        lon: selectedStopCoords.lon,
+        route_id: selectedRouteId,
+        stop_name: $id("stopSelect").value || undefined
+      })
+    }).catch(()=>{});
+  };
+
+  send();
+  if (passengerInterval) clearInterval(passengerInterval);
+  passengerInterval = setInterval(send, 10000);
+}
+
+function stopPassengerPresence(){
+  if (passengerInterval) {
+    clearInterval(passengerInterval);
+    passengerInterval = null;
+  }
+  if (passengerId) {
+    fetch(`${BACKEND_URL}/api/remove_passenger`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: passengerId })
+    }).catch(()=>{});
+  }
+}
+
+function clearAllPassengerMarkers(){
+  Object.keys(passengerMarkers).forEach(id=>{
+    map.removeLayer(passengerMarkers[id]);
+  });
+  passengerMarkers = {};
 }
 
 // ================== INIT ==================
@@ -396,10 +507,35 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     hideBanner();
 
+    // NEW: stop presence + remove passenger markers
+    stopPassengerPresence();
+    clearAllPassengerMarkers();
+
     map.setView([8.48, -13.22], 12);
+  });
+
+  // Role switching: start/stop passenger presence as needed
+  $id("roleSelect").addEventListener("change", () => {
+    updateBanner(); // keep banner consistent
+    if ($id("roleSelect").value.toLowerCase().includes("passenger")) {
+      maybeStartPassengerPresence();
+      // If switching away from driver, also stop driver geolocation
+      if (driverWatcher) {
+        navigator.geolocation.clearWatch(driverWatcher);
+        driverWatcher = null;
+      }
+    } else {
+      stopPassengerPresence();
+      // If switching to driver, attempt driver tracking (requires route/stop)
+      startDriverTracking();
+    }
   });
 
   driverId = "driver_" + Math.floor(Math.random() * 100000);
 
+  // initial attempt at tracking if already driver + stop
   startDriverTracking();
+
+  // Make sure we clean up passenger presence on tab close
+  window.addEventListener("beforeunload", stopPassengerPresence);
 });
