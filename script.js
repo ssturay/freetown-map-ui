@@ -15,10 +15,12 @@ function promptLogin() {
 // ================== GLOBALS ==================
 const BACKEND_URL = "https://freetown-pt-tracker-backend.onrender.com";
 let map, userMarker = null;
-let vehicleMarkers = {};
+let vehicleMarkers = {};   // { driverId: Marker }
+let passengerMarkers = {}; // { passengerId: Marker }
 let routeLayers = L.featureGroup();
 let stopsLayer;
 let vehiclesData = [];
+let passengersData = [];
 let selectedStopCoords = null;
 let selectedRouteId = null;
 const STOP_FILTER_RADIUS = 500;
@@ -27,11 +29,8 @@ let selectedStopMarker = null;
 let driverId = null;
 let driverMarker = null;
 let driverWatcher = null;
-
-// NEW: passenger sharing
 let passengerId = null;
 let passengerInterval = null;
-let passengerMarkers = {}; // { passengerId: LeafletMarker }
 
 // ================== ICONS ==================
 const iconMap = {
@@ -83,8 +82,8 @@ function initMap() {
   loadRoutes();
   loadStops();
   addLocateMeButton();
-  fetchVehicles();
-  setInterval(fetchVehicles, 2000);
+  fetchVehiclesAndPassengers();
+  setInterval(fetchVehiclesAndPassengers, 2000);
 }
 
 // ================== LOAD ROUTES ==================
@@ -103,7 +102,6 @@ async function loadStops(){
   try {
     const res = await fetch("data/stops.geojson");
     stopsGeoJSON = await res.json();
-
     if (stopsLayer) stopsLayer.clearLayers();
 
     stopsLayer = L.geoJSON(stopsGeoJSON, {
@@ -115,32 +113,8 @@ async function loadStops(){
           weight: 1,
           fillOpacity: 0.8
         });
-
         marker.bindPopup(`<b>${feature.properties.name}</b>`);
-
-        marker.on("click", () => {
-          const [lon, lat] = feature.geometry.coordinates;
-          selectedStopCoords = { lat, lon };
-          selectedRouteId = feature.properties.route_id;
-
-          $id("stopSelect").value = feature.properties.name;
-
-          if (selectedStopMarker) map.removeLayer(selectedStopMarker);
-          selectedStopMarker = L.marker([lat, lon]).addTo(map);
-          selectedStopMarker.bindPopup(`<b>${feature.properties.name}</b>`).openPopup();
-
-          updateRouteDisplay();
-          map.setView([lat, lon], 16);
-          updateETAs();
-          updateAlerts();
-
-          // keep driver tracking in sync
-          startDriverTracking();
-
-          // NEW: if passenger, begin sharing presence for this stop
-          maybeStartPassengerPresence();
-        });
-
+        marker.on("click", () => handleStopSelection(feature));
         return marker;
       }
     }).addTo(map);
@@ -148,59 +122,61 @@ async function loadStops(){
     const stopSelect = $id("stopSelect");
     stopSelect.innerHTML = `<option value="">-- Select Stop --</option>`;
     stopsGeoJSON.features.forEach(f => {
-      stopSelect.innerHTML += `<option value="${f.properties.name}" data-route="${f.properties.route_id}">
-        ${f.properties.name}
-      </option>`;
+      stopSelect.innerHTML += `<option value="${f.properties.name}" data-route="${f.properties.route_id}">${f.properties.name}</option>`;
     });
 
     stopSelect.addEventListener("change", () => {
       const val = stopSelect.value;
-      if (val){
+      if (val) {
         const f = stopsGeoJSON.features.find(x => x.properties.name === val);
-        const [lon, lat] = f.geometry.coordinates;
-        selectedStopCoords = { lat, lon };
-        selectedRouteId = f.properties.route_id;
-
-        if (selectedStopMarker) map.removeLayer(selectedStopMarker);
-        selectedStopMarker = L.marker([lat, lon]).addTo(map);
-        selectedStopMarker.bindPopup(`<b>${f.properties.name}</b>`).openPopup();
-
-        map.setView([lat, lon], 16);
-        updateRouteDisplay();
-        startDriverTracking();
-
-        // NEW: passenger presence when a stop is chosen
-        maybeStartPassengerPresence();
+        handleStopSelection(f);
       } else {
-        selectedStopCoords = null;
-        selectedRouteId = null;
-        if (selectedStopMarker) {
-          map.removeLayer(selectedStopMarker);
-          selectedStopMarker = null;
-        }
-        updateRouteDisplay();
-        // NEW: no stop -> stop passenger presence
-        stopPassengerPresence();
+        clearStopSelection();
       }
-      updateETAs();
-      updateAlerts();
     });
-
   } catch(e){ console.error(e); }
 }
 
-// ================== FETCH VEHICLES (and PASSENGERS) ==================
-async function fetchVehicles(){
+function handleStopSelection(feature){
+  const [lon, lat] = feature.geometry.coordinates;
+  selectedStopCoords = { lat, lon };
+  selectedRouteId = feature.properties.route_id;
+  $id("stopSelect").value = feature.properties.name;
+
+  if (selectedStopMarker) map.removeLayer(selectedStopMarker);
+  selectedStopMarker = L.marker([lat, lon]).addTo(map);
+  selectedStopMarker.bindPopup(`<b>${feature.properties.name}</b>`).openPopup();
+
+  map.setView([lat, lon], 16);
+  updateRouteDisplay();
+  updateETAs();
+  updateAlerts();
+
+  startDriverTracking();
+  maybeStartPassengerPresence();
+}
+
+function clearStopSelection(){
+  selectedStopCoords = null;
+  selectedRouteId = null;
+  if (selectedStopMarker) { map.removeLayer(selectedStopMarker); selectedStopMarker = null; }
+  updateRouteDisplay();
+  stopPassengerPresence();
+  updateETAs();
+  updateAlerts();
+}
+
+// ================== FETCH VEHICLES + PASSENGERS ==================
+async function fetchVehiclesAndPassengers(){
   try {
     let url = `${BACKEND_URL}/api/vehicles`;
-    if (selectedRouteId) {
-      url += `?route_id=${encodeURIComponent(selectedRouteId)}`;
-    }
+    if (selectedRouteId) url += `?route_id=${encodeURIComponent(selectedRouteId)}`;
     const res = await fetch(url);
     const payload = await res.json();
     vehiclesData = payload.vehicles || [];
+    passengersData = payload.passengers || [];
 
-    // Vehicles
+    // --- DRIVERS ---
     vehiclesData.forEach(v=>{
       if (!v.lat||!v.lon) return;
       let icon = getIcon(v.mode);
@@ -215,30 +191,30 @@ async function fetchVehicles(){
         vehicleMarkers[v.id] = L.marker([v.lat,v.lon],{icon}).bindPopup(content).addTo(map);
       }
     });
-
-    // NEW: Passengers (visible to drivers and anyone fetching the route)
-    const passengers = payload.passengers || [];
-    const liveIds = new Set();
-
-    passengers.forEach(p => {
-      if (!p.id || !p.lat || !p.lon) return;
-      liveIds.add(p.id);
-      const text = p.stop_name ? `🧍 Passenger at <b>${p.stop_name}</b>` : `🧍 Passenger waiting`;
-      const sub = p.route_id ? `<br>Route: ${p.route_id}` : "";
-      const popup = `${text}${sub}`;
-
-      if (passengerMarkers[p.id]) {
-        passengerMarkers[p.id].setLatLng([p.lat, p.lon]).setPopupContent(popup);
-      } else {
-        passengerMarkers[p.id] = L.marker([p.lat, p.lon], { icon: passengerIcon })
-          .bindPopup(popup)
-          .addTo(map);
+    // cleanup drivers not in feed
+    Object.keys(vehicleMarkers).forEach(id=>{
+      if (!vehiclesData.find(v=>v.id===id)){
+        map.removeLayer(vehicleMarkers[id]);
+        delete vehicleMarkers[id];
       }
     });
 
-    // Cleanup passenger markers that disappeared from the feed
-    Object.keys(passengerMarkers).forEach(id => {
-      if (!liveIds.has(id)) {
+    // --- PASSENGERS ---
+    const liveIds = new Set();
+    passengersData.forEach(p=>{
+      if (!p.id||!p.lat||!p.lon) return;
+      liveIds.add(p.id);
+      const popup = p.stop_name
+        ? `🧍 Passenger at <b>${p.stop_name}</b><br>Route: ${p.route_id||""}`
+        : `🧍 Passenger waiting`;
+      if (passengerMarkers[p.id]){
+        passengerMarkers[p.id].setLatLng([p.lat,p.lon]).setPopupContent(popup);
+      } else {
+        passengerMarkers[p.id] = L.marker([p.lat,p.lon], {icon: passengerIcon}).bindPopup(popup).addTo(map);
+      }
+    });
+    Object.keys(passengerMarkers).forEach(id=>{
+      if (!liveIds.has(id)){
         map.removeLayer(passengerMarkers[id]);
         delete passengerMarkers[id];
       }
@@ -254,14 +230,10 @@ async function fetchVehicles(){
 // ================== AUTO TRACK NEAREST VEHICLE ==================
 function autoTrackNearestVehicle(){
   if (!selectedStopCoords) return;
-  let nearest = null;
-  let minDist = Infinity;
+  let nearest=null, min=Infinity;
   vehiclesData.forEach(v=>{
     const {distance} = computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon);
-    if (distance < minDist){
-      minDist = distance;
-      nearest = v;
-    }
+    if (distance<min){min=distance;nearest=v;}
   });
   if (nearest) map.setView([nearest.lat,nearest.lon],15);
 }
@@ -284,200 +256,106 @@ function updateETAs(){
 function updateAlerts(){
   const el = $id("alertSidebar");
   el.innerHTML = "";
-  let found = false;
+  let found=false;
   vehiclesData.forEach(v=>{
     const {eta} = selectedStopCoords ? computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon) : {eta:999};
-    if (eta <= 3){
-      el.innerHTML += `<div>⚠️ ${v.id} arriving in ~${eta} min</div>`;
-      found = true;
-    }
+    if (eta<=3){ el.innerHTML += `<div>⚠️ ${v.id} arriving in ~${eta} min</div>`; found=true; }
   });
-  if (!found) el.innerHTML = "<p>No nearby vehicles</p>";
-
+  if (!found) el.innerHTML="<p>No nearby vehicles</p>";
   updateBanner();
 }
 
 // ================== BANNER HANDLING ==================
-function showBanner(message, color) {
-  const banner = $id("statusBanner");
-  banner.textContent = message;
-  banner.style.backgroundColor = color;
-  banner.style.color = "white";
-  banner.style.display = "block";
-
-  banner.classList.remove("pulse-green", "shake-orange");
-
-  if (color === "green") {
-    banner.classList.add("pulse-green");
-  } else if (color === "orange") {
-    void banner.offsetWidth;
-    banner.classList.add("shake-orange");
-  }
+function showBanner(message,color){
+  const banner=$id("statusBanner");
+  banner.textContent=message;
+  banner.style.backgroundColor=color;
+  banner.style.color="white";
+  banner.style.display="block";
+  banner.classList.remove("pulse-green","shake-orange");
+  if (color==="green"){ banner.classList.add("pulse-green"); }
+  else if (color==="orange"){ void banner.offsetWidth; banner.classList.add("shake-orange"); }
 }
-function hideBanner() {
-  const banner = $id("statusBanner");
-  banner.style.display = "none";
-  banner.classList.remove("pulse-green", "shake-orange");
+function hideBanner(){
+  const banner=$id("statusBanner");
+  banner.style.display="none";
+  banner.classList.remove("pulse-green","shake-orange");
 }
-function updateBanner() {
-  const role = $id("roleSelect").value.toLowerCase();
-  if (role.includes("driver")) {
-    if (!selectedStopCoords || !selectedRouteId) {
-      showBanner("⚠️ Select a stop to start sharing location", "orange");
-    } else {
-      showBanner("📡 Live location sharing active", "green");
-    }
-  } else {
-    hideBanner();
-  }
+function updateBanner(){
+  const role=$id("roleSelect").value.toLowerCase();
+  if (role.includes("driver")){
+    if (!selectedStopCoords||!selectedRouteId) showBanner("⚠️ Select a stop to start sharing location","orange");
+    else showBanner("📡 Live location sharing active","green");
+  } else hideBanner();
 }
 
 // ================== LOCATION ==================
 function addLocateMeButton(){
-  const btn = $id("locateMeBtn");
+  const btn=$id("locateMeBtn");
   btn.addEventListener("click",()=>{
     navigator.geolocation.getCurrentPosition(pos=>{
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      if (userMarker){userMarker.setLatLng([lat,lon])}
-      else {
-        userMarker = L.marker([lat,lon],{icon:L.icon({iconUrl:"https://cdn-icons-png.flaticon.com/512/684/684908.png",iconSize:[25,25]})}).addTo(map);
-      }
+      const lat=pos.coords.latitude, lon=pos.coords.longitude;
+      if (userMarker){ userMarker.setLatLng([lat,lon]); }
+      else { userMarker=L.marker([lat,lon],{icon:L.icon({iconUrl:"https://cdn-icons-png.flaticon.com/512/684/684908.png",iconSize:[25,25]})}).addTo(map); }
       snapToNearestStop(lat,lon);
     },()=>alert("Location unavailable"));
   });
 }
-
 function snapToNearestStop(lat,lon){
   if (!stopsGeoJSON) return;
   let nearest=null, min=Infinity;
   stopsGeoJSON.features.forEach(f=>{
-    const [slon,slat] = f.geometry.coordinates;
-    const {distance} = computeETA(lat,lon,slat,slon);
-    if (distance<min){min=distance;nearest=f}
+    const [slon,slat]=f.geometry.coordinates;
+    const {distance}=computeETA(lat,lon,slat,slon);
+    if (distance<min){min=distance;nearest=f;}
   });
-  if (nearest){
-    const [slon,slat] = nearest.geometry.coordinates;
-    selectedStopCoords = {lat:slat,lon:slon};
-    selectedRouteId = nearest.properties.route_id;
-    $id("stopSelect").value = nearest.properties.name;
-    updateRouteDisplay();
-
-    if (selectedStopMarker) map.removeLayer(selectedStopMarker);
-    selectedStopMarker = L.marker([slat, slon]).addTo(map);
-    selectedStopMarker.bindPopup(`<b>${nearest.properties.name}</b>`).openPopup();
-
-    map.setView([slat,slon],16);
-    startDriverTracking();
-
-    // NEW: passenger presence if role is passenger
-    maybeStartPassengerPresence();
-  }
+  if (nearest) handleStopSelection(nearest);
 }
-
 function updateRouteDisplay(){
-  const el = $id("currentRoute");
-  if (selectedRouteId) {
-    el.textContent = `📍 Current Route: ${selectedRouteId}`;
-  } else {
-    el.textContent = "";
-  }
+  $id("currentRoute").textContent = selectedRouteId ? `📍 Current Route: ${selectedRouteId}` : "";
 }
 
 // ================== DRIVER TRACKING ==================
 function startDriverTracking(){
-  if (!$id("roleSelect").value.toLowerCase().includes("driver")) {
-    updateBanner();
-    return;
-  }
-  if (!selectedRouteId) {
-    updateBanner();
-    return;
-  }
-
+  if (!$id("roleSelect").value.toLowerCase().includes("driver")){ updateBanner(); return; }
+  if (!selectedRouteId){ updateBanner(); return; }
   if (driverWatcher) navigator.geolocation.clearWatch(driverWatcher);
 
-  driverWatcher = navigator.geolocation.watchPosition(pos => {
-    const lat = pos.coords.latitude;
-    const lon = pos.coords.longitude;
-
-    // local marker for driver
+  driverWatcher=navigator.geolocation.watchPosition(pos=>{
+    const lat=pos.coords.latitude, lon=pos.coords.longitude;
     if (driverMarker){ driverMarker.setLatLng([lat,lon]); }
-    else {
-      driverMarker = L.marker([lat,lon],{icon:getIcon($id("roleSelect").value)}).addTo(map);
-      driverMarker.bindPopup("You are here (Driver)").openPopup();
-    }
-
-    // send to backend
-    fetch(`${BACKEND_URL}/api/update_vehicle`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: driverId,
-        mode: $id("roleSelect").value,
-        lat, lon,
-        route_id: selectedRouteId
-      })
+    else { driverMarker=L.marker([lat,lon],{icon:getIcon($id("roleSelect").value)}).addTo(map).bindPopup("You are here (Driver)").openPopup(); }
+    fetch(`${BACKEND_URL}/api/update_vehicle`,{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({id:driverId, mode:$id("roleSelect").value, lat, lon, route_id:selectedRouteId, sharing:true})
     });
-
     updateBanner();
   });
 }
 
-// ================== PASSENGER PRESENCE (NEW) ==================
+// ================== PASSENGER PRESENCE ==================
 function maybeStartPassengerPresence(){
-  const role = $id("roleSelect").value.toLowerCase();
-  if (!role.includes("passenger")) {
-    stopPassengerPresence();
-    return;
-  }
-  if (!selectedStopCoords || !selectedRouteId) {
-    stopPassengerPresence();
-    return;
-  }
-  if (!passengerId) {
-    passengerId = "passenger_" + Math.floor(Math.random() * 100000);
-  }
+  const role=$id("roleSelect").value.toLowerCase();
+  if (!role.includes("passenger")||!selectedStopCoords||!selectedRouteId){ stopPassengerPresence(); return; }
+  if (!passengerId){ passengerId="passenger_"+Math.floor(Math.random()*100000); }
 
-  // send immediately, then keep-alive every 10s while conditions hold
-  const send = () => {
-    fetch(`${BACKEND_URL}/api/update_passenger`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: passengerId,
-        lat: selectedStopCoords.lat,
-        lon: selectedStopCoords.lon,
-        route_id: selectedRouteId,
-        stop_name: $id("stopSelect").value || undefined
-      })
+  const send=()=>{
+    fetch(`${BACKEND_URL}/api/update_passenger`,{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({id:passengerId, lat:selectedStopCoords.lat, lon:selectedStopCoords.lon, route_id:selectedRouteId, stop_name:$id("stopSelect").value||undefined})
     }).catch(()=>{});
   };
-
   send();
   if (passengerInterval) clearInterval(passengerInterval);
-  passengerInterval = setInterval(send, 10000);
+  passengerInterval=setInterval(send,10000);
 }
-
 function stopPassengerPresence(){
-  if (passengerInterval) {
-    clearInterval(passengerInterval);
-    passengerInterval = null;
-  }
-  if (passengerId) {
-    fetch(`${BACKEND_URL}/api/remove_passenger`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: passengerId })
-    }).catch(()=>{});
-  }
+  if (passengerInterval){ clearInterval(passengerInterval); passengerInterval=null; }
+  if (passengerId){ fetch(`${BACKEND_URL}/api/remove_passenger`,{method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({id:passengerId})}).catch(()=>{}); }
 }
-
 function clearAllPassengerMarkers(){
-  Object.keys(passengerMarkers).forEach(id=>{
-    map.removeLayer(passengerMarkers[id]);
-  });
-  passengerMarkers = {};
+  Object.keys(passengerMarkers).forEach(id=>{ map.removeLayer(passengerMarkers[id]); });
+  passengerMarkers={};
 }
 
 // ================== INIT ==================
@@ -485,57 +363,30 @@ document.addEventListener("DOMContentLoaded",()=>{
   if (!promptLogin()) return;
   initMap();
 
-  const toggleBtn = $id("toggleSidebarBtn");
-  const sidebar = $id("sidebar");
-  toggleBtn.addEventListener("click",()=>sidebar.classList.toggle("open"));
-
-  const clearBtn = $id("clearBtn");
-  clearBtn.addEventListener("click", () => {
-    selectedStopCoords = null;
-    selectedRouteId = null;
-
-    if (selectedStopMarker) {
-      map.removeLayer(selectedStopMarker);
-      selectedStopMarker = null;
-    }
-
-    $id("stopSelect").value = "";
-    updateRouteDisplay();
-
-    $id("etaList").innerHTML = "";
-    $id("alertSidebar").innerHTML = "<p>No nearby vehicles</p>";
-
+  $id("toggleSidebarBtn").addEventListener("click",()=> $id("sidebar").classList.toggle("open"));
+  $id("clearBtn").addEventListener("click",()=>{
+    clearStopSelection();
+    $id("stopSelect").value="";
+    $id("etaList").innerHTML="";
+    $id("alertSidebar").innerHTML="<p>No nearby vehicles</p>";
     hideBanner();
-
-    // NEW: stop presence + remove passenger markers
     stopPassengerPresence();
     clearAllPassengerMarkers();
-
-    map.setView([8.48, -13.22], 12);
+    map.setView([8.48,-13.22],12);
   });
 
-  // Role switching: start/stop passenger presence as needed
-  $id("roleSelect").addEventListener("change", () => {
-    updateBanner(); // keep banner consistent
-    if ($id("roleSelect").value.toLowerCase().includes("passenger")) {
+  $id("roleSelect").addEventListener("change",()=>{
+    updateBanner();
+    if ($id("roleSelect").value.toLowerCase().includes("passenger")){
       maybeStartPassengerPresence();
-      // If switching away from driver, also stop driver geolocation
-      if (driverWatcher) {
-        navigator.geolocation.clearWatch(driverWatcher);
-        driverWatcher = null;
-      }
+      if (driverWatcher){ navigator.geolocation.clearWatch(driverWatcher); driverWatcher=null; }
     } else {
       stopPassengerPresence();
-      // If switching to driver, attempt driver tracking (requires route/stop)
       startDriverTracking();
     }
   });
 
-  driverId = "driver_" + Math.floor(Math.random() * 100000);
-
-  // initial attempt at tracking if already driver + stop
+  driverId="driver_"+Math.floor(Math.random()*100000);
   startDriverTracking();
-
-  // Make sure we clean up passenger presence on tab close
   window.addEventListener("beforeunload", stopPassengerPresence);
 });
