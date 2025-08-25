@@ -43,9 +43,7 @@ const iconMap = {
 };
 function getIcon(mode) {
   let key = (mode || "").toLowerCase().trim();
-  if (key.endsWith(" driver")) {
-    key = key.replace(" driver", "").trim();
-  }
+  if (key.endsWith(" driver")) key = key.replace(" driver", "").trim();
   return L.icon({
     iconUrl: iconMap[key] || iconMap["podapoda"],
     iconSize: [32, 32],
@@ -174,11 +172,12 @@ async function fetchVehiclesAndPassengers(){
     const res = await fetch(url);
     const payload = await res.json();
     vehiclesData = payload.vehicles || [];
-    passengersData = payload.passengers || [];
 
     // --- DRIVERS ---
+    const liveVehicleIds = new Set();
     vehiclesData.forEach(v=>{
       if (!v.lat||!v.lon) return;
+      liveVehicleIds.add(v.id);
       let icon = getIcon(v.mode);
       let content = `<b>${v.id}</b><br>${v.mode}`;
       if (selectedStopCoords){
@@ -191,34 +190,50 @@ async function fetchVehiclesAndPassengers(){
         vehicleMarkers[v.id] = L.marker([v.lat,v.lon],{icon}).bindPopup(content).addTo(map);
       }
     });
-    // cleanup drivers not in feed
+    // Cleanup old driver markers
     Object.keys(vehicleMarkers).forEach(id=>{
-      if (!vehiclesData.find(v=>v.id===id)){
+      if (!liveVehicleIds.has(id)){
         map.removeLayer(vehicleMarkers[id]);
         delete vehicleMarkers[id];
       }
     });
 
     // --- PASSENGERS ---
-    const liveIds = new Set();
-    passengersData.forEach(p=>{
+    const livePassengerIds = new Set();
+    const passengers = vehiclesData.filter(v=>v.role.toLowerCase().includes("passenger") && v.sharing);
+    const groupedPassengers = {};
+    passengers.forEach(p=>{
       if (!p.id||!p.lat||!p.lon) return;
-      liveIds.add(p.id);
-      const popup = p.stop_name
-        ? `🧍 Passenger at <b>${p.stop_name}</b><br>Route: ${p.route_id||""}`
-        : `🧍 Passenger waiting`;
+      livePassengerIds.add(p.id);
+      const stop = p.stop_name||"Waiting passengers";
+      if (!groupedPassengers[stop]) groupedPassengers[stop]=[];
+      groupedPassengers[stop].push(p.id);
+
+      const popup = p.stop_name ? `🧍 Passenger at <b>${p.stop_name}</b>` : "🧍 Passenger waiting";
       if (passengerMarkers[p.id]){
         passengerMarkers[p.id].setLatLng([p.lat,p.lon]).setPopupContent(popup);
       } else {
-        passengerMarkers[p.id] = L.marker([p.lat,p.lon], {icon: passengerIcon}).bindPopup(popup).addTo(map);
+        passengerMarkers[p.id] = L.marker([p.lat,p.lon],{icon:passengerIcon}).bindPopup(popup).addTo(map);
       }
     });
     Object.keys(passengerMarkers).forEach(id=>{
-      if (!liveIds.has(id)){
+      if (!livePassengerIds.has(id)){
         map.removeLayer(passengerMarkers[id]);
         delete passengerMarkers[id];
       }
     });
+
+    // Update passenger sidebar
+    const el = $id("passengerList");
+    if (el){
+      el.innerHTML = "";
+      if (Object.keys(groupedPassengers).length===0) el.innerHTML="<p>No passengers currently sharing</p>";
+      else {
+        Object.keys(groupedPassengers).forEach(stop=>{
+          el.innerHTML += `<div style="margin-bottom:8px;"><b>${stop}</b>: ${groupedPassengers[stop].join(", ")}</div>`;
+        });
+      }
+    }
 
     autoTrackNearestVehicle();
     updateETAs();
@@ -232,8 +247,9 @@ function autoTrackNearestVehicle(){
   if (!selectedStopCoords) return;
   let nearest=null, min=Infinity;
   vehiclesData.forEach(v=>{
+    if(v.role.toLowerCase().includes("passenger")) return;
     const {distance} = computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon);
-    if (distance<min){min=distance;nearest=v;}
+    if (distance<min){ min=distance; nearest=v; }
   });
   if (nearest) map.setView([nearest.lat,nearest.lon],15);
 }
@@ -242,17 +258,16 @@ function autoTrackNearestVehicle(){
 function updateETAs(){
   const el = $id("etaList");
   el.innerHTML = "";
-  let list = vehiclesData;
+  let list = vehiclesData.filter(v=>!v.role.toLowerCase().includes("passenger"));
   if (selectedStopCoords){
     list = list.filter(v=>computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon).distance <= STOP_FILTER_RADIUS);
   }
   list.forEach(v=>{
-    const {distance,eta} = selectedStopCoords
-      ? computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon)
-      : (userMarker ? computeETA(userMarker.getLatLng().lat,userMarker.getLatLng().lng,v.lat,v.lon) : {distance:"?",eta:"?"});
+    const {distance,eta} = computeETA(selectedStopCoords.lat,selectedStopCoords.lon,v.lat,v.lon);
     el.innerHTML += `<div><img src="${iconMap[(v.mode || "").toLowerCase().replace(' driver','').trim()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">${v.id} (${v.mode}) — ${distance} m, ETA ~${eta} min</div>`;
   });
 }
+
 function updateAlerts(){
   const el = $id("alertSidebar");
   el.innerHTML = "";
@@ -263,56 +278,6 @@ function updateAlerts(){
   });
   if (!found) el.innerHTML="<p>No nearby vehicles</p>";
   updateBanner();
-}
-
-// ================== BANNER HANDLING ==================
-function showBanner(message,color){
-  const banner=$id("statusBanner");
-  banner.textContent=message;
-  banner.style.backgroundColor=color;
-  banner.style.color="white";
-  banner.style.display="block";
-  banner.classList.remove("pulse-green","shake-orange");
-  if (color==="green"){ banner.classList.add("pulse-green"); }
-  else if (color==="orange"){ void banner.offsetWidth; banner.classList.add("shake-orange"); }
-}
-function hideBanner(){
-  const banner=$id("statusBanner");
-  banner.style.display="none";
-  banner.classList.remove("pulse-green","shake-orange");
-}
-function updateBanner(){
-  const role=$id("roleSelect").value.toLowerCase();
-  if (role.includes("driver")){
-    if (!selectedStopCoords||!selectedRouteId) showBanner("⚠️ Select a stop to start sharing location","orange");
-    else showBanner("📡 Live location sharing active","green");
-  } else hideBanner();
-}
-
-// ================== LOCATION ==================
-function addLocateMeButton(){
-  const btn=$id("locateMeBtn");
-  btn.addEventListener("click",()=>{
-    navigator.geolocation.getCurrentPosition(pos=>{
-      const lat=pos.coords.latitude, lon=pos.coords.longitude;
-      if (userMarker){ userMarker.setLatLng([lat,lon]); }
-      else { userMarker=L.marker([lat,lon],{icon:L.icon({iconUrl:"https://cdn-icons-png.flaticon.com/512/684/684908.png",iconSize:[25,25]})}).addTo(map); }
-      snapToNearestStop(lat,lon);
-    },()=>alert("Location unavailable"));
-  });
-}
-function snapToNearestStop(lat,lon){
-  if (!stopsGeoJSON) return;
-  let nearest=null, min=Infinity;
-  stopsGeoJSON.features.forEach(f=>{
-    const [slon,slat]=f.geometry.coordinates;
-    const {distance}=computeETA(lat,lon,slat,slon);
-    if (distance<min){min=distance;nearest=f;}
-  });
-  if (nearest) handleStopSelection(nearest);
-}
-function updateRouteDisplay(){
-  $id("currentRoute").textContent = selectedRouteId ? `📍 Current Route: ${selectedRouteId}` : "";
 }
 
 // ================== DRIVER TRACKING ==================
@@ -340,9 +305,9 @@ function maybeStartPassengerPresence(){
   if (!passengerId){ passengerId="passenger_"+Math.floor(Math.random()*100000); }
 
   const send=()=>{
-    fetch(`${BACKEND_URL}/api/update_passenger`,{
+    fetch(`${BACKEND_URL}/api/update_vehicle`,{
       method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({id:passengerId, lat:selectedStopCoords.lat, lon:selectedStopCoords.lon, route_id:selectedRouteId, stop_name:$id("stopSelect").value||undefined})
+      body:JSON.stringify({id:passengerId, role:"passenger", lat:selectedStopCoords.lat, lon:selectedStopCoords.lon, route_id:selectedRouteId, stop_name:$id("stopSelect").value||undefined, sharing:true})
     }).catch(()=>{});
   };
   send();
