@@ -152,6 +152,7 @@ async function fetchVehiclesAndPassengers(){
     const payload = await res.json();
     vehiclesData = payload.vehicles || [];
     
+    // Separate passengers from drivers
     passengersData = vehiclesData.filter(v=>v.role.toLowerCase().includes("passenger"));
     const driversData = vehiclesData.filter(v=>!v.role.toLowerCase().includes("passenger"));
 
@@ -170,6 +171,7 @@ async function fetchVehiclesAndPassengers(){
         vehicleMarkers[v.id] = L.marker([v.lat,v.lon],{icon}).bindPopup(content).addTo(map);
       }
     });
+    // Cleanup drivers not in feed
     Object.keys(vehicleMarkers).forEach(id=>{
       if(!driversData.find(v=>v.id===id)){
         map.removeLayer(vehicleMarkers[id]);
@@ -182,7 +184,7 @@ async function fetchVehiclesAndPassengers(){
     passengersData.forEach(p=>{
       if(!p.id||!p.lat||!p.lon) return;
       liveIds.add(p.id);
-      const popup = p.stop_name ? `🧍 Passenger at <b>${p.stop_name}</b>` : `🧍 Passenger waiting`;
+      const popup = p.stop_name ? `🧍 Passenger at <b>${p.stop_name}</b><br>Route: ${p.route_id||""}` : `🧍 Passenger waiting`;
       if(passengerMarkers[p.id]){
         passengerMarkers[p.id].setLatLng([p.lat,p.lon]).setPopupContent(popup);
       } else {
@@ -196,17 +198,18 @@ async function fetchVehiclesAndPassengers(){
       }
     });
 
-    // --- AGGREGATED PASSENGERS BY STOP ---
+    // --- UPDATE PASSENGER LIST BY STOP (Aggregated Count) ---
     const passengerListEl = $id("passengerList");
     const grouped = {};
     passengersData.forEach(p=>{
       const stop = p.stop_name || "Unknown Stop";
-      grouped[stop] = (grouped[stop] || 0) + 1;
+      if(!grouped[stop]) grouped[stop]=0;
+      grouped[stop]++;
     });
     passengerListEl.innerHTML="";
     Object.keys(grouped).forEach(stop=>{
       const count = grouped[stop];
-      passengerListEl.innerHTML += `<div>🛑 <b>${stop}</b> — ${count} Passenger${count>1?'s':''}</div>`;
+      passengerListEl.innerHTML += `<div><b>${stop}</b>: ${count} Passenger${count>1?'s':''}</div>`;
     });
 
     autoTrackNearestVehicle();
@@ -222,31 +225,44 @@ function autoTrackNearestVehicle(){
   if(!selectedStopCoords) return;
   let nearest=null, min=Infinity;
   vehiclesData.forEach(v=>{
-    if(v.role.toLowerCase().includes("passenger")) return;
     const {distance} = computeETA(selectedStopCoords.lat, selectedStopCoords.lon, v.lat, v.lon);
     if(distance<min){ min=distance; nearest=v; }
   });
-  if(nearest) map.setView([nearest.lat,nearest.lon],15);
+  if(nearest) map.setView([nearest.lat, nearest.lon],15);
 }
 
 // ================== UI UPDATES ==================
 function updateETAs(){
   const el = $id("etaList");
   el.innerHTML = "";
-  let list = vehiclesData;
-  if(selectedStopCoords) list = list.filter(v=>computeETA(selectedStopCoords.lat, selectedStopCoords.lon,v.lat,v.lon).distance<=STOP_FILTER_RADIUS);
-  list.forEach(v=>{
-    const {distance,eta} = selectedStopCoords ? computeETA(selectedStopCoords.lat, selectedStopCoords.lon,v.lat,v.lon) : {distance:"?",eta:"?"};
-    el.innerHTML += `<div><img src="${iconMap[(v.role || "").toLowerCase().replace(' driver','').trim()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">${v.id} (${v.role}) — ${distance} m, ETA ~${eta} min</div>`;
+
+  const role = $id("roleSelect").value.toLowerCase();
+  if(!selectedStopCoords) return;
+
+  // Only show driver ETAs
+  const drivers = vehiclesData.filter(v=>!v.role.toLowerCase().includes("passenger"));
+  drivers.forEach(v=>{
+    const {distance, eta} = computeETA(selectedStopCoords.lat, selectedStopCoords.lon,v.lat,v.lon);
+    el.innerHTML += `<div>
+      <img src="${iconMap[(v.role || "").toLowerCase().replace(' driver','').trim()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">
+      ${v.id} (${v.role}) — ${distance} m, ETA ~${eta} min
+    </div>`;
   });
 }
+
 function updateAlerts(){
   const el = $id("alertSidebar");
   el.innerHTML = "";
+  if(!selectedStopCoords) return;
+
   let found=false;
   vehiclesData.forEach(v=>{
-    const {eta} = selectedStopCoords ? computeETA(selectedStopCoords.lat, selectedStopCoords.lon,v.lat,v.lon) : {eta:999};
-    if(eta<=3){ el.innerHTML += `<div>⚠️ ${v.id} arriving in ~${eta} min</div>`; found=true; }
+    if(v.role.toLowerCase().includes("passenger")) return; // ignore passengers
+    const {eta} = computeETA(selectedStopCoords.lat, selectedStopCoords.lon,v.lat,v.lon);
+    if(eta<=3){
+      el.innerHTML += `<div>⚠️ ${v.id} arriving in ~${eta} min</div>`;
+      found=true;
+    }
   });
   if(!found) el.innerHTML="<p>No nearby vehicles</p>";
   updateBanner();
