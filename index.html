@@ -4,104 +4,197 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Freetown PT Tracker</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-    }
+    /* Reset & layout */
+    * { box-sizing: border-box; margin:0; padding:0; }
+    html, body { height:100%; font-family: Arial, sans-serif; background:#fff; }
+    .page-container { display:flex; flex-direction:column; height:100%; }
 
-    /* Header styling */
-    #header {
-      display: flex;
+    /* Header */
+    header {
+      background-color: #0a5f4a;
+      color:white;
+      padding: 0.6rem 1rem;
+      display:flex;
       justify-content: space-between;
       align-items: center;
-      background-color: #006241; /* deep green */
-      padding: 10px 15px;
-      color: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
+    header h1 { font-size: 1.2rem; line-height:1.3; }
 
-    .header-left .app-title {
-      font-size: 18px;
-      font-weight: bold;
-      line-height: 1.2;
-    }
-
-    .header-right {
+    /* ✅ keep buttons in one row */
+    .header-buttons {
       display: flex;
       align-items: center;
+      gap: 0.5rem;
+      flex-wrap: nowrap;   /* force them to stay in a row */
+    }
+    .header-buttons button {
+      background-color: #2e9464;
+      color:white;
+      border:none;
+      padding: 0.45rem 0.9rem;
+      border-radius: 4px;
+      cursor:pointer;
+      font-size: 0.9rem;
+      white-space: nowrap; /* prevents wrapping */
+    }
+    .header-buttons button:hover { background-color: #248257; }
+
+    /* Main layout */
+    .main-content { display:flex; flex:1; overflow:hidden; }
+    #map { flex:1; height:100%; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 310px;
+      max-width: 100%;
+      background-color:#fafafa;
+      padding: 1rem;
+      overflow-y:auto;
+      border-left: 1px solid #ddd;
+      display:none;
+      flex-shrink:0;
+    }
+    .sidebar.open { display:block; }
+    .sidebar h2, .sidebar h3 {
+      margin: 0.7rem 0 0.4rem 0;
+      color:#0a5f4a;
+      font-size: 1rem;
+      border-bottom:1px solid #ccc;
+      padding-bottom:0.2rem;
+    }
+    .sidebar-list {
+      margin-bottom:1rem;
+      max-height:160px;
+      overflow-y:auto;
+      font-size: 0.9rem;
+      background:#fff;
+      border:1px solid #ddd;
+      border-radius:4px;
+      padding:0.5rem;
+    }
+    #currentRoute { font-weight:bold; color:#2a4d69; margin:0.3rem 0 0.6rem 0; }
+
+    /* Selects */
+    select {
+      width:100%;
+      padding:0.4rem;
+      border:1px solid #ccc;
+      border-radius:4px;
+      font-size:0.9rem;
+    }
+    #roleSelect option {
+      padding-left: 28px;
+      background-repeat:no-repeat;
+      background-position:5px center;
+      background-size:20px 20px;
     }
 
-    .header-right button {
-      margin-left: 8px;
-      background-color: #008C45; /* lighter green */
-      color: white;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 12px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 14px;
+    /* Footer */
+    footer {
+      background-color:#0a5f4a;
+      color:white;
+      text-align:center;
+      padding:0.5rem;
+      font-weight:bold;
+      font-size:0.85rem;
+      box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
     }
 
-    .header-right button:hover {
-      background-color: #006f36;
+    /* Status banner */
+    #statusBanner {
+      display:none;
+      padding:0.6rem;
+      text-align:center;
+      font-weight:bold;
+      font-size: 0.95rem;
     }
+    .pulse-green { animation:pulse 1.5s infinite; }
+    .shake-orange { animation:shake 0.5s infinite; }
 
-    #map {
-      height: calc(100vh - 60px); /* subtract header height */
-      width: 100%;
+    @keyframes pulse {
+      0%{ opacity:0.7 } 50%{ opacity:1 } 100%{ opacity:0.7 }
     }
-
-    #footer {
-      background: #004d33;
-      color: white;
-      text-align: center;
-      padding: 6px;
-      font-size: 14px;
+    @keyframes shake {
+      0%,100%{ transform:translateX(0); }
+      25%{ transform:translateX(-3px); }
+      75%{ transform:translateX(3px); }
     }
   </style>
 </head>
 <body>
-  <!-- Header -->
-  <div id="header">
-    <div class="header-left">
-      <span class="app-title">🚖 Freetown PT Tracker 🇸🇱</span>
-    </div>
-    <div class="header-right">
-      <button id="locateBtn">📍 My Location</button>
-      <button id="clearBtn">🧹 Clear</button>
-      <button id="menuBtn">☰ Menu</button>
-    </div>
-  </div>
+  <div class="page-container">
+    <header>
+      <h1>🚖 Freetown PT Tracker 🇸🇱</h1>
+      <div class="header-buttons">
+        <button id="locateMeBtn">My Location</button>
+        <button id="clearBtn">Clear</button>
+        <button id="toggleSidebarBtn">Menu</button>
+      </div>
+    </header>
 
-  <!-- Map -->
-  <div id="map"></div>
+    <div id="statusBanner"></div>
 
-  <!-- Footer -->
-  <div id="footer">
-    <span id="clock"></span>
+    <div class="main-content">
+      <div id="map"></div>
+
+      <aside id="sidebar" class="sidebar">
+        <h2>Role</h2>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:0.5rem;">
+          <img id="roleIcon" src="https://cdn-icons-png.flaticon.com/512/1077/1077012.png" 
+               alt="Role Icon" style="width:24px;height:24px;">
+          <select id="roleSelect">
+            <option value="Passenger" style="background-image:url('https://cdn-icons-png.flaticon.com/512/1077/1077012.png');">Passenger</option>
+            <option value="Podapoda Driver" style="background-image:url('assets/icons/podapoda.png');">Podapoda Driver</option>
+            <option value="Keke Driver" style="background-image:url('assets/icons/keke.png');">Keke Driver</option>
+            <option value="Taxi Driver" style="background-image:url('assets/icons/taxi.png');">Taxi Driver</option>
+            <option value="Paratransit Bus Driver" style="background-image:url('assets/icons/paratransit_bus.png');">Paratransit Bus Driver</option>
+            <option value="Waka Fine Bus Driver" style="background-image:url('assets/icons/waka_fine_bus.png');">Waka Fine Bus Driver</option>
+            <option value="Motorbike Driver" style="background-image:url('assets/icons/motorbike.png');">Motorbike Driver</option>
+          </select>
+        </div>
+
+        <h2>Stop Filter</h2>
+        <select id="stopSelect"></select>
+        <p id="currentRoute"></p>
+
+        <h3>Estimated Time of Arrival (ETA)</h3>
+        <div id="etaList" class="sidebar-list"></div>
+
+        <h3>Alerts</h3>
+        <div id="alertSidebar" class="sidebar-list"></div>
+
+        <h3>Passengers by Stop</h3>
+        <div id="passengerList" class="sidebar-list"></div>
+
+        <h3>Last Updated:</h3>
+        <p id="lastUpdated" style="font-size:0.85rem; color:#555;"></p>
+      </aside>
+    </div>
+
+    <footer>
+      <span id="footerTime"></span>
+    </footer>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="script.js"></script>
   <script>
-    // Clock
-    function updateClock() {
-      const now = new Date();
-      document.getElementById("clock").textContent = now.toLocaleTimeString();
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
+    setInterval(() => {
+      document.getElementById("footerTime").textContent =
+        new Date().toLocaleTimeString();
+    }, 1000);
 
-    // Map setup
-    const map = L.map("map").setView([8.4657, -13.2317], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-    }).addTo(map);
-
-    // Example marker
-    L.marker([8.4657, -13.2317]).addTo(map)
-      .bindPopup("Welcome to Freetown!");
+    // Role icon update
+    const roleSelect = document.getElementById("roleSelect");
+    const roleIcon = document.getElementById("roleIcon");
+    roleSelect.addEventListener("change", () => {
+      const selectedOption = roleSelect.options[roleSelect.selectedIndex];
+      const bgImg = selectedOption.style.backgroundImage.replace(/url\(["']?|["']?\)/g, "");
+      if (bgImg) roleIcon.src = bgImg;
+    });
   </script>
 </body>
 </html>
