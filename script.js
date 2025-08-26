@@ -225,6 +225,7 @@ function autoTrackNearestVehicle(){
   if(!selectedStopCoords) return;
   let nearest=null, min=Infinity;
   vehiclesData.forEach(v=>{
+    if(v.role.toLowerCase().includes("passenger")) return;
     const {distance} = computeETA(selectedStopCoords.lat, selectedStopCoords.lon, v.lat, v.lon);
     if(distance<min){ min=distance; nearest=v; }
   });
@@ -236,28 +237,39 @@ function updateETAs(){
   const el = $id("etaList");
   el.innerHTML = "";
 
-  const role = $id("roleSelect").value.toLowerCase();
   if(!selectedStopCoords) return;
+  const role = $id("roleSelect").value.toLowerCase();
 
-  // Only show driver ETAs
   const drivers = vehiclesData.filter(v=>!v.role.toLowerCase().includes("passenger"));
   drivers.forEach(v=>{
     const {distance, eta} = computeETA(selectedStopCoords.lat, selectedStopCoords.lon,v.lat,v.lon);
-    el.innerHTML += `<div>
-      <img src="${iconMap[(v.role || "").toLowerCase().replace(' driver','').trim()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">
-      ${v.id} (${v.role}) — ${distance} m, ETA ~${eta} min
-    </div>`;
+    if(role.includes("driver")){
+      // Drivers see ETA to passenger stop
+      el.innerHTML += `<div>⏱️ Stop ETA: ${distance} m, ~${eta} min</div>`;
+    } else {
+      // Passengers see ETA to their stop
+      el.innerHTML += `<div>
+        <img src="${iconMap[(v.role || "").toLowerCase().replace(' driver','').trim()]}" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;">
+        ${v.id} (${v.role}) — ${distance} m, ETA ~${eta} min
+      </div>`;
+    }
   });
 }
 
 function updateAlerts(){
   const el = $id("alertSidebar");
   el.innerHTML = "";
-  if(!selectedStopCoords) return;
 
+  const role = $id("roleSelect").value.toLowerCase();
+  if(role.includes("driver")) {
+    // 🚫 Drivers do not see alerts
+    return;
+  }
+
+  if(!selectedStopCoords) return;
   let found=false;
   vehiclesData.forEach(v=>{
-    if(v.role.toLowerCase().includes("passenger")) return; // ignore passengers
+    if(v.role.toLowerCase().includes("passenger")) return;
     const {eta} = computeETA(selectedStopCoords.lat, selectedStopCoords.lon,v.lat,v.lon);
     if(eta<=3){
       el.innerHTML += `<div>⚠️ ${v.id} arriving in ~${eta} min</div>`;
@@ -369,7 +381,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     clearStopSelection();
     $id("stopSelect").value="";
     $id("etaList").innerHTML="";
-    $id("alertSidebar").innerHTML="<p>No nearby vehicles</p>";
+    $id("alertSidebar").innerHTML="";
     $id("passengerList").innerHTML="";
     hideBanner();
     stopPassengerPresence();
