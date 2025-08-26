@@ -141,6 +141,9 @@
       <div id="map"></div>
 
       <aside id="sidebar" class="sidebar">
+        <!-- Dynamic Dashboard Header -->
+        <h2 id="dashboardHeader">Passenger Dashboard</h2>
+
         <h2>Role</h2>
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:0.5rem;">
           <img id="roleIcon" src="https://cdn-icons-png.flaticon.com/512/1077/1077012.png" 
@@ -190,21 +193,23 @@
         new Date().toLocaleTimeString();
     }, 1000);
 
-    // Role icon update + hide/show Alerts section
+    // Role icon update + hide/show Alerts section + update Dashboard Header
     const roleSelect = document.getElementById("roleSelect");
     const roleIcon = document.getElementById("roleIcon");
     const alertsSection = document.getElementById("alertsSection");
+    const dashboardHeader = document.getElementById("dashboardHeader");
 
     roleSelect.addEventListener("change", () => {
       const selectedOption = roleSelect.options[roleSelect.selectedIndex];
       const bgImg = selectedOption.style.backgroundImage.replace(/url\(["']?|["']?\)/g, "");
       if (bgImg) roleIcon.src = bgImg;
 
-      // Hide alerts for drivers
       if (roleSelect.value.toLowerCase().includes("driver")) {
         alertsSection.style.display = "none";
+        dashboardHeader.textContent = "Driver Dashboard";
       } else {
         alertsSection.style.display = "block";
+        dashboardHeader.textContent = "Passenger Dashboard";
       }
     });
   </script>
