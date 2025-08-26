@@ -28,7 +28,7 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      flex-wrap: nowrap;   /* force them to stay in a row */
+      flex-wrap: nowrap;
     }
     .header-buttons button {
       background-color: #2e9464;
@@ -38,7 +38,7 @@
       border-radius: 4px;
       cursor:pointer;
       font-size: 0.9rem;
-      white-space: nowrap; /* prevents wrapping */
+      white-space: nowrap;
     }
     .header-buttons button:hover { background-color: #248257; }
 
@@ -163,8 +163,11 @@
         <h3>⏱️ Estimated Time of Arrival (ETA)</h3>
         <div id="etaList" class="sidebar-list"></div>
 
-        <h3>🔔 Alerts</h3>
-        <div id="alertSidebar" class="sidebar-list"></div>
+        <!-- Alerts (hidden automatically in JS if role = driver) -->
+        <div id="alertsSection">
+          <h3>🔔 Alerts</h3>
+          <div id="alertSidebar" class="sidebar-list"></div>
+        </div>
 
         <h3>🛑 Passengers at Bus Stops</h3>
         <div id="passengerList" class="sidebar-list"></div>
@@ -187,13 +190,22 @@
         new Date().toLocaleTimeString();
     }, 1000);
 
-    // Role icon update
+    // Role icon update + hide/show Alerts section
     const roleSelect = document.getElementById("roleSelect");
     const roleIcon = document.getElementById("roleIcon");
+    const alertsSection = document.getElementById("alertsSection");
+
     roleSelect.addEventListener("change", () => {
       const selectedOption = roleSelect.options[roleSelect.selectedIndex];
       const bgImg = selectedOption.style.backgroundImage.replace(/url\(["']?|["']?\)/g, "");
       if (bgImg) roleIcon.src = bgImg;
+
+      // Hide alerts for drivers
+      if (roleSelect.value.toLowerCase().includes("driver")) {
+        alertsSection.style.display = "none";
+      } else {
+        alertsSection.style.display = "block";
+      }
     });
   </script>
 </body>
